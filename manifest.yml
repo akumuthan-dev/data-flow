@@ -1,3 +1,5 @@
 applications:
-- name: data-flow-api
+- name: data-flow
   buildpack: python_buildpack
+  services:
+    - data-flow-db

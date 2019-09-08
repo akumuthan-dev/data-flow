@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn dataworkflow.wsgi --config gunicorn.py 
+web: (airflow initdb; PYTHONPATH=/app:$PYTHONPATH airflow scheduler) & (sleep 1 && PYTHONPATH=/app:$PYTHONPATH airflow webserver -p 8080)

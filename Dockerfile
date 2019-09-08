@@ -1,14 +1,14 @@
 FROM python:3.7
 
+RUN mkdir -p /app
+
+ADD . /app
+
 ENV PYTHONUNBUFFERED 1
 
-RUN mkdir -p /dataflowapi
-WORKDIR /dataflowapi
-
-COPY . /dataflowapi
+WORKDIR /app
 
 RUN pip install -r requirements.txt
+RUN chmod +x ./entrypoint.sh
 
-RUN chmod +x /dataflowapi/entrypoint.sh
-
-ENTRYPOINT [ "/dataflowapi/entrypoint.sh" ]
+CMD ./entrypoint.sh

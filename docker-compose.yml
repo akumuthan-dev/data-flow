@@ -1,12 +1,22 @@
 version: '3'
 
 services:
-  dataflowapi-db:
+  data-flow-db:
     image: postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
 
-  dataflowapi:
+  data-flow:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - .:/app
     ports:
       - "8080:8080"
+      - "8793:8793"
+    env_file: .env
+    links:
+      - "data-flow-db"

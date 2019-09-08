@@ -1,0 +1,5 @@
+CREATE USER root;
+CREATE DATABASE airflow;
+GRANT ALL ON DATABASE airflow TO root;
+CREATE DATABASE datasets;
+GRANT ALL ON DATABASE datasets TO root;
