@@ -1,9 +1,12 @@
 from datetime import datetime
 
-from dataflow.meta.dataset_pipelines import OMISDatasetPipeline
+from dataflow.meta.dataset_pipelines import (
+    OMISDatasetPipeline,
+    InvestmentProjectsDatasetPipeline
+)
 
 
-class CompletedOMISOrderViewPipeline():
+class CompletedOMISOrderViewPipeline:
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2017, 11, 1)
@@ -29,7 +32,7 @@ class CompletedOMISOrderViewPipeline():
     schedule_interval = '@monthly'
 
 
-class CancelledOMISOrderViewPipeline():
+class CancelledOMISOrderViewPipeline:
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2017, 11, 1)
@@ -61,7 +64,7 @@ class CancelledOMISOrderViewPipeline():
     schedule_interval = '@monthly'
 
 
-class OMISClientSurveyViewPipeline():
+class OMISClientSurveyViewPipeline:
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2017, 11, 1)
@@ -87,6 +90,20 @@ class OMISClientSurveyViewPipeline():
     where_clause = """
         order_status = 'complete' AND
         date_trunc('month', completion_date)::DATE =
+            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+    """
+    schedule_interval = '@monthly'
+
+
+class InvestmentProjectsViewPipeline:
+    view_name = 'investment_projects'
+    dataset_pipeline = InvestmentProjectsDatasetPipeline
+    start_date = datetime(2017, 11, 1)
+    end_date = datetime(2018, 2, 1)
+    catchup = True
+    fields = '__all__'
+    where_clause = """
+        date_trunc('month', created_on)::DATE =
             date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'

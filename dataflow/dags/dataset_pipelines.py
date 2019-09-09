@@ -16,7 +16,7 @@ from dataflow.meta import dataset_pipelines
 from dataflow.utils import XCOMIntegratedPostgresOperator, get_defined_pipeline_classes_by_key
 
 
-dataset_pipelines = get_defined_pipeline_classes_by_key(dataset_pipelines, 'DatasetPipeline')
+dataset_pipeline_classes = get_defined_pipeline_classes_by_key(dataset_pipelines, 'DatasetPipeline')
 
 credentials = {
     'id': constants.HAWK_ID,
@@ -111,13 +111,13 @@ delete_all_and_insert = """
         {% endfor %}
         )
         VALUES
-        {% for omis_record in task_instance.xcom_pull(task_ids="run-omis-dataset-flow")  %}
+        {% for record in task_instance.xcom_pull(task_ids="run-dataset-pipeline")  %}
         (
             {% for st_field_name, _, _ in field_mapping %}
-                {% if not omis_record[st_field_name] or omis_record[st_field_name] == 'None' %}
+                {% if not record[st_field_name] or record[st_field_name] == 'None' %}
                     NULL
                 {% else %}
-                    {{ omis_record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
+                    {{ record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
                 {% endif %}
                 {{ "," if not loop.last }}
             {% endfor %}
@@ -140,13 +140,13 @@ delete_all_and_insert = """
     {% endfor %}
     )
     VALUES
-    {% for omis_record in task_instance.xcom_pull(task_ids="run-omis-dataset-flow")  %}
+    {% for record in task_instance.xcom_pull(task_ids="run-dataset-pipeline")  %}
     (
         {% for st_field_name, _, _ in field_mapping %}
-            {% if not omis_record[st_field_name] or omis_record[st_field_name] == 'None' %}
+            {% if not record[st_field_name] or record[st_field_name] == 'None' %}
                 NULL
             {% else %}
-                {{ omis_record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
+                {{ record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
             {% endif %}
             {{ "," if not loop.last }}
         {% endfor %}
@@ -156,14 +156,14 @@ delete_all_and_insert = """
 """
 
 
-for pipeline in dataset_pipelines:
+for pipeline in dataset_pipeline_classes:
     with DAG(
         pipeline.__name__,
         catchup=False,
         default_args=default_args,
         start_date=pipeline.start_date,
         end_date=pipeline.end_date,
-        schedule_interval='@monthly',
+        schedule_interval=pipeline.schedule_interval,
         user_defined_macros={
             'table_name': pipeline.table_name,
             'field_mapping': pipeline.field_mapping

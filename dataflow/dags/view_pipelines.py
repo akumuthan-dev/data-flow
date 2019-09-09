@@ -8,7 +8,7 @@ from dataflow.meta import view_pipelines
 from dataflow.utils import XCOMIntegratedPostgresOperator, get_defined_pipeline_classes_by_key
 
 
-view_pipelines = get_defined_pipeline_classes_by_key(view_pipelines, 'ViewPipeline')
+view_pipeline_classes = get_defined_pipeline_classes_by_key(view_pipelines, 'ViewPipeline')
 
 
 default_args = {
@@ -22,7 +22,8 @@ default_args = {
 
 create_view = """
     DROP VIEW IF EXISTS {{ view_name }}_{{ yesterday_ds | replace('-', '_') }};
-    CREATE VIEW {{ view_name }}_{{ yesterday_ds | replace('-', '_') }} AS SELECT
+    CREATE VIEW {{ view_name }}_{{ yesterday_ds | replace('-', '_') }}
+    AS SELECT
     {% for field_name, field_alias in fields %}
         {{ field_name }} AS "{{ field_alias }}"{{ "," if not loop.last }}
     {% endfor %}
@@ -42,14 +43,22 @@ if constants.DEBUG:
     """
 
 
-for pipeline in view_pipelines:
+for pipeline in view_pipeline_classes:
     user_defined_macros = {
         'view_name': pipeline.view_name,
         'table_name': pipeline.dataset_pipeline.table_name,
-        'fields': pipeline.fields,
     }
     if getattr(pipeline, 'params', None):
         user_defined_macros.update(pipeline.params)
+
+    if pipeline.fields == '__all__':
+        user_defined_macros.update({
+            'fields': [(field_name, field_name) for _, field_name, _ in pipeline.dataset_pipeline.field_mapping]
+        })
+    else:
+        user_defined_macros.update({
+            'fields': pipeline.fields
+        })
 
     with DAG(
         pipeline.__name__,

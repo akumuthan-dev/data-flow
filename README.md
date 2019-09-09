@@ -160,3 +160,4 @@ Add data-flow ip into HAWK_RECEIVER_IP_WHITELIST env var in data-hub production
              '@yearly' # Run once a year at midnight of January 1 CRON: 0 0 1 1 *
 - You can find all constants under dataflow/constants.py. Please avoid directly getting env vars from os module instead define it in constants.py file.
 - FINANCIAL_YEAR_FIRST_DAY_MONTH can be set as an environment variable. Currently, it's only being used in CancelledOMISOrderViewPipeline. Year of financial year first date is dynamically calculated based on the task's execution date.
+- If fields attribute of ViewPipeline is set to True, the view will be created by using regarding dataset fields. Use this when you want to include all fields in dataset without using alias.
