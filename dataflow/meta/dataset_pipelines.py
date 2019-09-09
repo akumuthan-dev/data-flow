@@ -9,11 +9,12 @@ class OMISDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
+    schedule_interval = '@monthly'
     field_mapping = [
         (
             'reference',
             'omis_order_reference',
-            'character varying(100) PRIMARY KEY'
+            'character varying(100)'
         ),
         (
             'company__name',
@@ -170,4 +171,415 @@ class OMISDatasetPipeline:
             'services',
             'text'
         ),
+    ]
+
+
+class InvestmentProjectsDatasetPipeline:
+    table_name = 'investment_projects_dataset'
+    source_url = '{}/v4/dataset/investment-projects-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        (
+            'actual_land_date',
+            'actual_land_date',
+            'date'
+        ),
+        (
+            'actual_uk_region_names',
+            'actual_uk_regions',
+            'text'
+        ),
+        (
+            'anonymous_description',
+            'anonymous_description',
+            'text'
+        ),
+        (
+            'archived',
+            'archived',
+            'boolean'
+        ),
+        (
+            'archived_by_name',
+            'archived_by_name',
+            'character varying(255)'
+        ),
+        (
+            'archived_by__dit_team__name',
+            'archived_by_team',
+            'text'
+        ),
+        (
+            'archived_on',
+            'archived_on',
+            'timestamp with time zone'
+        ),
+        (
+            'associated_non_fdi_r_and_d_project__id',
+            'associated_non_fdi_r_and_d_project_id',
+            'character varying(100)'
+        ),
+        (
+            'average_salary__name',
+            'average_salary',
+            'text'
+        ),
+        (
+            'business_activity_names',
+            'business_activities',
+            'text'
+        ),
+        (
+            'client_relationship_manager_name',
+            'client_relationship_manager_name',
+            'character varying(255)'
+        ),
+        (
+            'client_relationship_manager__dit_team__name',
+            'client_relationship_manager_team',
+            'text'
+        ),
+        (
+            'clint_requirements',
+            'client_requirements',
+            'text'
+        ),
+        (
+            'country_lost_to__name',
+            'country_lost_to',
+            'text'
+        ),
+        (
+            'created_by_name',
+            'created_by_name',
+            'character varying(255)'
+        ),
+        (
+            'created_by__dit_team__name',
+            'created_by_team',
+            'text'
+        ),
+        (
+            'created_on',
+            'created_on',
+            'timestamp with time zone'
+        ),
+        (
+            'date_abandoned',
+            'date_abandoned',
+            'date'
+        ),
+        (
+            'date_lost',
+            'date_lost',
+            'date'
+        ),
+        (
+            'delivery_partner_names',
+            'delivery_partners',
+            'text'
+        ),
+        (
+            'description',
+            'description',
+            'text NOT NULL'
+        ),
+        (
+            'id',
+            'dh_fdi_project_id',
+            'character varying(100)'
+        ),
+        (
+            'estimated_land_date',
+            'estimated_land_date',
+            'date'
+        ),
+        (
+            'export_revenue',
+            'export_revenue',
+            'boolean'
+        ),
+        (
+            'fdi_type__name',
+            'fdi_type',
+            'text'
+        ),
+        (
+            'fdi_value__name',
+            'fdi_value',
+            'text'
+        ),
+        (
+            'foreign_equity_investment',
+            'foreign_equity_investment',
+            'decimal'
+        ),
+        (
+            'government_assistance',
+            'government_assistance',
+            'boolean'
+        ),
+        (
+            'gross_value_added',
+            'gross_value_added',
+            'decimal'
+        ),
+        (
+            'gva_multiplier__multiplier',
+            'gva_multiplier',
+            'decimal'
+        ),
+        (
+            'investment_type__name',
+            'investment_type',
+            'text'
+        ),
+        (
+            'investor_company__address_1',
+            'investor_company_address_1',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__address_2',
+            'investor_company_address_2',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__address_postcode',
+            'investor_company_address_postcode',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__one_list_tier__name',
+            'investor_company_company_tier',
+            'text'
+        ),
+        (
+            'investor_company__address_country__name',
+            'investor_company_country',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__headquarter_type__name',
+            'investor_company_headquarter_type',
+            'text'
+        ),
+        (
+            'investor_company__id',
+            'investor_company_id',
+            'character varying(100)'
+        ),
+        (
+            'investor_company__name',
+            'investor_company_name',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__sector__segment',
+            'investor_company_sector',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__uk_region__name',
+            'investor_company_uk_region',
+            'text'
+        ),
+        (
+            'investor_type__name',
+            'investor_type',
+            'text'
+        ),
+        (
+            'level_of_involment__name',
+            'level_of_involvement',
+            'text'
+        ),
+        (
+            'likehood_to_land__name',
+            'likelihood_to_land',
+            'text'
+        ),
+        (
+            'modified_by_name',
+            'modified_by_name',
+            'character varying(255)'
+        ),
+        (
+            'modified_by__dit_team__name',
+            'modified_by_team',
+            'text'
+        ),
+        (
+            'modified_on',
+            'modified_on',
+            'timestamp with time zone'
+        ),
+        (
+            'name',
+            'name',
+            'character varying(255) NOT NULL'
+        ),
+        (
+            'new_tech_to_uk',
+            'new_tech_to_uk',
+            'boolean'
+        ),
+        (
+            'non_fdi_r_and_d_budget',
+            'non_fdi_r_and_d_budget',
+            'boolean'
+        ),
+        (
+            'number_new_jobs',
+            'number_new_jobs',
+            'integer'
+        ),
+        (
+            'number_safeguarded_jobs',
+            'number_safeguarded_jobs',
+            'integer'
+        ),
+        (
+            'allow_blank_possible_uk_regions',
+            'possible_uk_regions',
+            'boolean'
+        ),
+        (
+            'project_arrived_in_triage_on',
+            'project_arrived_in_triage_on',
+            'date'
+        ),
+        (
+            'investor_company__project_assurance_adviser_name',
+            'project_assurance_adviser_name',
+            'character varying(255)'
+        ),
+        (
+            'investor_company__project_assurance_adviser__dit_team__name',
+            'project_assurance_adviser_team',
+            'text'
+        ),
+        (
+            'project_manager_name',
+            'project_manager_name',
+            'character varying(255)'
+        ),
+        (
+            'project_manager__dit_team__name',
+            'project_manager_team',
+            'text'
+        ),
+        (
+            'proposal_deadline',
+            'proposal_deadline',
+            'date'
+        ),
+        (
+            'quotable_as_public_case_study',
+            'quotable_as_public_case_study',
+            'boolean'
+        ),
+        (
+            'r_and_d_budget',
+            'r_and_d_budget',
+            'boolean'
+        ),
+        (
+            'referral_source_activity__name',
+            'referral_source_activity',
+            'text'
+        ),
+        (
+            'referral_source_activity_marketing__name',
+            'referral_source_activity_marketing',
+            'text'
+        ),
+        (
+            'referral_source_activity_website__name',
+            'referral_source_activity_website',
+            'text'
+        ),
+        (
+            'sector__segment',
+            'sector',
+            'character varying(255)'
+        ),
+        (
+            'some_new_jobs',
+            'some_new_jobs',
+            'boolean'
+        ),
+        (
+            'specific_programme__name',
+            'specific_programme',
+            'text'
+        ),
+        (
+            'stage__name',
+            'stage',
+            'text NOT NULL'
+        ),
+        (
+            'status',
+            'status',
+            'character varying(255)'
+        ),
+        (
+            'strategic_drivers',
+            'strategic_drivers',
+            'text'
+        ),
+        (
+            'team_member_names',
+            'team_members',
+            'text'
+        ),
+        (
+            'total_investment',
+            'total_investment',
+            'decimal'
+        ),
+        (
+            'uk_company__address_1',
+            'uk_company_address',
+            'character varying(255)'
+        ),
+        (
+            'uk_company__address_country__name',
+            'uk_company_country',
+            'character varying(255)'
+        ),
+        (
+            'uk_company_decided',
+            'uk_company_decided',
+            'boolean'
+        ),
+        (
+            'uk_company__id',
+            'uk_company_id',
+            'character varying(100)'
+        ),
+        (
+            'uk_company__name',
+            'uk_company_name',
+            'character varying(255)'
+        ),
+        (
+            'uk_company__address_postcode',
+            'uk_company_postcode',
+            'character varying(255)'
+        ),
+        (
+            'uk_company__sector__segment',
+            'uk_company_sector',
+            'character varying(255)'
+        ),
+        (
+            'uk_company__uk_region__name',
+            'uk_company_uk_region',
+            'text'
+        )
     ]
