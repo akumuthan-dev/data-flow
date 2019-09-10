@@ -183,6 +183,16 @@ class InvestmentProjectsDatasetPipeline:
     schedule_interval = '@daily'
     field_mapping = [
         (
+            'account_manager_name',
+            'account_manager_name',
+            'text'
+        ),
+        (
+            'account_manager_team',
+            'account_manager_team',
+            'text'
+        ),
+        (
             'actual_land_date',
             'actual_land_date',
             'date'
@@ -191,6 +201,11 @@ class InvestmentProjectsDatasetPipeline:
             'actual_uk_region_names',
             'actual_uk_regions',
             'text'
+        ),
+        (
+            'allow_blank_possible_uk_regions',
+            'possible_uk_regions',
+            'boolean'
         ),
         (
             'anonymous_description',
@@ -248,6 +263,11 @@ class InvestmentProjectsDatasetPipeline:
             'text'
         ),
         (
+            'competing_countries',
+            'competing_countries',
+            'text'
+        ),
+        (
             'country_lost_to__name',
             'country_lost_to',
             'text'
@@ -278,6 +298,11 @@ class InvestmentProjectsDatasetPipeline:
             'date'
         ),
         (
+            'date_of_latest_interaction',
+            'date_of_latest_interaction',
+            'date'
+        ),
+        (
             'delivery_partner_names',
             'delivery_partners',
             'text'
@@ -286,11 +311,6 @@ class InvestmentProjectsDatasetPipeline:
             'description',
             'description',
             'text NOT NULL'
-        ),
-        (
-            'id',
-            'dh_fdi_project_id',
-            'character varying(100)'
         ),
         (
             'estimated_land_date',
@@ -333,6 +353,11 @@ class InvestmentProjectsDatasetPipeline:
             'decimal'
         ),
         (
+            'id',
+            'dh_fdi_project_id',
+            'character varying(100)'
+        ),
+        (
             'investment_type__name',
             'investment_type',
             'text'
@@ -348,18 +373,18 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)'
         ),
         (
+            'investor_company__address_country__name',
+            'investor_company_country',
+            'character varying(255)'
+        ),
+        (
             'investor_company__address_postcode',
             'investor_company_address_postcode',
             'character varying(255)'
         ),
         (
-            'investor_company__one_list_tier__name',
-            'investor_company_company_tier',
-            'text'
-        ),
-        (
-            'investor_company__address_country__name',
-            'investor_company_country',
+            'investor_company__company_number',
+            'investor_company_comp_house_id',
             'character varying(255)'
         ),
         (
@@ -378,7 +403,37 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'investor_company__sector__segment',
+            'investor_company__one_list_tier__name',
+            'investor_company_company_tier',
+            'text'
+        ),
+        (
+            'investor_company_contact_accepts_dit_marketing',
+            'investor_company_contact_accepts_dit_email_marketing',
+            'boolean'
+        ),
+        (
+            'investor_company_contact_email',
+            'investor_company_contact_email',
+            'character varying(255)'
+        ),
+        (
+            'investor_company_contact_marked_as_primary_contact',
+            'investor_company_contact_marked_as_primary_contact',
+            'boolean'
+        ),
+        (
+            'investor_company_contact_name',
+            'investor_company_contact_name',
+            'character varying(255)'
+        ),
+        (
+            'investor_company_contact_phone',
+            'investor_company_contact_phone',
+            'character varying(255)'
+        ),
+        (
+            'investor_company_sector',
             'investor_company_sector',
             'character varying(255)'
         ),
@@ -393,12 +448,12 @@ class InvestmentProjectsDatasetPipeline:
             'text'
         ),
         (
-            'level_of_involment__name',
+            'level_of_involvement_name',
             'level_of_involvement',
             'text'
         ),
         (
-            'likehood_to_land__name',
+            'likelihood_to_land__name',
             'likelihood_to_land',
             'text'
         ),
@@ -443,22 +498,17 @@ class InvestmentProjectsDatasetPipeline:
             'integer'
         ),
         (
-            'allow_blank_possible_uk_regions',
-            'possible_uk_regions',
-            'boolean'
-        ),
-        (
             'project_arrived_in_triage_on',
             'project_arrived_in_triage_on',
             'date'
         ),
         (
-            'investor_company__project_assurance_adviser_name',
+            'project_assurance_adviser_name',
             'project_assurance_adviser_name',
             'character varying(255)'
         ),
         (
-            'investor_company__project_assurance_adviser__dit_team__name',
+            'project_assurance_adviser__dit_team__name',
             'project_assurance_adviser_team',
             'text'
         ),
@@ -470,6 +520,11 @@ class InvestmentProjectsDatasetPipeline:
         (
             'project_manager__dit_team__name',
             'project_manager_team',
+            'text'
+        ),
+        (
+            'project_reference',
+            'project_reference',
             'text'
         ),
         (
@@ -503,7 +558,7 @@ class InvestmentProjectsDatasetPipeline:
             'text'
         ),
         (
-            'sector__segment',
+            'sector_name',
             'sector',
             'character varying(255)'
         ),
@@ -528,7 +583,7 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'strategic_drivers',
+            'strategic_driver_names',
             'strategic_drivers',
             'text'
         ),
@@ -553,9 +608,14 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'uk_company_decided',
-            'uk_company_decided',
-            'boolean'
+            'uk_company__address_postcode',
+            'uk_company_postcode',
+            'character varying(255)'
+        ),
+        (
+            'uk_company__company_number',
+            'uk_company_comp_house_id',
+            'character varying(255)'
         ),
         (
             'uk_company__id',
@@ -568,18 +628,43 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'uk_company__address_postcode',
-            'uk_company_postcode',
-            'character varying(255)'
-        ),
-        (
-            'uk_company__sector__segment',
-            'uk_company_sector',
-            'character varying(255)'
-        ),
-        (
             'uk_company__uk_region__name',
             'uk_company_uk_region',
             'text'
-        )
+        ),
+        (
+            'uk_company_contact_accepts_dit_email_marketing',
+            'uk_company_contact_accepts_dit_email_marketing',
+            'boolean'
+        ),
+        (
+            'uk_company_contact_email',
+            'uk_company_contact_email',
+            'character varying(255)'
+        ),
+        (
+            'uk_company_contact_marked_as_primary_contact',
+            'uk_company_contact_marked_as_primary_contact',
+            'boolean'
+        ),
+        (
+            'uk_company_contact_name',
+            'uk_company_contact_name',
+            'character varying(255)'
+        ),
+        (
+            'uk_company_contact_phone',
+            'uk_company_contact_phone',
+            'character varying(255)'
+        ),
+        (
+            'uk_company_decided',
+            'uk_company_decided',
+            'boolean'
+        ),
+        (
+            'uk_company_sector',
+            'uk_company_sector',
+            'character varying(255)'
+        ),
     ]
