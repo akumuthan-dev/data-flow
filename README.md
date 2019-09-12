@@ -1,7 +1,8 @@
 # Data Flow
 
-## Data Flow uses airflow to manage data pipelines; 
-## Currently between datahub and dataworkspace. It manages a certain pipeline structure until more pipelines introduced:
+Data Flow uses airflow to manage data pipelines between datahub and dataworkspace.
+It manages a certain pipeline structure until more pipelines introduced:
+
 - Task 1: Check if target table exists (PostgresOperator)
 - Task 2: Get all paginated data from source by making hawk authenticated GET request to given source API's URL. (PythonOperator)
 - Task 3: If target table in place (result from Task 1), test validity of incoming data by creating copy table and inserting data there before doing any change on target table. Then, insert fetched data (result from Task 2) into target table
@@ -14,9 +15,12 @@ There are currently two generic pipeline structure uses meta objects to dynamica
 
 They are placed under dataflow/meta folder. Please check regarding docstrings for more information about meta objects.
 
-## Add your dataset pipeline to dataflow/meta/datasets_flow.py
-#### Pipeline name must contain 'DatasetPipeline' to be scheduled
-## Example DatasetFlow
+
+## How to define dataset pipeline
+Add your dataset pipeline to dataflow/meta/datasets_flow.py
+(Pipeline name must contain 'DatasetPipeline' to be scheduled)
+
+- Example DatasetFlow
 ```
 class OMISDatasetPipeline:
     # Target table name
@@ -61,8 +65,10 @@ class OMISDatasetPipeline:
    ]
 ``` 
 
-## Add your view pipeline to dataflow/meta/view_pipelines.py
-#### Pipeline name must contain 'ViewPipeline' to be scheduled
+## How to define view pipeline
+ Add your view pipeline to dataflow/meta/view_pipelines.py
+ Pipeline name must contain 'ViewPipeline' to be scheduled
+
 'where_clause' is jinja2 templated, you can use custom by passing params or use airflow builtin macros
 For more info: https://airflow.apache.org/macros.html
 
@@ -109,7 +115,7 @@ class CompletedOMISOrderViewPipeline():
 
 ## Deployment to production steps:
 
-### Step 1: Set ENV variables (sample.env can be used as a reference, or check below)
+- Step 1: Set ENV variables (sample.env can be used as a reference, or check below)
 
 - AIRFLOW_CONN_DATASETS_DB = postgresql+psycopg2://'{{ datasets_db_connection_uri }}'
 - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://'{{ airflow_meta_db_connection_uri }}'
@@ -138,13 +144,13 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 - HAWK_ALGORITHM=sha256
 - PYTHONPATH='{{ project_root_directory }}':$PYTHONPATH
 
-### Step 2: 
+- Step 2:
 Project is configured for buildpack deployment on PaaS, normal process can be followed to deploy on PaaS
-### Step 3: 
+- Step 3:
 As described in step 1,
 	set DATA_FLOW_API_ACCESS_KEY_ID and 
 	    DATA_FLOW_API_SECRET_ACCESS_KEY env vars in data-hub production
-### Step 4: 
+- Step 4:
 Add data-flow ip into HAWK_RECEIVER_IP_WHITELIST env var in data-hub production
 
 
