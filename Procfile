@@ -1,1 +1,1 @@
-web: (airflow initdb; PYTHONPATH=/app:$PYTHONPATH airflow scheduler) & (sleep 1 && PYTHONPATH=/app:$PYTHONPATH airflow webserver -p 8080)
+web: (AIRFLOW__CORE__SQL_ALCHEMY_CONN=$DATABASE_URL airflow initdb; AIRFLOW__CORE__SQL_ALCHEMY_CONN=$DATABASE_URL PYTHONPATH=/app:$PYTHONPATH airflow scheduler) & (sleep 1 && AIRFLOW__CORE__SQL_ALCHEMY_CONN=$DATABASE_URL PYTHONPATH=/app:$PYTHONPATH airflow webserver -p 8080)

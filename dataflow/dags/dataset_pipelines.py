@@ -26,7 +26,7 @@ credentials = {
 
 
 def run_fetch(source_url, **kwargs):
-    """Recursively runs to fetch data from source.
+    """Fetch data from source.
     Args:
         source_url (str): URL for API Endpoint to fetch data from source.
 
@@ -81,7 +81,6 @@ def run_fetch(source_url, **kwargs):
             break
 
     print('Fetching from source completed')
-    print(f'Response Data: \n {results}')
     return results
 
 
