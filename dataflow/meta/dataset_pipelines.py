@@ -19,27 +19,27 @@ class OMISDatasetPipeline:
         (
             'company__name',
             'company_name',
-            'character varying(255) NOT NULL'
+            'character varying(255)'
         ),
         (
             'status',
             'order_status',
-            'character varying(100) NOT NULL'
+            'character varying(100)'
         ),
         (
             'contact__first_name',
             'contact_first_name',
-            'character varying(255) NOT NULL'
+            'character varying(255)'
         ),
         (
             'contact__last_name',
             'contact_last_name',
-            'character varying(255) NOT NULL'
+            'character varying(255)'
         ),
         (
             'contact__email',
             'contact_email',
-            'character varying(255) NOT NULL'
+            'character varying(255)'
         ),
         (
             'contact__telephone_number',
@@ -310,7 +310,7 @@ class InvestmentProjectsDatasetPipeline:
         (
             'description',
             'description',
-            'text NOT NULL'
+            'text'
         ),
         (
             'estimated_land_date',

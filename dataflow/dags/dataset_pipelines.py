@@ -1,15 +1,17 @@
-import os
-
 from datetime import timedelta
+import json
 
+import logging
 import requests
 
 from airflow import DAG
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 
 from mohawk import Sender
 from mohawk.exc import HawkFail
+from jinja2 import Template
 
 from dataflow import constants
 from dataflow.meta import dataset_pipelines
@@ -37,13 +39,25 @@ def run_fetch(source_url, **kwargs):
         'results': [list of dict]
     }
 
+    Notes:
+    XCOM isn't used to transfer data between tasks because it is not built to handle
+    very large data transfer between tasks.
+    Saving fetched records into a file would prevent us from scaling with celery, saving into
+    a single variable causes worker shutdown due to high memory usage. That's why,
+    this saves paginated response into indexed named variables and returns variable names
+    to be consumed by the task which inserts data into regarding table. Alternatives are;
+    - Shared network storage
+    - S3 (Security risk)
+
     Example source_url.
         source_url = https://datahub-api-demo.london.cloudapps.digital/v4/datasets/omis-dataset
     TODO:
         By the impletation of other Datasets pipeline, there will be more generic structure to
         support various pipeline types.
     """
-    results = []
+    result_variable_name_prefix = kwargs['fetch_task_id']
+    variable_names = []
+    index = 0
     while True:
         sender = Sender(
             credentials,
@@ -72,45 +86,53 @@ def run_fetch(source_url, **kwargs):
         if 'results' not in response_json or 'next' not in response_json:
             raise Exception('Unexpected response structure')
 
-        results += response_json['results']
+        Variable.set(
+            f'{result_variable_name_prefix}{index}',
+            response_json['results'],
+            serialize_json=True
+        )
+        variable_names.append(f'{result_variable_name_prefix}{index}')
         next_page = response_json['next']
         if next_page:
+            index += 1
             source_url = next_page
-            print('Moving on to the next page')
+            logging.info('Moving on to the next page')
         else:
             break
 
-    print('Fetching from source completed')
-    return results
+    logging.info('Fetching from source completed')
+    return variable_names
 
 
-default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-}
+def create_and_insert_into(target_db, **kwargs):
+    """Insert fetched data into target database table.
+    If target table doesn't exits, it creates one and inserts fetched data into it. 
+    If it exists, it'll try to create and insert into a copy table before running any query
+    against target table.
+    """
 
-check_if_table_exists = """
-    SELECT to_regclass('{{ table_name }}');
-"""
+    create_table_sql = """
+        CREATE TABLE "{{ table_name }}" (
+        {% for _, tt_field_name, tt_field_constraints in field_mapping %}
+            {{ tt_field_name }} {{ tt_field_constraints }}{{ "," if not loop.last }}
+        {% endfor %}
+        );
+    """
 
-delete_all_and_insert = """
-    {% if task_instance.xcom_pull(task_ids="check-if-table-exists")[0][0] and
-        task_instance.xcom_pull(task_ids="check-if-table-exists")[0][0] != 'None' %}
-
+    create_copy_table_sql = """
         CREATE TABLE "{{ table_name }}_copy" as
             SELECT * from "{{ table_name }}"
         with no data;
-        INSERT INTO "{{ table_name }}_copy" (
+    """
+
+    insert_into_sql = """
+        INSERT INTO "{{ table_name }}" (
         {% for _, tt_field_name, _ in field_mapping %}
             {{ tt_field_name }}{{ "," if not loop.last }}
         {% endfor %}
         )
         VALUES
-        {% for record in task_instance.xcom_pull(task_ids="run-dataset-pipeline")  %}
+        {% for record in record_subset %}
         (
             {% for st_field_name, _, _ in field_mapping %}
                 {% if not record[st_field_name] or record[st_field_name] == 'None' %}
@@ -123,39 +145,97 @@ delete_all_and_insert = """
         {{ ")," if not loop.last }}
         {% endfor %}
         );
-        DROP TABLE "{{ table_name }}_copy";
-        DELETE FROM "{{ table_name }}";
-    {% else %}
-        CREATE TABLE "{{ table_name }}" (
-        {% for _, tt_field_name, tt_field_constraints in field_mapping %}
-            {{ tt_field_name }} {{ tt_field_constraints }}{{ "," if not loop.last }}
-        {% endfor %}
-        );
-    {% endif %}
+    """
 
-    INSERT INTO "{{ table_name }}" (
-    {% for _, tt_field_name, _ in field_mapping %}
-        {{ tt_field_name }}{{ "," if not loop.last }}
-    {% endfor %}
-    )
-    VALUES
-    {% for record in task_instance.xcom_pull(task_ids="run-dataset-pipeline")  %}
-    (
-        {% for st_field_name, _, _ in field_mapping %}
-            {% if not record[st_field_name] or record[st_field_name] == 'None' %}
-                NULL
-            {% else %}
-                {{ record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
-            {% endif %}
-            {{ "," if not loop.last }}
-        {% endfor %}
-    {{ ")," if not loop.last }}
-    {% endfor %}
-    );
-"""
+    def execute_insert_into(
+        target_db_cursor,
+        table_name,
+        var_names,
+        field_mapping,
+    ):
 
+        for var_name in var_names:
+            record_subset = json.loads(Variable.get(var_name))
+            sql = Template(insert_into_sql).render(
+                table_name=table_name,
+                field_mapping=field_mapping,
+                record_subset=record_subset,
+            )
+            target_db_cursor.execute(sql)
+
+        target_db_conn.commit()
+
+    table_name = kwargs['table_name']
+    field_mapping = kwargs['field_mapping']
+    run_fetch_task_id = kwargs['fetch_task_id']
+    task_instance = kwargs['task_instance']
+
+    # Get name of variables which hold paginated response result
+    var_names = task_instance.xcom_pull(task_ids=run_fetch_task_id)
+    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')
+    try:
+        target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
+        target_db_cursor = target_db_conn.cursor()
+
+        # If table already exists in the target database, try inserting fetched data into
+        # a copy table to protect target table. If succeeds, delete all data from target table
+        # until there will be possibility for incremental load
+        if table_exists and table_exists != 'None':
+            rendered_create_copy_table_sql = Template(create_copy_table_sql).render(
+                table_name=table_name,
+                field_mapping=field_mapping,
+            )
+            target_db_cursor.execute(rendered_create_copy_table_sql)
+
+            execute_insert_into(
+                target_db_cursor,
+                f'{table_name}_copy',
+                var_names,
+                field_mapping,
+            )
+            target_db_cursor.execute(f'DELETE FROM {table_name};')
+
+        else:
+            rendered_create_table_sql = Template(create_table_sql).render(
+                table_name=table_name,
+                field_mapping=field_mapping,
+            )
+            target_db_cursor.execute(rendered_create_table_sql)
+
+            execute_insert_into(
+                target_db_cursor,
+                table_name,
+                var_names,
+                field_mapping,
+            )
+
+    # TODO: Gotta Catch'm all
+    except Exception as e:
+        logging.error(f'Exception: {e}')
+        target_db_conn.rollback()
+
+    finally:
+        if target_db_conn:
+            target_db_cursor.close()
+            target_db_conn.close()
+
+
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+check_if_table_exists = "SELECT to_regclass('{{ table_name }}');"
+
+select_from_target_table = 'SELECT * FROM "%s";'
 
 for pipeline in dataset_pipeline_classes:
+    run_fetch_task_id = f'RunFetch{pipeline.__name__}'
+
     with DAG(
         pipeline.__name__,
         catchup=False,
@@ -165,11 +245,12 @@ for pipeline in dataset_pipeline_classes:
         schedule_interval=pipeline.schedule_interval,
         user_defined_macros={
             'table_name': pipeline.table_name,
-            'field_mapping': pipeline.field_mapping
+            'field_mapping': pipeline.field_mapping,
+            'fetch_task_id': run_fetch_task_id,
         }
     ) as dag:
         t1 = PythonOperator(
-            task_id='run-dataset-pipeline',
+            task_id=run_fetch_task_id,
             python_callable=run_fetch,
             provide_context=True,
             op_args=[f'{pipeline.source_url}'],
@@ -181,10 +262,19 @@ for pipeline in dataset_pipeline_classes:
             postgres_conn_id=pipeline.target_db
         )
 
-        t3 = PostgresOperator(
-            task_id='delete-all-and-insert',
-            sql=delete_all_and_insert,
-            postgres_conn_id=pipeline.target_db,
+        t3 = PythonOperator(
+            task_id='create-and-insert',
+            python_callable=create_and_insert_into,
+            provide_context=True,
+            op_args=[f'{pipeline.target_db}'],
         )
-        t3 << [t1, t2]
+        if constants.DEBUG:
+            t4 = XCOMIntegratedPostgresOperator(
+                task_id='debug-select-from-target-table',
+                sql=select_from_target_table,
+                postgres_conn_id=pipeline.target_db,
+                parameters=[pipeline.table_name],
+            )
+
+        t4 << t3 << [t1, t2]
         globals()[pipeline.__name__] = dag
