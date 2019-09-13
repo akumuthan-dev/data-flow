@@ -139,7 +139,7 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 - AUTHBROKER_URL=https://sso.trade.gov.uk/
 - AUTHBROKER_ALLOWED_DOMAINS='digitial.trade.gov.uk,trade.gov.uk’
 - DATAHUB_BASE_URL='{{ production-data-hub-url }}'
-- FINANCIAL_YEAR_FIRST_DAY_MONTH='4-10'
+- FINANCIAL_YEAR_FIRST_MONTH_DAY='04-25'
 - DEBUG=False
 - HAWK_ID='{{ data-flow-hawk-id }}' # Needs to be defined in env var DATA_FLOW_API_ACCESS_KEY_ID in data-hub production
 - HAWK_KEY=some-key # Needs to be defined in env var DATA_FLOW_API_SECRET_ACCESS_KEY
@@ -169,3 +169,8 @@ Add data-flow ip into HAWK_RECEIVER_IP_WHITELIST env var in data-hub production
 - You can find all constants under dataflow/constants.py. Please avoid directly getting env vars from os module instead define it in constants.py file.
 - FINANCIAL_YEAR_FIRST_DAY_MONTH can be set as an environment variable. Currently, it's only being used in CancelledOMISOrderViewPipeline. Year of financial year first date is dynamically calculated based on the task's execution date.
 - If fields attribute of ViewPipeline is set to True, the view will be created by using regarding dataset fields. Use this when you want to include all fields in dataset without using alias.
+- Airflow creates a dag run for each completed interval between start date and end date. And it doesn't support scheduling tasks for end of each month. It means when August 1 2019 task is triggered, execution day is August 1 but current day is September 1 2019. Mind this when you filter your views. Please refer bellow code to get last day of execution month in jinja templated fields.
+```
+date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+	macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
+```

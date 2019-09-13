@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from dataflow import constants
 from dataflow.meta.dataset_pipelines import (
     OMISDatasetPipeline,
     InvestmentProjectsDatasetPipeline
@@ -9,13 +10,13 @@ from dataflow.meta.dataset_pipelines import (
 class CompletedOMISOrderViewPipeline:
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 8, 1)
+    start_date = datetime(2019, 7, 1)
     end_date = None
     catchup = True
     fields = [
         ('company_name', 'Company Name'),
         ('dit_team', 'DIT Team'),
-        ('subtotal', 'Subtotal'),
+        ('subtotal::numeric/100', 'Subtotal'),
         ('uk_region', 'UK Region'),
         ('market', 'Market'),
         ('sector', 'Sector'),
@@ -27,7 +28,8 @@ class CompletedOMISOrderViewPipeline:
     where_clause = """
         order_status = 'complete' AND
         date_trunc('month', completion_date)::DATE =
-            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
 
@@ -35,13 +37,13 @@ class CompletedOMISOrderViewPipeline:
 class CancelledOMISOrderViewPipeline:
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 8, 1)
+    start_date = datetime(2019, 7, 1)
     end_date = None
     catchup = True
     fields = [
         ('omis_order_reference', 'OMIS Order Reference'),
         ('company_name', 'Company Name'),
-        ('net_price', 'Net Price'),
+        ('net_price::numeric/100', 'Net Price'),
         ('dit_team', 'DIT Team'),
         ('market', 'Market'),
         ('sector', 'Sector'),
@@ -59,7 +61,7 @@ class CancelledOMISOrderViewPipeline:
         {% endif %}
     """
     params = {
-        'month_day_financial_year': '04-01'
+        'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY
     }
     schedule_interval = '@monthly'
 
@@ -67,7 +69,7 @@ class CancelledOMISOrderViewPipeline:
 class OMISClientSurveyViewPipeline:
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 8, 1)
+    start_date = datetime(2019, 7, 1)
     end_date = None
     catchup = True
     fields = [
@@ -90,7 +92,8 @@ class OMISClientSurveyViewPipeline:
     where_clause = """
         order_status = 'complete' AND
         date_trunc('month', completion_date)::DATE =
-            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
 
@@ -98,12 +101,13 @@ class OMISClientSurveyViewPipeline:
 class InvestmentProjectsViewPipeline:
     view_name = 'investment_projects'
     dataset_pipeline = InvestmentProjectsDatasetPipeline
-    start_date = datetime(2019, 8, 1)
+    start_date = datetime(2019, 7, 1)
     end_date = None
     catchup = True
     fields = '__all__'
     where_clause = """
         date_trunc('month', created_on)::DATE =
-            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'

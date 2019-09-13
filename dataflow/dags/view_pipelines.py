@@ -21,15 +21,14 @@ default_args = {
 }
 
 create_view = """
-    DROP VIEW IF EXISTS {{ view_name }}_{{ yesterday_ds | replace('-', '_') }};
-    CREATE VIEW {{ view_name }}_{{ yesterday_ds | replace('-', '_') }}
+    DROP VIEW IF EXISTS {{ view_name }}_{{ (macros.datetime.strptime(ds, '%Y-%m-%d') + macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)).date() | replace('-', '_') }};
+    CREATE VIEW {{ view_name }}_{{ (macros.datetime.strptime(ds, '%Y-%m-%d') + macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)).date() | replace('-', '_') }}
     AS SELECT
     {% for field_name, field_alias in fields %}
         {{ field_name }} AS "{{ field_alias }}"{{ "," if not loop.last }}
     {% endfor %}
     FROM "{{ table_name }}"
     WHERE
-
 """
 
 if constants.DEBUG:
