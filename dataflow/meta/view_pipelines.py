@@ -5,6 +5,7 @@ from dataflow import constants
 from dataflow.meta.dataset_pipelines import (
     InvestmentProjectsDatasetPipeline,
     OMISDatasetPipeline,
+    ServiceDeliveriesAndInteractionsDatasetPipeline
 )
 
 
@@ -135,5 +136,19 @@ class InvestmentProjectsViewPipeline:
         date_trunc('month', created_on)::DATE =
             date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
                 macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
+    """
+    schedule_interval = '@monthly'
+
+
+class ServiceDeliveriesAndInteractionsViewPipeline:
+    view_name = 'service_deliveries_and_interactions'
+    dataset_pipeline = ServiceDeliveriesAndInteractionsDatasetPipeline
+    start_date = datetime(2017, 11, 1)
+    end_date = datetime(2018, 2, 1)
+    catchup = True
+    fields = '__all__'
+    where_clause = """
+        date_trunc('month', created_on)::DATE =
+            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'

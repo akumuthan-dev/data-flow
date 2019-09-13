@@ -674,3 +674,236 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)',
         ),
     ]
+
+
+class ServiceDeliveriesAndInteractionsDatasetPipeline:
+    table_name = 'service_deliveries_and_interactions_dataset'
+    source_url = '{}/v4/dataset/service-deliveries-and-interactions-dataset'.format(
+        constants.DATAHUB_BASE_URL
+    )
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        (
+            'date',
+            'interaction_date',
+            'date'
+        ),
+        (
+            'kind',
+            'interaction_kind',
+            'character varying(255)'
+        ),
+        (
+            'company__name',
+            'company_name',
+            'character varying(255)'
+        ),
+        (
+            'company__company_number',
+            'company_number',
+            'character varying(255)'
+        ),
+        (
+            'company__id',
+            'company_id',
+            'uuid'
+        ),
+        (
+            'investment_project__cdms_project_code',
+            'cdms_project_code',
+            'character varying(255)'
+        ),
+        (
+            'company__address_postcode',
+            'company_address_postcode',
+            'character varying(255)'
+        ),
+        (
+            'company__address_1',
+            'company_address_1',
+            'character varying(255)'
+        ),
+        (
+            'company__address_2',
+            'company_address_2',
+            'character varying(255)'
+        ),
+        (
+            'company__address_town',
+            'company_address_town',
+            'character varying(255)'
+        ),
+        (
+            'company__address_country__name',
+            'company_address_country',
+            'character varying(255)'
+        ),
+        (
+            'company__website',
+            'company_website',
+            'character varying(255)'
+        ),
+        (
+            'company__employee_range__name',
+            'company_employee_range',
+            'character varying(255)'
+        ),
+        (
+            'company__turnover_range__name',
+            'company_turnover_range',
+            'character varying(255)'
+        ),
+        (
+            'company__uk_region__name',
+            'company_uk_region',
+            'character varying(255)'
+        ),
+        (
+            'subject',
+            'interaction_subject',
+            'text'
+        ),
+        (
+            'notes',
+            'interaction_notes',
+            'text'
+        ),
+        (
+            'net_company_receipt',
+            'net_company_receipt',
+            'decimal'
+        ),
+        (
+            'grant_amount_offered',
+            'grant_amount_offered',
+            'decimal'
+        ),
+        (
+            'service_delivery_status__name',
+            'service_delivery_status',
+            'character varying(255)'
+        ),
+        (
+            'event__name',
+            'event_name',
+            'character varying(255)'
+        ),
+        (
+            'event__event_type__name',
+            'event_type',
+            'character varying(255)'
+        ),
+        (
+            'event__start_date',
+            'event_start_date',
+            'date'
+        ),
+        (
+            'event__address_town',
+            'event_address_town',
+            'character varying(255)'
+        ),
+        (
+            'event__address_country__name',
+            'event_address_country',
+            'character varying(255)'
+        ),
+        (
+            'event__uk_region__name',
+            'event_address_region',
+            'character varying(255)'
+        ),
+        (
+            'created_on',
+            'created_on',
+            'timestamp with time zone'
+        ),
+        (
+            'communication_channel__name',
+            'communication_channel',
+            'character varying(255)'
+        ),
+        (
+            'sector',
+            'sector',
+            'character varying(255)'
+        ),
+        (
+            'interaction_link',
+            'interaction_link',
+            'character varying(255)'
+        ),
+        (
+            'adviser_name',
+            'adviser_name',
+            'character varying(255)'
+        ),
+        (
+            'adviser_phone',
+            'adviser_phone',
+            'character varying(255)'
+        ),
+        (
+            'adviser_email',
+            'adviser_email',
+            'character varying(255)'
+        ),
+        (
+            'adviser_team',
+            'adviser_team',
+            'character varying(255)'
+        ),
+        (
+            'service_delivery',
+            'service_delivery',
+            'character varying(255)'
+        ),
+        (
+            'event_service',
+            'event_service',
+            'character varying(255)'
+        ),
+        (
+            'contact_name',
+            'contact_name',
+            'character varying(255)'
+        ),
+        (
+            'contact_telephone_number',
+            'contact_telephone_number',
+            'character varying(255)'
+        ),
+        (
+            'contact_email',
+            'contact_email',
+            'character varying(255)'
+        ),
+        (
+            'contact_address_postcode',
+            'contact_address_postcode',
+            'character varying(255)'
+        ),
+        (
+            'contact_address_1',
+            'contact_address_1',
+            'character varying(255)'
+        ),
+        (
+            'contact_address_2',
+            'contact_address_2',
+            'character varying(255)'
+        ),
+        (
+            'contact_address_town',
+            'contact_address_town',
+            'character varying(255)'
+        ),
+        (
+            'contact_address_country',
+            'contact_address_country',
+            'character varying(255)'
+        ),
+    ]
