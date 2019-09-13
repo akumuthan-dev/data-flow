@@ -9,8 +9,8 @@ from dataflow.meta.dataset_pipelines import (
 class CompletedOMISOrderViewPipeline:
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2017, 11, 1)
-    end_date = datetime(2018, 2, 1)
+    start_date = datetime(2019, 8, 1)
+    end_date = None
     catchup = True
     fields = [
         ('company_name', 'Company Name'),
@@ -35,8 +35,8 @@ class CompletedOMISOrderViewPipeline:
 class CancelledOMISOrderViewPipeline:
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2017, 11, 1)
-    end_date = datetime(2018, 2, 1)
+    start_date = datetime(2019, 8, 1)
+    end_date = None
     catchup = True
     fields = [
         ('omis_order_reference', 'OMIS Order Reference'),
@@ -67,8 +67,8 @@ class CancelledOMISOrderViewPipeline:
 class OMISClientSurveyViewPipeline:
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2017, 11, 1)
-    end_date = datetime(2018, 2, 1)
+    start_date = datetime(2019, 8, 1)
+    end_date = None
     catchup = True
     fields = [
         ('company_name', 'Company Name'),
@@ -98,8 +98,8 @@ class OMISClientSurveyViewPipeline:
 class InvestmentProjectsViewPipeline:
     view_name = 'investment_projects'
     dataset_pipeline = InvestmentProjectsDatasetPipeline
-    start_date = datetime(2017, 11, 1)
-    end_date = datetime(2018, 2, 1)
+    start_date = datetime(2019, 8, 1)
+    end_date = None
     catchup = True
     fields = '__all__'
     where_clause = """

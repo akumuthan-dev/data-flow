@@ -55,7 +55,7 @@ def run_fetch(source_url, **kwargs):
         By the impletation of other Datasets pipeline, there will be more generic structure to
         support various pipeline types.
     """
-    result_variable_name_prefix = kwargs['fetch_task_id']
+    result_variable_name_prefix = kwargs['run_fetch_task_id']
     variable_names = []
     index = 0
     while True:
@@ -106,7 +106,7 @@ def run_fetch(source_url, **kwargs):
 
 def create_and_insert_into(target_db, **kwargs):
     """Insert fetched data into target database table.
-    If target table doesn't exits, it creates one and inserts fetched data into it. 
+    If target table doesn't exits, it creates one and inserts fetched data into it.
     If it exists, it'll try to create and insert into a copy table before running any query
     against target table.
     """
@@ -120,6 +120,7 @@ def create_and_insert_into(target_db, **kwargs):
     """
 
     create_copy_table_sql = """
+        DROP TABLE "{{ table_name }}_copy";
         CREATE TABLE "{{ table_name }}_copy" as
             SELECT * from "{{ table_name }}"
         with no data;
@@ -167,12 +168,12 @@ def create_and_insert_into(target_db, **kwargs):
 
     table_name = kwargs['table_name']
     field_mapping = kwargs['field_mapping']
-    run_fetch_task_id = kwargs['fetch_task_id']
+    run_fetch_task_id = kwargs['run_fetch_task_id']
     task_instance = kwargs['task_instance']
 
     # Get name of variables which hold paginated response result
     var_names = task_instance.xcom_pull(task_ids=run_fetch_task_id)
-    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')
+    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
@@ -213,11 +214,18 @@ def create_and_insert_into(target_db, **kwargs):
     except Exception as e:
         logging.error(f'Exception: {e}')
         target_db_conn.rollback()
+        raise
 
     finally:
         if target_db_conn:
             target_db_cursor.close()
             target_db_conn.close()
+
+
+def clean_result_variables(**kwargs):
+    var_names = kwargs['task_instance'].xcom_pull(task_ids=kwargs['run_fetch_task_id'])
+    for var_name in var_names:
+        Variable.delete(var_name)
 
 
 default_args = {
@@ -246,7 +254,7 @@ for pipeline in dataset_pipeline_classes:
         user_defined_macros={
             'table_name': pipeline.table_name,
             'field_mapping': pipeline.field_mapping,
-            'fetch_task_id': run_fetch_task_id,
+            'run_fetch_task_id': run_fetch_task_id,
         }
     ) as dag:
         t1 = PythonOperator(
@@ -268,13 +276,11 @@ for pipeline in dataset_pipeline_classes:
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
-        if constants.DEBUG:
-            t4 = XCOMIntegratedPostgresOperator(
-                task_id='debug-select-from-target-table',
-                sql=select_from_target_table,
-                postgres_conn_id=pipeline.target_db,
-                parameters=[pipeline.table_name],
-            )
+        t4 = PythonOperator(
+            task_id='clean-result-variables',
+            python_callable=clean_result_variables,
+            provide_context=True,
+        )
 
         t4 << t3 << [t1, t2]
         globals()[pipeline.__name__] = dag
