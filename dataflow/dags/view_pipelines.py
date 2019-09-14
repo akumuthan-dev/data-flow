@@ -21,8 +21,18 @@ default_args = {
 }
 
 create_view = """
-    DROP VIEW IF EXISTS {{ view_name }}_{{ (macros.datetime.strptime(ds, '%Y-%m-%d') + macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)).date() | replace('-', '_') }};
-    CREATE VIEW {{ view_name }}_{{ (macros.datetime.strptime(ds, '%Y-%m-%d') + macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)).date() | replace('-', '_') }}
+    DROP VIEW IF EXISTS
+        {{ view_name }}_{{ (
+            macros.datetime.strptime(ds, '%Y-%m-%d') +
+            macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)
+        ).date() | replace('-', '_') }};
+
+    CREATE VIEW
+        {{ view_name }}_{{ (
+            macros.datetime.strptime(ds, '%Y-%m-%d') +
+            macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)
+        ).date() | replace('-', '_') }}
+
     AS SELECT
     {% for field_name, field_alias in fields %}
         {{ field_name }} AS "{{ field_alias }}"{{ "," if not loop.last }}
@@ -52,11 +62,11 @@ for pipeline in view_pipeline_classes:
 
     if pipeline.fields == '__all__':
         user_defined_macros.update({
-            'fields': [(field_name, field_name) for _, field_name, _ in pipeline.dataset_pipeline.field_mapping]
+            'fields': [(field_name, field_name) for _, field_name, _ in pipeline.dataset_pipeline.field_mapping],
         })
     else:
         user_defined_macros.update({
-            'fields': pipeline.fields
+            'fields': pipeline.fields,
         })
 
     with DAG(
@@ -66,18 +76,18 @@ for pipeline in view_pipeline_classes:
         start_date=pipeline.start_date,
         end_date=pipeline.end_date,
         schedule_interval=pipeline.schedule_interval,
-        user_defined_macros=user_defined_macros
+        user_defined_macros=user_defined_macros,
     ) as dag:
         PostgresOperator(
             task_id='create-view',
             sql=create_view + pipeline.where_clause,
-            postgres_conn_id=pipeline.dataset_pipeline.target_db
+            postgres_conn_id=pipeline.dataset_pipeline.target_db,
         )
         if constants.DEBUG:
             XCOMIntegratedPostgresOperator(
                 task_id='list-views',
                 sql=list_all_views,
-                postgres_conn_id=pipeline.dataset_pipeline.target_db
+                postgres_conn_id=pipeline.dataset_pipeline.target_db,
             )
 
         globals()[pipeline.__name__] = dag

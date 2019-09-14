@@ -1,13 +1,16 @@
+"""A module that defines view pipeline meta objects."""
 from datetime import datetime
 
 from dataflow import constants
 from dataflow.meta.dataset_pipelines import (
+    InvestmentProjectsDatasetPipeline,
     OMISDatasetPipeline,
-    InvestmentProjectsDatasetPipeline
 )
 
 
 class CompletedOMISOrderViewPipeline:
+    """Pipeline meta object for Completed OMIS Order View."""
+
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2019, 7, 1)
@@ -35,6 +38,8 @@ class CompletedOMISOrderViewPipeline:
 
 
 class CancelledOMISOrderViewPipeline:
+    """Pipeline meta object for Cancelled OMIS Order View."""
+
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2019, 7, 1)
@@ -54,19 +59,32 @@ class CancelledOMISOrderViewPipeline:
     where_clause = """
         order_status = 'cancelled' AND
         cancelled_date::DATE >=
-        {% if macros.datetime.strptime(ds, '%Y-%m-%d') <= macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'), month_day_financial_year), '%Y-%m-%d') %}
-            date_trunc('month', to_date('{{ macros.ds_format(macros.ds_add(ds, -365), '%Y-%m-%d', '%Y') }}-{{ month_day_financial_year }}', 'YYYY-MM-DD'));
+        {% if macros.datetime.strptime(ds, '%Y-%m-%d') <=
+            macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'),
+                                                      month_day_financial_year),
+                                     '%Y-%m-%d') %}
+            date_trunc('month',
+                to_date('{{ macros.ds_format(macros.ds_add(ds, -365),
+                                             '%Y-%m-%d',
+                                             '%Y') }}-{{ month_day_financial_year }}',
+                        'YYYY-MM-DD'));
         {% else %}
-            date_trunc('month', to_date('{{ macros.ds_format(ds, '%Y-%m-%d', '%Y') }}-{{ month_day_financial_year }}', 'YYYY-MM-DD'));
+            date_trunc('month',
+                to_date('{{ macros.ds_format(ds,
+                                             '%Y-%m-%d',
+                                             '%Y') }}-{{ month_day_financial_year }}',
+                        'YYYY-MM-DD'));
         {% endif %}
     """
     params = {
-        'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY
+        'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY,
     }
     schedule_interval = '@monthly'
 
 
 class OMISClientSurveyViewPipeline:
+    """Pipeline meta object for OMIS Client Survey View."""
+
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2019, 7, 1)
@@ -99,6 +117,8 @@ class OMISClientSurveyViewPipeline:
 
 
 class InvestmentProjectsViewPipeline:
+    """Pipeline meta object for Investment Projects View."""
+
     view_name = 'investment_projects'
     dataset_pipeline = InvestmentProjectsDatasetPipeline
     start_date = datetime(2019, 7, 1)

@@ -1,3 +1,5 @@
+"""A module that defines project wide constants."""
+
 import os
 
 AUTHBROKER_CLIENT_ID = os.environ.get('AUTHBROKER_CLIENT_ID')
