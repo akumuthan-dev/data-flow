@@ -4,7 +4,7 @@ Data Flow uses airflow to manage data pipelines between datahub and dataworkspac
 It manages a certain pipeline structure until more pipelines introduced:
 
 - Task 1: Check if target table exists 
-- Task 2: Get all paginated data from source by making hawk authenticated GET request to given source API's URL. Save each paginated response into a indexed named variable to be consumed by task 3 
+- Task 2: Get all paginated data from source by making hawk authenticated GET request to given source API's URL. Save each paginated response into a indexed named variable to be consumed by task 3.
 - Task 3: If target table in place (result from Task 1), test validity of incoming data by creating copy table and inserting data there before doing any change on target table. Then, insert paginated data (result from Task 2) into target table. 
 
 Task 1 and Task 2 are independent and running in parallel.
@@ -26,7 +26,7 @@ class OMISDatasetPipeline:
     # Target table name
     table_name = 'omis_dataset'
     # Source API access url
-    source_url = '{}/v4/dataset/omis-dataset'.format(DATAHUB_BASE_URL)
+    source_url = '{}/v4/dataset/omis-dataset'.format(constants.DATAHUB_BASE_URL)
     # Target Database
     target_db = 'datasets_db'
     # Start date for this flow
@@ -82,7 +82,7 @@ class CompletedOMISOrderViewPipeline():
     fields = [
         ('company_name', 'Company Name'),
         ('dit_team', 'DIT Team'),
-        ('subtotal', 'Subtotal'),
+        ('subtotal::numeric/100', 'Subtotal'),
         ('uk_region', 'UK Region'),
         ('market', 'Market'),
         ('sector', 'Sector'),
@@ -94,7 +94,12 @@ class CompletedOMISOrderViewPipeline():
     where_clause = """
         order_status = 'complete' AND
         date_trunc('month', completion_date)::DATE =
-            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+            \* Last day of execution date's month */
+            date_trunc(
+                'month',
+                to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+                            macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}',
+                'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
 ```
@@ -174,3 +179,4 @@ Add data-flow ip into HAWK_RECEIVER_IP_WHITELIST env var in data-hub production
 date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
 	macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
 ```
+- Data-flow saves fetched paginated results into variables which allows us to scale and prevents memory outages while moving very large data. Alternative approachs mentioned in run_fetch function's docstring in dataflow/dags/dataset_pipelines.py
