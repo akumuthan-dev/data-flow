@@ -149,6 +149,7 @@ class ServiceDeliveriesAndInteractionsViewPipeline:
     fields = '__all__'
     where_clause = """
         date_trunc('month', created_on)::DATE =
-            date_trunc('month', to_date('{{ yesterday_ds }}', 'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
+                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
