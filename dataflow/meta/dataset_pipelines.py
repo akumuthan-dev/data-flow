@@ -678,7 +678,7 @@ class InvestmentProjectsDatasetPipeline:
 
 class ServiceDeliveriesAndInteractionsDatasetPipeline:
     table_name = 'service_deliveries_and_interactions_dataset'
-    source_url = '{}/v4/dataset/service-deliveries-and-interactions-dataset'.format(
+    source_url = '{}/v4/dataset/interactions-dataset'.format(
         constants.DATAHUB_BASE_URL
     )
     target_db = 'datasets_db'
