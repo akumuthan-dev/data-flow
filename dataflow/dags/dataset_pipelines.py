@@ -14,6 +14,8 @@ from jinja2 import Template
 from mohawk import Sender
 from mohawk.exc import HawkFail
 
+from psycopg2 import sql
+
 import requests
 
 from dataflow import constants
@@ -125,7 +127,7 @@ def create_and_insert_into(target_db, **kwargs):
     """
 
     create_copy_table_sql = """
-        DROP TABLE "{{ table_name }}_copy";
+        DROP TABLE IF EXISTS "{{ table_name }}_copy";
         CREATE TABLE "{{ table_name }}_copy" as
             SELECT * from "{{ table_name }}"
         with no data;
@@ -144,7 +146,7 @@ def create_and_insert_into(target_db, **kwargs):
                 {% if not record[st_field_name] or record[st_field_name] == 'None' %}
                     NULL
                 {% else %}
-                    {{ record[st_field_name] | replace('"', "'") | tojson | replace('"', "'") }}
+                    {{ record[st_field_name] }}
                 {% endif %}
                 {{ "," if not loop.last }}
             {% endfor %}
@@ -153,21 +155,26 @@ def create_and_insert_into(target_db, **kwargs):
         );
     """
 
-    def execute_insert_into(
-        target_db_cursor,
-        table_name,
-        var_names,
-        field_mapping,
-    ):
+    def execute_insert_into(table_name):
 
         for var_name in var_names:
             record_subset = json.loads(Variable.get(var_name))
-            sql = Template(insert_into_sql).render(
+            escaped_record_subset = []
+            for record in record_subset:
+                escaped_record = {}
+                for key, value in record.items():
+                    if value and value != 'None':
+                        escaped_record[key] = sql.Literal(value).as_string(target_db_conn)
+                    else:
+                        escaped_record[key] = sql.Literal(None).as_string(target_db_conn)
+                escaped_record_subset.append(escaped_record)
+
+            exec_sql = Template(insert_into_sql).render(
                 table_name=table_name,
                 field_mapping=field_mapping,
-                record_subset=record_subset,
+                record_subset=escaped_record_subset,
             )
-            target_db_cursor.execute(sql)
+            target_db_cursor.execute(exec_sql)
 
         target_db_conn.commit()
 
@@ -193,12 +200,7 @@ def create_and_insert_into(target_db, **kwargs):
             )
             target_db_cursor.execute(rendered_create_copy_table_sql)
 
-            execute_insert_into(
-                target_db_cursor,
-                f'{table_name}_copy',
-                var_names,
-                field_mapping,
-            )
+            execute_insert_into(f'{table_name}_copy')
             target_db_cursor.execute(f'DELETE FROM {table_name};')
 
         else:
@@ -208,12 +210,7 @@ def create_and_insert_into(target_db, **kwargs):
             )
             target_db_cursor.execute(rendered_create_table_sql)
 
-            execute_insert_into(
-                target_db_cursor,
-                table_name,
-                var_names,
-                field_mapping,
-            )
+        execute_insert_into(table_name)
 
     # TODO: Gotta Catch'm all
     except Exception as e:

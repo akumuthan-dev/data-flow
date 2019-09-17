@@ -31,11 +31,7 @@ class CompletedOMISOrderViewPipeline:
     where_clause = """
         order_status = 'complete' AND
         date_trunc('month', completion_date)::DATE =
-            date_trunc(
-                'month',
-                to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
-                            macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}',
-                'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
 
@@ -66,17 +62,15 @@ class CancelledOMISOrderViewPipeline:
             macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'),
                                                       month_day_financial_year),
                                      '%Y-%m-%d') %}
-            date_trunc('month',
-                to_date('{{ macros.ds_format(macros.ds_add(ds, -365),
-                                             '%Y-%m-%d',
-                                             '%Y') }}-{{ month_day_financial_year }}',
-                        'YYYY-MM-DD'));
+            to_date('{{ macros.ds_format(macros.ds_add(ds, -365),
+                                         '%Y-%m-%d',
+                                         '%Y') }}-{{ month_day_financial_year }}',
+                    'YYYY-MM-DD');
         {% else %}
-            date_trunc('month',
-                to_date('{{ macros.ds_format(ds,
-                                             '%Y-%m-%d',
-                                             '%Y') }}-{{ month_day_financial_year }}',
-                        'YYYY-MM-DD'));
+            to_date('{{ macros.ds_format(ds,
+                                         '%Y-%m-%d',
+                                         '%Y') }}-{{ month_day_financial_year }}',
+                    'YYYY-MM-DD');
         {% endif %}
     """
     params = {
@@ -115,9 +109,7 @@ class OMISClientSurveyViewPipeline:
         date_trunc('month', completion_date)::DATE =
             date_trunc(
                 'month',
-                to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
-                            macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}',
-                'YYYY-MM-DD'));
+                to_date('{{ ds }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
 
@@ -133,7 +125,6 @@ class InvestmentProjectsViewPipeline:
     fields = '__all__'
     where_clause = """
         date_trunc('month', created_on)::DATE =
-            date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
-                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
+            date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'));
     """
     schedule_interval = '@monthly'
