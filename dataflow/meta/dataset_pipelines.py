@@ -61,7 +61,7 @@ class OMISDatasetPipeline:
             'integer',
         ),
         (
-            'sector__segment',
+            'sector_name',
             'sector',
             'character varying(255)',
         ),
