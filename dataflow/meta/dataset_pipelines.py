@@ -674,3 +674,86 @@ class InvestmentProjectsDatasetPipeline:
             'character varying(255)',
         ),
     ]
+
+
+class ContactsDatasetPipeline:
+    """Pipeline meta object for ContactsDataset."""
+
+    table_name = 'contacts'
+    source_url = '{0}/v4/dataset/contacts-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@monthly'
+    field_mapping = [
+        (
+            'accepts_dit_email_marketing',
+            'accepts_dit_email_marketing',
+            'boolean',
+        ),
+        (
+            'address_country__name',
+            'address_country',
+            'text',
+        ),
+        (
+            'company__company_number',
+            'companies_house_id',
+            'character varying(255)',
+        ),
+        (
+            'company__name',
+            'company_name',
+            'character varying(255)',
+        ),
+        (
+            'company__uk_region__name',
+            'uk_region',
+            'text',
+        ),
+        (
+            'company_sector',
+            'company_sector',
+            'text',
+        ),
+        (
+            'created_on',
+            'date_added_to_datahub',
+            'date',
+        ),
+        (
+            'email',
+            'email',
+            'character varying(255)',
+        ),
+        (
+            'email_alternative',
+            'email_alternative',
+            'character varying(255)',
+        ),
+        (
+            'job_title',
+            'job_title',
+            'character varying(255)',
+        ),
+        (
+            'name',
+            'contact_name',
+            'text',
+        ),
+        (
+            'notes',
+            'notes',
+            'text',
+        ),
+        (
+            'telephone_alternative',
+            'telephone_alternative',
+            'character varying(255)',
+        ),
+        (
+            'telephone_number',
+            'phone',
+            'character varying(255)',
+        ),
+    ]
