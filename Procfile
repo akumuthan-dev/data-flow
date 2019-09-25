@@ -1,1 +1,1 @@
-web: (AIRFLOW__CORE__SQL_ALCHEMY_CONN=${DATABASE_URL/postgres/postgresql+psycopg2} airflow initdb; AIRFLOW__CORE__SQL_ALCHEMY_CONN=${DATABASE_URL/postgres/postgresql+psycopg2} PYTHONPATH=/app:$PYTHONPATH airflow scheduler) & (sleep 1 && AIRFLOW__CORE__SQL_ALCHEMY_CONN=${DATABASE_URL/postgres/postgresql+psycopg2} PYTHONPATH=/app:$PYTHONPATH airflow webserver -p 8080)
+web: (FLASK_APP=dataflowworkerdummyapp.py flask run -h 0.0.0.0 -p 8080 & PYTHONPATH=/app:$PYTHONPATH airflow worker)

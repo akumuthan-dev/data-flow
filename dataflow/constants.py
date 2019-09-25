@@ -12,3 +12,6 @@ HAWK_KEY = os.environ.get('HAWK_KEY')
 HAWK_ALGORITHM = os.environ.get('HAWK_ALGORITHM')
 DATAHUB_BASE_URL = os.environ.get('DATAHUB_BASE_URL')
 DEBUG = True if os.environ.get('DEBUG') == 'True' else False
+NUMBER_OF_WORKER = int(os.environ.get('NUMBER_OF_WORKER', 1))
+REDIS_URL = os.environ.get('REDIS_URL')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))

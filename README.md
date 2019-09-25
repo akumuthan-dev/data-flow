@@ -1,15 +1,22 @@
 # Data Flow
 
-Data Flow uses airflow to manage data pipelines between datahub and dataworkspace.
+Data Flow is a custom ETL tool uses airflow to manage data pipelines between different systems.
+It's currently being used between datahub and dataworkspace.
 It manages a certain pipeline structure until more pipelines introduced:
 
 - Task 1: Check if target table exists 
 - Task 2: Get all paginated data from source by making hawk authenticated GET request to given source API's URL. Save each paginated response into a indexed named variable to be consumed by task 3.
-- Task 3: If target table in place (result from Task 1), test validity of incoming data by creating copy table and inserting data there before doing any change on target table. Then, insert paginated data (result from Task 2) into target table. 
+- Task 3: If target table in place (result from Task 1), delete all from target table. If not create a new one.
+- Task 4: Insert each paginated data into target table.
 
-Task 1 and Task 2 are independent and running in parallel.
+Task 3 requires on successful run of Task 1 and
+Task 4 requires on successful run of Task 3
 
-Task 3 requires on successful run of Task 1 and Task2.
+Task 2 runs parallel with others.
+
+Task 4 and Task 2 works collaboratively. Task 4 polls to read variable set by Task 2.
+
+Task 4 gets defined as many as NUMBER_OF_WORKER defined. This allows us to scale multiple machines using celery.
 
 There are currently two generic pipeline structure uses meta objects to dynamically creates DAGs.
 

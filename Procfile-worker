@@ -1,0 +1,1 @@
+web: (FLASK_APP=dataflow_worker_dummy_app.py flask run -h 0.0.0.0 -p 8080 & PYTHONPATH=/app:$PYTHONPATH airflow worker)
