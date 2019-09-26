@@ -1,4 +1,5 @@
 mohawk==1.0.0
 requests==2.22.0
-apache-airflow[postgres,crypto]==1.10.5
+apache-airflow[postgres,crypto,celery,s3]==1.10.5
 Flask-OAuthlib==0.9.5
+redis==3.3.8

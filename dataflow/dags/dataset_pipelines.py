@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import timedelta
 
 from airflow import DAG
@@ -16,6 +17,7 @@ from mohawk.exc import HawkFail
 
 from psycopg2 import sql
 
+import redis
 import requests
 
 from dataflow import constants
@@ -32,7 +34,11 @@ credentials = {
 }
 
 
-def run_fetch(source_url, run_fetch_task_id=None, **kwargs):
+def get_redis_client():
+    return redis.from_url(url=constants.REDIS_URL)
+
+
+def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     """Fetch data from source.
 
     Args:
@@ -62,7 +68,14 @@ def run_fetch(source_url, run_fetch_task_id=None, **kwargs):
         support various pipeline types.
 
     """
-    variable_names = []
+
+    def rollback_variables(index):
+        for i in range(index):
+            key = f'{run_fetch_task_id}{i}'
+            Variable.delete(key)
+            redis_client.delete(key)
+
+    redis_client = get_redis_client()
     index = 0
     while True:
         sender = Sender(
@@ -77,6 +90,8 @@ def run_fetch(source_url, run_fetch_task_id=None, **kwargs):
             headers={'Authorization': sender.request_header},
         )
         if response.status_code != 200:
+            task_instance.xcom_push(key='state', value=False)
+            rollback_variables(index)
             raise Exception(
                 f'GET request to {source_url} is unsuccessful\n'
                 f'Message: {response.text}',
@@ -86,18 +101,23 @@ def run_fetch(source_url, run_fetch_task_id=None, **kwargs):
                                    content=response.content,
                                    content_type=response.headers['Content-Type'])
         except HawkFail as e:
+            task_instance.xcom_push(key='state', value=False)
+            rollback_variables(index)
             raise Exception(f'HAWK Authentication failed {str(e)}')
 
         response_json = response.json()
         if 'results' not in response_json or 'next' not in response_json:
+            task_instance.xcom_push(key='state', value=False)
+            rollback_variables(index)
             raise Exception('Unexpected response structure')
 
+        key = f'{run_fetch_task_id}{index}'
         Variable.set(
-            f'{run_fetch_task_id}{index}',
+            key,
             response_json['results'],
             serialize_json=True,
         )
-        variable_names.append(f'{run_fetch_task_id}{index}')
+        redis_client.set(key, 1)
         next_page = response_json['next']
         if next_page:
             index += 1
@@ -107,22 +127,20 @@ def run_fetch(source_url, run_fetch_task_id=None, **kwargs):
             break
 
     logging.info('Fetching from source completed')
-    return variable_names
+    task_instance.xcom_push(key='state', value=True)
 
 
-def create_and_insert_into(
+def create_or_delete_from_target_table(
     target_db,
     table_name=None,
     field_mapping=None,
-    run_fetch_task_id=None,
     task_instance=None,
     **kwargs,
 ):
-    """Insert fetched data into target database table.
+    """Create target database table or delete all from it.
 
-    If target table doesn't exits, it creates one and inserts fetched data into it.
-    If it exists, it'll try to create and insert into a copy table before running any query
-    against target table.
+    If target table exists, this'll delete all from target table.
+    If target table doesn't exits, this creates one.
     """
     create_table_sql = """
         CREATE TABLE {{ table_name }} (
@@ -132,12 +150,61 @@ def create_and_insert_into(
         );
     """
 
-    create_copy_table_sql = """
-        DROP TABLE IF EXISTS {{ copy_table_name }};
-        CREATE TABLE {{ copy_table_name }} as
-            SELECT * from {{ table_name }}
-        with no data;
-    """
+    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
+    try:
+        target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
+        target_db_cursor = target_db_conn.cursor()
+
+        # If table already exists in the target database, delete all from target table. If not exists, create one.
+        # Until there will be possibility for incremental load
+        if table_exists and table_exists != 'None':
+            target_db_cursor.execute('DELETE FROM {0};'.format(sql.Identifier(table_name).as_string(target_db_conn)))
+            logging.info('Deleting from target table')
+        else:
+            logging.info('Creating a target table')
+            rendered_create_table_sql = Template(create_table_sql).render(
+                table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                field_mapping=field_mapping,
+            )
+            target_db_cursor.execute(rendered_create_table_sql)
+
+        target_db_conn.commit()
+
+    # TODO: Gotta Catch'm all
+    except Exception as e:
+        logging.error(f'Exception: {e}')
+        target_db_conn.rollback()
+        raise
+
+    finally:
+        if target_db_conn:
+            target_db_cursor.close()
+            target_db_conn.close()
+
+
+def get_available_page_var(redis_client, pattern):
+    for key in redis_client.keys(pattern=f'{pattern}*'):
+        logging.info(f'Getting available page {key}')
+        redis_value = redis_client.get(key)
+        logging.info(f'redis value {redis_value}')
+        if redis_value:
+            logging.info(f'Found an unprocessed one {key}')
+            result = redis_client.delete(key)
+            if result == 0:
+                logging.info(f'Another worker already got this {key}')
+                continue
+
+            return key
+
+
+def execute_insert_into(
+    target_db,
+    table_name=None,
+    run_fetch_task_id=None,
+    field_mapping=None,
+    task_instance=None,
+    **kwargs
+):
 
     insert_into_sql = """
         INSERT INTO {{ table_name }} (
@@ -160,59 +227,64 @@ def create_and_insert_into(
         {% endfor %}
         );
     """
-
-    def execute_insert_into(table_name):
-
-        for var_name in var_names:
-            record_subset = json.loads(Variable.get(var_name))
-            escaped_record_subset = []
-            for record in record_subset:
-                escaped_record = {}
-                for key, value in record.items():
-                    if value and value != 'None':
-                        escaped_record[key] = sql.Literal(value).as_string(target_db_conn)
-                    else:
-                        escaped_record[key] = sql.Literal(None).as_string(target_db_conn)
-                escaped_record_subset.append(escaped_record)
-
-            exec_sql = Template(insert_into_sql).render(
-                table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                field_mapping=field_mapping,
-                record_subset=escaped_record_subset,
-            )
-            target_db_cursor.execute(exec_sql)
-
-        target_db_conn.commit()
-
-    # Get name of variables which hold paginated response result
-    var_names = task_instance.xcom_pull(task_ids=run_fetch_task_id)
-    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
+    # Give some initial time to fetch task to get a page and save it into variable
+    time.sleep(5)
+    sleep_time = 5
+    number_of_run = 1
+    redis_client = get_redis_client()
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
 
-        # If table already exists in the target database, try inserting fetched data into
-        # a copy table to protect target table. If succeeds, delete all data from target table
-        # until there will be possibility for incremental load
-        if table_exists and table_exists != 'None':
-            rendered_create_copy_table_sql = Template(create_copy_table_sql).render(
-                table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                copy_table_name=sql.Identifier(f'{table_name}_copy').as_string(target_db_conn),
-                field_mapping=field_mapping,
-            )
-            target_db_cursor.execute(rendered_create_copy_table_sql)
+        while True:
+            var_name = get_available_page_var(redis_client, run_fetch_task_id)
+            logging.info(f'Got the var_name {var_name}')
+            if var_name:
+                sleep_time = 5
+                var_name = var_name.decode('utf-8')
+                try:
+                    record_subset = json.loads(Variable.get(var_name))
+                except KeyError as e:
+                    logging.info(f'Var {var_name} no more exist: {e}')
+                    continue
 
-            execute_insert_into(f'{table_name}_copy')
-            target_db_cursor.execute('DELETE FROM {0};'.format(sql.Identifier(table_name).as_string(target_db_conn)))
+                escaped_record_subset = []
+                for record in record_subset:
+                    escaped_record = {}
+                    for key, value in record.items():
+                        if value and value != 'None':
+                            escaped_record[key] = sql.Literal(value).as_string(target_db_conn)
+                        else:
+                            escaped_record[key] = sql.Literal(None).as_string(target_db_conn)
+                    escaped_record_subset.append(escaped_record)
 
-        else:
-            rendered_create_table_sql = Template(create_table_sql).render(
-                table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                field_mapping=field_mapping,
-            )
-            target_db_cursor.execute(rendered_create_table_sql)
+                exec_sql = Template(insert_into_sql).render(
+                    table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                    field_mapping=field_mapping,
+                    record_subset=escaped_record_subset,
+                )
+                target_db_cursor.execute(exec_sql)
+                logging.info(f'Deleting the var_name {var_name}')
+                Variable.delete(var_name)
+            else:
+                # Check if fetch task completed successfully, if it's, break out of loop and commit
+                # the transaction because there is no more page to process. If it's failed raise Exception so that
+                # transaction will be rollbacked
+                state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
+                logging.info(f'Checking state {state}')
+                logging.info('state type {}'.format(type(state)))
+                if state is False:
+                    raise Exception('Fetching task failed!')
+                elif state is True:
+                    logging.info(f'state is True')
+                    break
+                else:
+                    logging.info(f'Sleeping for {sleep_time} fetch task to catchup')
+                    sleep_time = sleep_time * number_of_run
+                    time.sleep(sleep_time)
+                    number_of_run += 1
 
-        execute_insert_into(table_name)
+        target_db_conn.commit()
 
     # TODO: Gotta Catch'm all
     except Exception as e:
@@ -226,19 +298,12 @@ def create_and_insert_into(
             target_db_conn.close()
 
 
-def clean_result_variables(run_fetch_task_id=None, task_instance=None, **kwargs):
-    """Delete all airflow variables generated by this pipeline."""
-    var_names = task_instance.xcom_pull(task_ids=run_fetch_task_id)
-    for var_name in var_names:
-        Variable.delete(var_name)
-
-
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
 
@@ -276,16 +341,22 @@ for pipeline in dataset_pipeline_classes:
         )
 
         t3 = PythonOperator(
-            task_id='create-and-insert',
-            python_callable=create_and_insert_into,
+            task_id='create-or-delete-from-target-table',
+            python_callable=create_or_delete_from_target_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
-        t4 = PythonOperator(
-            task_id='clean-result-variables',
-            python_callable=clean_result_variables,
-            provide_context=True,
-        )
 
-        t4 << t3 << [t1, t2]
+        insert_group = []
+        for index in range(constants.INGEST_TASK_CONCURRENCY):
+            insert_group.append(
+                PythonOperator(
+                    task_id=f'execute-insert-into-{index}',
+                    python_callable=execute_insert_into,
+                    provide_context=True,
+                    op_args=[f'{pipeline.target_db}'],
+                )
+            )
+
+        insert_group << t3 << t2
         globals()[pipeline.__name__] = dag
