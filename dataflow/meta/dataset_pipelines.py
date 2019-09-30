@@ -757,3 +757,151 @@ class ContactsDatasetPipeline:
             'character varying(255)',
         ),
     ]
+
+
+class CompaniesDatasetPipeline:
+    """Pipeline meta object for CompaniesDataset."""
+
+    table_name = 'companies'
+    source_url = '{0}/v4/dataset/companies-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@monthly'
+    field_mapping = [
+        (
+            'created_on',
+            'created_on',
+            'date',
+        ),
+        (
+            'name',
+            'name',
+            'character varying(255)',
+        ),
+        (
+            'company_number',
+            'company_number',
+            'character varying(255)',
+        ),
+        (
+            'id',
+            'id',
+            'uuid',
+        ),
+        (
+            'trading_names',
+            'trading_names',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_1',
+            'registered_address_1',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_2',
+            'registered_address_2',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_town',
+            'registered_address_town',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_county',
+            'registered_address_county',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_postcode',
+            'registered_address_postcode',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_country__name',
+            'registered_address_country',
+            'character varying(255)',
+        ),
+        (
+            'address_1',
+            'address_1',
+            'character varying(255)',
+        ),
+        (
+            'address_2',
+            'address_2',
+            'character varying(255)',
+        ),
+        (
+            'address_town',
+            'address_town',
+            'character varying(255)',
+        ),
+        (
+            'address_county',
+            'address_county',
+            'character varying(255)',
+        ),
+        (
+            'address_postcode',
+            'address_postcode',
+            'character varying(255)',
+        ),
+        (
+            'description',
+            'description',
+            'character varying(255)',
+        ),
+        (
+            'website',
+            'website',
+            'character varying(255)',
+        ),
+        (
+            'business_type__name',
+            'business_type',
+            'character varying(255)',
+        ),
+        (
+            'one_list_tier__name',
+            'classification',
+            'character varying(255)',
+        ),
+        (
+            'sector_name',
+            'sector',
+            'character varying(255)',
+        ),
+        (
+            'uk_region__name',
+            'uk_region',
+            'character varying(255)',
+        ),
+        (
+            'employee_range__name',
+            'employee_range',
+            'character varying(255)',
+        ),
+        (
+            'turnover_range__name',
+            'turnover_range',
+            'character varying(255)',
+        ),
+        (
+            'vat_number',
+            'vat_number',
+            'character varying(255)',
+        ),
+        (
+            'export_experience_category__name',
+            'export_experience',
+            'character varying(255)',
+        ),
+        (
+            'reference_code',
+            'cdms_reference_code',
+            'character varying(255)',
+        ),
+    ]
