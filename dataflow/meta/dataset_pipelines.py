@@ -676,8 +676,8 @@ class InvestmentProjectsDatasetPipeline:
     ]
 
 
-class ServiceDeliveriesAndInteractionsDatasetPipeline:
-    table_name = 'service_deliveries_and_interactions_dataset'
+class InteractionsDatasetPipeline:
+    table_name = 'interactions_dataset'
     source_url = '{}/v4/dataset/interactions-dataset'.format(
         constants.DATAHUB_BASE_URL
     )
@@ -697,16 +697,6 @@ class ServiceDeliveriesAndInteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'company__name',
-            'company_name',
-            'character varying(255)'
-        ),
-        (
-            'company__company_number',
-            'company_number',
-            'character varying(255)'
-        ),
-        (
             'company__id',
             'company_id',
             'uuid'
@@ -717,48 +707,33 @@ class ServiceDeliveriesAndInteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'company__address_postcode',
-            'company_address_postcode',
+            'sector',
+            'sector',
             'character varying(255)'
         ),
         (
-            'company__address_1',
-            'company_address_1',
+            'adviser_name',
+            'adviser_name',
             'character varying(255)'
         ),
         (
-            'company__address_2',
-            'company_address_2',
+            'adviser_phone',
+            'adviser_phone',
             'character varying(255)'
         ),
         (
-            'company__address_town',
-            'company_address_town',
+            'adviser_email',
+            'adviser_email',
             'character varying(255)'
         ),
         (
-            'company__address_country__name',
-            'company_address_country',
+            'adviser_team',
+            'adviser_team',
             'character varying(255)'
         ),
         (
-            'company__website',
-            'company_website',
-            'character varying(255)'
-        ),
-        (
-            'company__employee_range__name',
-            'company_employee_range',
-            'character varying(255)'
-        ),
-        (
-            'company__turnover_range__name',
-            'company_turnover_range',
-            'character varying(255)'
-        ),
-        (
-            'company__uk_region__name',
-            'company_uk_region',
+            'service_delivery',
+            'service_delivery',
             'character varying(255)'
         ),
         (
@@ -817,6 +792,11 @@ class ServiceDeliveriesAndInteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
+            'event_service',
+            'event_service',
+            'character varying(255)'
+        ),
+        (
             'created_on',
             'created_on',
             'timestamp with time zone'
@@ -827,84 +807,14 @@ class ServiceDeliveriesAndInteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'sector',
-            'sector',
-            'character varying(255)'
-        ),
-        (
             'interaction_link',
             'interaction_link',
             'character varying(255)'
         ),
         (
-            'adviser_name',
-            'adviser_name',
-            'character varying(255)'
-        ),
-        (
-            'adviser_phone',
-            'adviser_phone',
-            'character varying(255)'
-        ),
-        (
-            'adviser_email',
-            'adviser_email',
-            'character varying(255)'
-        ),
-        (
-            'adviser_team',
-            'adviser_team',
-            'character varying(255)'
-        ),
-        (
-            'service_delivery',
-            'service_delivery',
-            'character varying(255)'
-        ),
-        (
-            'event_service',
-            'event_service',
-            'character varying(255)'
-        ),
-        (
-            'contact_name',
-            'contact_name',
-            'character varying(255)'
-        ),
-        (
-            'contact_telephone_number',
-            'contact_telephone_number',
-            'character varying(255)'
-        ),
-        (
-            'contact_email',
-            'contact_email',
-            'character varying(255)'
-        ),
-        (
-            'contact_address_postcode',
-            'contact_address_postcode',
-            'character varying(255)'
-        ),
-        (
-            'contact_address_1',
-            'contact_address_1',
-            'character varying(255)'
-        ),
-        (
-            'contact_address_2',
-            'contact_address_2',
-            'character varying(255)'
-        ),
-        (
-            'contact_address_town',
-            'contact_address_town',
-            'character varying(255)'
-        ),
-        (
-            'contact_address_country',
-            'contact_address_country',
-            'character varying(255)'
+            'contact_id',
+            'contact_id',
+            'character uuid'
         ),
     ]
 
