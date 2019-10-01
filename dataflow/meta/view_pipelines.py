@@ -5,7 +5,7 @@ from dataflow import constants
 from dataflow.meta.dataset_pipelines import (
     InvestmentProjectsDatasetPipeline,
     OMISDatasetPipeline,
-    ServiceDeliveriesAndInteractionsDatasetPipeline
+    InteractionsDatasetPipeline,
 )
 
 
@@ -131,9 +131,9 @@ class InvestmentProjectsViewPipeline:
     schedule_interval = '@monthly'
 
 
-class ServiceDeliveriesAndInteractionsViewPipeline:
-    view_name = 'service_deliveries_and_interactions'
-    dataset_pipeline = ServiceDeliveriesAndInteractionsDatasetPipeline
+class InteractionsViewPipeline:
+    view_name = 'interactions'
+    dataset_pipeline = InteractionsDatasetPipeline
     start_date = datetime(2017, 11, 1)
     end_date = datetime(2018, 2, 1)
     catchup = True
