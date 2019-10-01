@@ -79,6 +79,7 @@ ssl.crt
 
 #VI
 *.swp
+*.swo
 
 # Auto generated airflow directory
 airflow/
