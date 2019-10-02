@@ -770,61 +770,6 @@ class CompaniesDatasetPipeline:
     schedule_interval = '@monthly'
     field_mapping = [
         (
-            'created_on',
-            'created_on',
-            'date',
-        ),
-        (
-            'name',
-            'name',
-            'character varying(255)',
-        ),
-        (
-            'company_number',
-            'company_number',
-            'character varying(255)',
-        ),
-        (
-            'id',
-            'id',
-            'uuid',
-        ),
-        (
-            'trading_names',
-            'trading_names',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_1',
-            'registered_address_1',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_2',
-            'registered_address_2',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_town',
-            'registered_address_town',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_county',
-            'registered_address_county',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_postcode',
-            'registered_address_postcode',
-            'character varying(255)',
-        ),
-        (
-            'registered_address_country__name',
-            'registered_address_country',
-            'character varying(255)',
-        ),
-        (
             'address_1',
             'address_1',
             'character varying(255)',
@@ -832,11 +777,6 @@ class CompaniesDatasetPipeline:
         (
             'address_2',
             'address_2',
-            'character varying(255)',
-        ),
-        (
-            'address_town',
-            'address_town',
             'character varying(255)',
         ),
         (
@@ -850,13 +790,8 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
         (
-            'description',
-            'description',
-            'character varying(255)',
-        ),
-        (
-            'website',
-            'website',
+            'address_town',
+            'address_town',
             'character varying(255)',
         ),
         (
@@ -865,33 +800,18 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
         (
-            'one_list_tier__name',
-            'classification',
+            'company_number',
+            'company_number',
             'character varying(255)',
         ),
         (
-            'sector_name',
-            'sector',
-            'character varying(255)',
+            'created_on',
+            'created_on',
+            'date',
         ),
         (
-            'uk_region__name',
-            'uk_region',
-            'character varying(255)',
-        ),
-        (
-            'employee_range__name',
-            'employee_range',
-            'character varying(255)',
-        ),
-        (
-            'turnover_range__name',
-            'turnover_range',
-            'character varying(255)',
-        ),
-        (
-            'vat_number',
-            'vat_number',
+            'description',
+            'description',
             'character varying(255)',
         ),
         (
@@ -900,8 +820,93 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
         (
+            'id',
+            'id',
+            'uuid',
+        ),
+        (
+            'is_number_of_employees_estimated',
+            'is_number_of_employees_estimated',
+            'boolean',
+        ),
+        (
+            'is_turnover_estimated',
+            'is_turnover_estimated',
+            'boolean',
+        ),
+        (
+            'name',
+            'name',
+            'character varying(255)',
+        ),
+        (
+            'number_of_employees',
+            'number_of_employees',
+            'integer',
+        ),
+        (
+            'one_list_tier__name',
+            'classification',
+            'character varying(255)',
+        ),
+        (
             'reference_code',
             'cdms_reference_code',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_1',
+            'registered_address_1',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_2',
+            'registered_address_2',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_country__name',
+            'registered_address_country',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_county',
+            'registered_address_county',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_postcode',
+            'registered_address_postcode',
+            'character varying(255)',
+        ),
+        (
+            'registered_address_town',
+            'registered_address_town',
+            'character varying(255)',
+        ),
+        (
+            'sector_name',
+            'sector',
+            'character varying(255)',
+        ),
+        (
+            'trading_names',
+            'trading_names',
+            'character varying(255)',
+        ),
+        (
+            'uk_region__name',
+            'uk_region',
+            'character varying(255)',
+        ),
+        (
+            'vat_number',
+            'vat_number',
+            'character varying(255)',
+        ),
+        (
+            'website',
+            'website',
             'character varying(255)',
         ),
     ]
