@@ -69,11 +69,14 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
 
     """
 
-    def rollback_variables(index):
-        for i in range(index):
-            key = f'{run_fetch_task_id}{i}'
-            Variable.delete(key)
-            redis_client.delete(key)
+    def mark_task_failed():
+        def rollback_variables(index):
+            for i in range(index):
+                key = f'{run_fetch_task_id}{i}'
+                Variable.delete(key)
+                redis_client.delete(key)
+        task_instance.xcom_push(key='state', value=False)
+        rollback_variables(index)
 
     redis_client = get_redis_client()
     index = 0
@@ -90,8 +93,7 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
             headers={'Authorization': sender.request_header},
         )
         if response.status_code != 200:
-            task_instance.xcom_push(key='state', value=False)
-            rollback_variables(index)
+            mark_task_failed()
             raise Exception(
                 f'GET request to {source_url} is unsuccessful\n'
                 f'Message: {response.text}',
@@ -101,14 +103,12 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
                                    content=response.content,
                                    content_type=response.headers['Content-Type'])
         except HawkFail as e:
-            task_instance.xcom_push(key='state', value=False)
-            rollback_variables(index)
+            mark_task_failed()
             raise Exception(f'HAWK Authentication failed {str(e)}')
 
         response_json = response.json()
         if 'results' not in response_json or 'next' not in response_json:
-            task_instance.xcom_push(key='state', value=False)
-            rollback_variables(index)
+            mark_task_failed()
             raise Exception('Unexpected response structure')
 
         key = f'{run_fetch_task_id}{index}'
@@ -159,9 +159,9 @@ def create_or_delete_from_target_table(
         # Until there will be possibility for incremental load
         if table_exists and table_exists != 'None':
             target_db_cursor.execute('DELETE FROM {0};'.format(sql.Identifier(table_name).as_string(target_db_conn)))
-            logging.info('Deleting from target table')
+            logging.info(f'Deleting from target table {table_name}')
         else:
-            logging.info('Creating a target table')
+            logging.info(f'Creating a target table {table_name}')
             rendered_create_table_sql = Template(create_table_sql).render(
                 table_name=sql.Identifier(table_name).as_string(target_db_conn),
                 field_mapping=field_mapping,
@@ -183,12 +183,14 @@ def create_or_delete_from_target_table(
 
 
 def get_available_page_var(redis_client, pattern):
+    """Find and return variable name, which holds paginated response data, that hasn't been picked up by a worker
+    to be inserted into target.
+    """
     for key in redis_client.keys(pattern=f'{pattern}*'):
         logging.info(f'Getting available page {key}')
         redis_value = redis_client.get(key)
-        logging.info(f'redis value {redis_value}')
         if redis_value:
-            logging.info(f'Found an unprocessed one {key}')
+            logging.info(f'Found an unprocessed variable {key}')
             result = redis_client.delete(key)
             if result == 0:
                 logging.info(f'Another worker already got this {key}')
@@ -205,6 +207,11 @@ def execute_insert_into(
     task_instance=None,
     **kwargs
 ):
+    """Inserts each paginated response data into target database table.
+    Polls to find variable hasn't been processed, generates regarding sql statement to
+    insert data in, incrementally waits for new variables.
+    Success depends on fetcher task completion.
+    """
 
     insert_into_sql = """
         INSERT INTO {{ table_name }} (
@@ -228,7 +235,8 @@ def execute_insert_into(
         );
     """
     # Give some initial time to fetch task to get a page and save it into variable
-    time.sleep(5)
+    time.sleep(3)
+    # Used for providing incremental wait
     sleep_time = 5
     number_of_run = 1
     redis_client = get_redis_client()
@@ -238,14 +246,14 @@ def execute_insert_into(
 
         while True:
             var_name = get_available_page_var(redis_client, run_fetch_task_id)
-            logging.info(f'Got the var_name {var_name}')
             if var_name:
+                logging.info(f'Got the unprocessed var_name {var_name}')
                 sleep_time = 5
                 var_name = var_name.decode('utf-8')
                 try:
                     record_subset = json.loads(Variable.get(var_name))
-                except KeyError as e:
-                    logging.info(f'Var {var_name} no more exist: {e}')
+                except KeyError:
+                    logging.info(f'Var {var_name} no more exist! It is processed by another worker. Moving on.')
                     continue
 
                 escaped_record_subset = []
@@ -271,15 +279,14 @@ def execute_insert_into(
                 # the transaction because there is no more page to process. If it's failed raise Exception so that
                 # transaction will be rollbacked
                 state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
-                logging.info(f'Checking state {state}')
-                logging.info('state type {}'.format(type(state)))
+                logging.info(f'Checking the state of fetcher task {state}')
                 if state is False:
-                    raise Exception('Fetching task failed!')
+                    raise Exception('Fetcher task failed!')
                 elif state is True:
-                    logging.info(f'state is True')
+                    logging.info('Fetcher task successfully completed and there is no more variable to process.')
                     break
                 else:
-                    logging.info(f'Sleeping for {sleep_time} fetch task to catchup')
+                    logging.info(f'Sleeping for {sleep_time} fetcher task to catchup')
                     sleep_time = sleep_time * number_of_run
                     time.sleep(sleep_time)
                     number_of_run += 1
