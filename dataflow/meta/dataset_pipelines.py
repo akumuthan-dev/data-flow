@@ -815,6 +815,11 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
         (
+            'duns_number',
+            'duns_number',
+            'character varying(9)',
+        ),
+        (
             'export_experience_category__name',
             'export_experience',
             'character varying(255)',
@@ -893,6 +898,11 @@ class CompaniesDatasetPipeline:
             'trading_names',
             'trading_names',
             'character varying(255)',
+        ),
+        (
+            'turnover',
+            'turnover',
+            'bigint',
         ),
         (
             'uk_region__name',
