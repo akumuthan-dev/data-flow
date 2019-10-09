@@ -130,7 +130,7 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     task_instance.xcom_push(key='state', value=True)
 
 
-def create_or_delete_from_target_table(
+def create_target_table(
     target_db,
     table_name=None,
     field_mapping=None,
@@ -139,8 +139,8 @@ def create_or_delete_from_target_table(
 ):
     """Create target database table or delete all from it.
 
-    If target table exists, this'll delete all from target table.
-    If target table doesn't exits, this creates one.
+    If target table exists, create a copy table as a back up to be used in case of failure.
+    If target table doesn't exits, create one.
     """
     create_table_sql = """
         CREATE TABLE {{ table_name }} (
@@ -155,19 +155,18 @@ def create_or_delete_from_target_table(
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
 
-        # If table already exists in the target database, delete all from target table. If not exists, create one.
+        # If table already exists in the target database, create a copy table to be used
+        # for rollback in case of failiure or create one.
         # Until there will be possibility for incremental load
         if table_exists and table_exists != 'None':
-            target_db_cursor.execute('DELETE FROM {0};'.format(sql.Identifier(table_name).as_string(target_db_conn)))
-            logging.info(f'Deleting from target table {table_name}')
-        else:
-            logging.info(f'Creating a target table {table_name}')
-            rendered_create_table_sql = Template(create_table_sql).render(
-                table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                field_mapping=field_mapping,
-            )
-            target_db_cursor.execute(rendered_create_table_sql)
+            table_name = f'{table_name}_copy'
 
+        logging.info(f'Creating a target table {table_name}')
+        rendered_create_table_sql = Template(create_table_sql).render(
+            table_name=sql.Identifier(table_name).as_string(target_db_conn),
+            field_mapping=field_mapping,
+        )
+        target_db_cursor.execute(rendered_create_table_sql)
         target_db_conn.commit()
 
     # TODO: Gotta Catch'm all
@@ -183,8 +182,8 @@ def create_or_delete_from_target_table(
 
 
 def get_available_page_var(redis_client, pattern):
-    """Find and return variable name, which holds paginated response data, that hasn't been picked up by a worker
-    to be inserted into target.
+    """Find and return variable name, which holds paginated response data,
+    that hasn't been picked up by a worker to be inserted into target.
     """
     for key in redis_client.keys(pattern=f'{pattern}*'):
         logging.info(f'Getting available page {key}')
@@ -197,6 +196,60 @@ def get_available_page_var(redis_client, pattern):
                 continue
 
             return key
+
+
+def insert_from_copy_table_if_needed(
+    target_db,
+    table_name=None,
+    task_instance=None,
+    run_fetch_task_id=None,
+    **kwargs
+):
+    insert_from_copy_sql = """
+        DELETE FROM {table_name};
+        INSERT INTO {table_name}
+        SELECT * FROM {copy_table_name};
+        DROP TABLE {copy_table_name};
+    """
+    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
+    fetcher_state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
+    inserter_state = True
+    for index in range(constants.INGEST_TASK_CONCURRENCY):
+        inserter_state = (
+            inserter_state and task_instance.xcom_pull(
+                key='state',
+                task_ids=f'execute-insert-into-{index}',
+            )
+        )
+    if (
+        (table_exists and table_exists != 'None') and
+        fetcher_state is True and inserter_state is True
+    ):
+        logging.info(f'Inserting from {table_name}_copy table to {table_name}')
+        try:
+            target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
+            target_db_cursor = target_db_conn.cursor()
+            target_db_cursor.execute(
+                insert_from_copy_sql.format(
+                    table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                    copy_table_name=sql.Identifier(f'{table_name}_copy').as_string(target_db_conn)
+                )
+            )
+            target_db_conn.commit()
+
+        # TODO: Gotta Catch'm all
+        except Exception as e:
+            logging.error(f'Exception: {e}')
+            target_db_conn.rollback()
+            raise
+
+        finally:
+            if target_db_conn:
+                target_db_cursor.close()
+                target_db_conn.close()
+
+    else:
+        logging.info('Target table newly created. No need for copy table')
 
 
 def execute_insert_into(
@@ -240,6 +293,9 @@ def execute_insert_into(
     sleep_time = 5
     number_of_run = 1
     redis_client = get_redis_client()
+    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
+    if table_exists and table_exists != 'None':
+        table_name = f'{table_name}_copy'
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
@@ -292,11 +348,13 @@ def execute_insert_into(
                     number_of_run += 1
 
         target_db_conn.commit()
+        task_instance.xcom_push(key='state', value=True)
 
     # TODO: Gotta Catch'm all
     except Exception as e:
         logging.error(f'Exception: {e}')
         target_db_conn.rollback()
+        task_instance.xcom_push(key='state', value=False)
         raise
 
     finally:
@@ -348,8 +406,8 @@ for pipeline in dataset_pipeline_classes:
         )
 
         t3 = PythonOperator(
-            task_id='create-or-delete-from-target-table',
-            python_callable=create_or_delete_from_target_table,
+            task_id='create-target-table',
+            python_callable=create_target_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
@@ -365,5 +423,12 @@ for pipeline in dataset_pipeline_classes:
                 )
             )
 
-        insert_group << t3 << t2
+        tend = PythonOperator(
+            task_id='insert-from-copy-table-if-needed',
+            python_callable=insert_from_copy_table_if_needed,
+            provide_context=True,
+            op_args=[f'{pipeline.target_db}'],
+        )
+
+        tend << insert_group << t3 << t2
         globals()[pipeline.__name__] = dag
