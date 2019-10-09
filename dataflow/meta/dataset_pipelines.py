@@ -687,13 +687,13 @@ class InteractionsDatasetPipeline:
     schedule_interval = '@daily'
     field_mapping = [
         (
-            'date',
-            'interaction_date',
-            'date'
+            'adviser_ids',
+            'adviser_ids',
+            'text []'
         ),
         (
-            'kind',
-            'interaction_kind',
+            'communication_channel__name',
+            'communication_channel',
             'character varying(255)'
         ),
         (
@@ -702,9 +702,54 @@ class InteractionsDatasetPipeline:
             'uuid'
         ),
         (
-            'investment_project__cdms_project_code',
-            'cdms_project_code',
+            'contact_ids',
+            'contact_ids',
+            'text []'
+        ),
+        (
+            'created_on',
+            'created_on',
+            'timestamp with time zone'
+        ),
+        (
+            'date',
+            'interaction_date',
+            'date'
+        ),
+        (
+            'event_id',
+            'event_id',
+            'uuid'
+        ),
+        (
+            'grant_amount_offered',
+            'grant_amount_offered',
+            'decimal'
+        ),
+        (
+            'interaction_link',
+            'interaction_link',
             'character varying(255)'
+        ),
+        (
+            'investment_project_id',
+            'investment_project_id',
+            'uuid'
+        ),
+        (
+            'kind',
+            'interaction_kind',
+            'character varying(255)'
+        ),
+        (
+            'net_company_receipt',
+            'net_company_receipt',
+            'decimal'
+        ),
+        (
+            'notes',
+            'interaction_notes',
+            'text'
         ),
         (
             'sector',
@@ -712,23 +757,8 @@ class InteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'adviser_name',
-            'adviser_name',
-            'character varying(255)'
-        ),
-        (
-            'adviser_phone',
-            'adviser_phone',
-            'character varying(255)'
-        ),
-        (
-            'adviser_email',
-            'adviser_email',
-            'character varying(255)'
-        ),
-        (
-            'adviser_team',
-            'adviser_team',
+            'service_delivery_status__name',
+            'service_delivery_status',
             'character varying(255)'
         ),
         (
@@ -740,81 +770,6 @@ class InteractionsDatasetPipeline:
             'subject',
             'interaction_subject',
             'text'
-        ),
-        (
-            'notes',
-            'interaction_notes',
-            'text'
-        ),
-        (
-            'net_company_receipt',
-            'net_company_receipt',
-            'decimal'
-        ),
-        (
-            'grant_amount_offered',
-            'grant_amount_offered',
-            'decimal'
-        ),
-        (
-            'service_delivery_status__name',
-            'service_delivery_status',
-            'character varying(255)'
-        ),
-        (
-            'event__name',
-            'event_name',
-            'character varying(255)'
-        ),
-        (
-            'event__event_type__name',
-            'event_type',
-            'character varying(255)'
-        ),
-        (
-            'event__start_date',
-            'event_start_date',
-            'date'
-        ),
-        (
-            'event__address_town',
-            'event_address_town',
-            'character varying(255)'
-        ),
-        (
-            'event__address_country__name',
-            'event_address_country',
-            'character varying(255)'
-        ),
-        (
-            'event__uk_region__name',
-            'event_address_region',
-            'character varying(255)'
-        ),
-        (
-            'event_service',
-            'event_service',
-            'character varying(255)'
-        ),
-        (
-            'created_on',
-            'created_on',
-            'timestamp with time zone'
-        ),
-        (
-            'communication_channel__name',
-            'communication_channel',
-            'character varying(255)'
-        ),
-        (
-            'interaction_link',
-            'interaction_link',
-            'character varying(255)'
-        ),
-        (
-            'contact_id',
-            'contact_id',
-            'character uuid'
         ),
     ]
 
