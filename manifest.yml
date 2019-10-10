@@ -5,3 +5,4 @@ applications:
   services:
     - data-flow-db
     - data-flow-redis
+    - data-flow-s3
