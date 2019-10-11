@@ -26,4 +26,3 @@ services:
     links:
       - "data-flow-db"
       - "data-flow-redis"
-

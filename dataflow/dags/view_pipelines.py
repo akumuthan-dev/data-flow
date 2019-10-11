@@ -1,3 +1,5 @@
+"""A module that defines Airflow DAGS for view pipelines."""
+
 from datetime import timedelta
 
 from airflow import DAG

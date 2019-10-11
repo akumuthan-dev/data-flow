@@ -3,20 +3,17 @@
 import json
 import logging
 import time
+
 from datetime import timedelta
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
-
 from jinja2 import Template
-
 from mohawk import Sender
 from mohawk.exc import HawkFail
-
 from psycopg2 import sql
-
 import redis
 import requests
 
@@ -230,32 +227,32 @@ def insert_from_copy_table_if_needed(
                 task_ids=f'execute-insert-into-{index}',
             )
         )
-    if (
-        (table_exists and table_exists != 'None') and
-        fetcher_state is True and inserter_state is True
-    ):
-        logging.info(f'Inserting from {table_name}_copy table to {table_name}')
-        try:
-            target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
-            target_db_cursor = target_db_conn.cursor()
-            target_db_cursor.execute(
-                insert_from_copy_sql.format(
-                    table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                    copy_table_name=sql.Identifier(f'{table_name}_copy').as_string(target_db_conn)
+    if table_exists and table_exists != 'None':
+        if fetcher_state is True and inserter_state is True:
+            logging.info(f'Inserting from {table_name}_copy table to {table_name}')
+            try:
+                target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
+                target_db_cursor = target_db_conn.cursor()
+                target_db_cursor.execute(
+                    insert_from_copy_sql.format(
+                        table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                        copy_table_name=sql.Identifier(f'{table_name}_copy').as_string(target_db_conn)
+                    ),
                 )
-            )
-            target_db_conn.commit()
+                target_db_conn.commit()
 
-        # TODO: Gotta Catch'm all
-        except Exception as e:
-            logging.error(f'Exception: {e}')
-            target_db_conn.rollback()
-            raise
+            # TODO: Gotta Catch'm all
+            except Exception as e:
+                logging.error(f'Exception: {e}')
+                target_db_conn.rollback()
+                raise
 
-        finally:
-            if target_db_conn:
-                target_db_cursor.close()
-                target_db_conn.close()
+            finally:
+                if target_db_conn:
+                    target_db_cursor.close()
+                    target_db_conn.close()
+        else:
+            logging.info('Fetcher or inserter failed! Take no action!')
 
     else:
         logging.info('Target table newly created. No need for copy table')
@@ -274,7 +271,6 @@ def execute_insert_into(
     insert data in, incrementally waits for new variables.
     Success depends on fetcher task completion.
     """
-
     insert_into_sql = """
         INSERT INTO {{ table_name }} (
         {% for _, tt_field_name, _ in field_mapping %}
