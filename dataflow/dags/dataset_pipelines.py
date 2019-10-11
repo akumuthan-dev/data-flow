@@ -35,6 +35,7 @@ credentials = {
 
 
 def get_redis_client():
+    """Returns redis client from connection URL"""
     return redis.from_url(url=constants.REDIS_URL)
 
 
@@ -70,6 +71,7 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     """
 
     def mark_task_failed():
+        """Marks task as failed and delete variables set by the task"""
         def rollback_variables(index):
             for i in range(index):
                 key = f'{run_fetch_task_id}{i}'
@@ -156,7 +158,8 @@ def create_target_table(
         target_db_cursor = target_db_conn.cursor()
 
         # If table already exists in the target database, create a copy table to be used
-        # for rollback in case of failiure or create one.
+        # to populate target table when all tasks succeed or
+        # create the target table directly and work on it.
         # Until there will be possibility for incremental load
         if table_exists and table_exists != 'None':
             table_name = f'{table_name}_copy'
@@ -205,6 +208,11 @@ def insert_from_copy_table_if_needed(
     run_fetch_task_id=None,
     **kwargs
 ):
+    """
+    Inserts from copy table to target table when all tasks succeed, if target table
+    already exists. The rational behind is not doing any modification on target table
+    before we make sure fetching from source and insertion is successful.
+    """
     insert_from_copy_sql = """
         DELETE FROM {table_name};
         INSERT INTO {table_name}
@@ -214,6 +222,7 @@ def insert_from_copy_table_if_needed(
     table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
     fetcher_state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
     inserter_state = True
+    # Check all insertion tasks are completed successfully.
     for index in range(constants.INGEST_TASK_CONCURRENCY):
         inserter_state = (
             inserter_state and task_instance.xcom_pull(
@@ -373,8 +382,6 @@ default_args = {
 }
 
 check_if_table_exists = "SELECT to_regclass('{{ table_name }}');"
-
-select_from_target_table = 'SELECT * FROM "%s";'
 
 for pipeline in dataset_pipeline_classes:
     run_fetch_task_id = f'RunFetch{pipeline.__name__}'
