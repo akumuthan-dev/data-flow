@@ -865,7 +865,7 @@ class CompaniesDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
-    schedule_interval = '@monthly'
+    schedule_interval = '@daily'
     field_mapping = [
         (
             'address_1',
