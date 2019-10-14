@@ -676,6 +676,104 @@ class InvestmentProjectsDatasetPipeline:
     ]
 
 
+class InteractionsDatasetPipeline:
+    table_name = 'interactions_dataset'
+    source_url = '{}/v4/dataset/interactions-dataset'.format(
+        constants.DATAHUB_BASE_URL
+    )
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        (
+            'adviser_ids',
+            'adviser_ids',
+            'text []'
+        ),
+        (
+            'communication_channel__name',
+            'communication_channel',
+            'character varying(255)'
+        ),
+        (
+            'company__id',
+            'company_id',
+            'uuid'
+        ),
+        (
+            'contact_ids',
+            'contact_ids',
+            'text []'
+        ),
+        (
+            'created_on',
+            'created_on',
+            'timestamp with time zone'
+        ),
+        (
+            'date',
+            'interaction_date',
+            'date'
+        ),
+        (
+            'event_id',
+            'event_id',
+            'uuid'
+        ),
+        (
+            'grant_amount_offered',
+            'grant_amount_offered',
+            'decimal'
+        ),
+        (
+            'interaction_link',
+            'interaction_link',
+            'character varying(255)'
+        ),
+        (
+            'investment_project_id',
+            'investment_project_id',
+            'uuid'
+        ),
+        (
+            'kind',
+            'interaction_kind',
+            'character varying(255)'
+        ),
+        (
+            'net_company_receipt',
+            'net_company_receipt',
+            'decimal'
+        ),
+        (
+            'notes',
+            'interaction_notes',
+            'text'
+        ),
+        (
+            'sector',
+            'sector',
+            'character varying(255)'
+        ),
+        (
+            'service_delivery_status__name',
+            'service_delivery_status',
+            'character varying(255)'
+        ),
+        (
+            'service_delivery',
+            'service_delivery',
+            'character varying(255)'
+        ),
+        (
+            'subject',
+            'interaction_subject',
+            'text'
+        ),
+    ]
+
+
 class ContactsDatasetPipeline:
     """Pipeline meta object for ContactsDataset."""
 
