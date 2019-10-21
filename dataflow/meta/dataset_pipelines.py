@@ -777,7 +777,7 @@ class InteractionsDatasetPipeline:
 class ContactsDatasetPipeline:
     """Pipeline meta object for ContactsDataset."""
 
-    table_name = 'contacts'
+    table_name = 'contacts_dataset'
     source_url = '{0}/v4/dataset/contacts-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
@@ -860,7 +860,7 @@ class ContactsDatasetPipeline:
 class CompaniesDatasetPipeline:
     """Pipeline meta object for CompaniesDataset."""
 
-    table_name = 'companies'
+    table_name = 'companies_dataset'
     source_url = '{0}/v4/dataset/companies-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
