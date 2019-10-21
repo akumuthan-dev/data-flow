@@ -865,7 +865,7 @@ class CompaniesDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
-    schedule_interval = '@daily'
+    schedule_interval = '@monthly'
     field_mapping = [
         (
             'address_1',
@@ -910,7 +910,7 @@ class CompaniesDatasetPipeline:
         (
             'description',
             'description',
-            'character varying(255)',
+            'text',
         ),
         (
             'duns_number',
