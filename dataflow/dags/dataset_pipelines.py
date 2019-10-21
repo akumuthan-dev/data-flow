@@ -19,7 +19,7 @@ import requests
 
 from dataflow import constants
 from dataflow.meta import dataset_pipelines
-from dataflow.utils import XCOMIntegratedPostgresOperator, get_defined_pipeline_classes_by_key
+from dataflow.utils import get_defined_pipeline_classes_by_key
 
 
 dataset_pipeline_classes = get_defined_pipeline_classes_by_key(dataset_pipelines, 'DatasetPipeline')
@@ -129,41 +129,31 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     task_instance.xcom_push(key='state', value=True)
 
 
-def create_target_table(
+def create_temporary_table(
     target_db,
     table_name=None,
     field_mapping=None,
-    task_instance=None,
     **kwargs,
 ):
-    """Create target database table or delete all from it.
-
-    If target table exists, create a copy table as a back up to be used in case of failure.
-    If target table doesn't exits, create one.
     """
+    Create a temporary table to be copied over to the target table `table_name`.
+    """
+    temp_table_name = F'{table_name}_tmp'
     create_table_sql = """
-        CREATE TABLE {{ table_name }} (
+        DROP TABLE IF EXISTS {{ temp_table_name }};
+        CREATE TABLE {{ temp_table_name }} (
         {% for _, tt_field_name, tt_field_constraints in field_mapping %}
             {{ tt_field_name }} {{ tt_field_constraints }}{{ "," if not loop.last }}
         {% endfor %}
         );
     """
 
-    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
-
-        # If table already exists in the target database, create a copy table to be used
-        # to populate target table when all tasks succeed or
-        # create the target table directly and work on it.
-        # Until there will be possibility for incremental load
-        if table_exists and table_exists != 'None':
-            table_name = f'{table_name}_copy'
-
-        logging.info(f'Creating a target table {table_name}')
+        logging.info(f'Creating temporary table {temp_table_name}')
         rendered_create_table_sql = Template(create_table_sql).render(
-            table_name=sql.Identifier(table_name).as_string(target_db_conn),
+            temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
             field_mapping=field_mapping,
         )
         target_db_cursor.execute(rendered_create_table_sql)
@@ -198,7 +188,7 @@ def get_available_page_var(redis_client, pattern):
             return key
 
 
-def insert_from_copy_table_if_needed(
+def rename_temporary_table(
     target_db,
     table_name=None,
     task_instance=None,
@@ -206,17 +196,15 @@ def insert_from_copy_table_if_needed(
     **kwargs
 ):
     """
-    Inserts from copy table to target table when all tasks succeed, if target table
-    already exists. The rational behind is not doing any modification on target table
+    Drop target table `table_name` if it exists and rename the temporary table to `table_name`.
+    The rational behind is not doing any modification on target table
     before we make sure fetching from source and insertion is successful.
     """
-    insert_from_copy_sql = """
-        DELETE FROM {table_name};
-        INSERT INTO {table_name}
-        SELECT * FROM {copy_table_name};
-        DROP TABLE {copy_table_name};
+    temp_table_name = F'{table_name}_tmp'
+    rename_table_sql = """
+        DROP TABLE IF EXISTS {table_name};
+        ALTER TABLE {temp_table_name} RENAME TO {table_name}
     """
-    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
     fetcher_state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
     inserter_state = True
     # Check all insertion tasks are completed successfully.
@@ -227,35 +215,31 @@ def insert_from_copy_table_if_needed(
                 task_ids=f'execute-insert-into-{index}',
             )
         )
-    if table_exists and table_exists != 'None':
-        if fetcher_state is True and inserter_state is True:
-            logging.info(f'Inserting from {table_name}_copy table to {table_name}')
-            try:
-                target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
-                target_db_cursor = target_db_conn.cursor()
-                target_db_cursor.execute(
-                    insert_from_copy_sql.format(
-                        table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                        copy_table_name=sql.Identifier(f'{table_name}_copy').as_string(target_db_conn)
-                    ),
-                )
-                target_db_conn.commit()
+    if fetcher_state is True and inserter_state is True:
+        logging.info(f'Renaming {temp_table_name} table to {table_name}')
+        try:
+            target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
+            target_db_cursor = target_db_conn.cursor()
+            target_db_cursor.execute(
+                rename_table_sql.format(
+                    table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                    temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
+                ),
+            )
+            target_db_conn.commit()
 
-            # TODO: Gotta Catch'm all
-            except Exception as e:
-                logging.error(f'Exception: {e}')
-                target_db_conn.rollback()
-                raise
+        # TODO: Gotta Catch'm all
+        except Exception as e:
+            logging.error(f'Exception: {e}')
+            target_db_conn.rollback()
+            raise
 
-            finally:
-                if target_db_conn:
-                    target_db_cursor.close()
-                    target_db_conn.close()
-        else:
-            logging.info('Fetcher or inserter failed! Take no action!')
-
+        finally:
+            if target_db_conn:
+                target_db_cursor.close()
+                target_db_conn.close()
     else:
-        logging.info('Target table newly created. No need for copy table')
+        logging.info('Fetcher or inserter failed! Take no action!')
 
 
 def execute_insert_into(
@@ -271,8 +255,9 @@ def execute_insert_into(
     insert data in, incrementally waits for new variables.
     Success depends on fetcher task completion.
     """
+    temp_table_name = F'{table_name}_tmp'
     insert_into_sql = """
-        INSERT INTO {{ table_name }} (
+        INSERT INTO {{ temp_table_name }} (
         {% for _, tt_field_name, _ in field_mapping %}
             {{ tt_field_name }}{{ "," if not loop.last }}
         {% endfor %}
@@ -290,7 +275,8 @@ def execute_insert_into(
             {% endfor %}
         {{ ")," if not loop.last }}
         {% endfor %}
-        );
+        )
+        ON CONFLICT DO NOTHING;
     """
     # Give some initial time to fetch task to get a page and save it into variable
     time.sleep(3)
@@ -298,9 +284,6 @@ def execute_insert_into(
     sleep_time = 5
     number_of_run = 1
     redis_client = get_redis_client()
-    table_exists = task_instance.xcom_pull(task_ids='check-if-table-exists')[0][0]
-    if table_exists and table_exists != 'None':
-        table_name = f'{table_name}_copy'
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
@@ -328,7 +311,7 @@ def execute_insert_into(
                     escaped_record_subset.append(escaped_record)
 
                 exec_sql = Template(insert_into_sql).render(
-                    table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                    temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
                     field_mapping=field_mapping,
                     record_subset=escaped_record_subset,
                 )
@@ -337,8 +320,8 @@ def execute_insert_into(
                 Variable.delete(var_name)
             else:
                 # Check if fetch task completed successfully, if it's, break out of loop and commit
-                # the transaction because there is no more page to process. If it's failed raise Exception so that
-                # transaction will be rollbacked
+                # the transaction because there is no more page to process.
+                # If it's failed raise Exception so that transaction will be rollbacked
                 state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
                 logging.info(f'Checking the state of fetcher task {state}')
                 if state is False:
@@ -377,8 +360,6 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-check_if_table_exists = "SELECT to_regclass('{{ table_name }}');"
-
 for pipeline in dataset_pipeline_classes:
     run_fetch_task_id = f'RunFetch{pipeline.__name__}'
 
@@ -402,15 +383,9 @@ for pipeline in dataset_pipeline_classes:
             op_args=[f'{pipeline.source_url}'],
         )
 
-        t2 = XCOMIntegratedPostgresOperator(
-            task_id='check-if-table-exists',
-            sql=check_if_table_exists,
-            postgres_conn_id=pipeline.target_db,
-        )
-
         t3 = PythonOperator(
-            task_id='create-target-table',
-            python_callable=create_target_table,
+            task_id='create-temporary-table',
+            python_callable=create_temporary_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
@@ -427,11 +402,11 @@ for pipeline in dataset_pipeline_classes:
             )
 
         tend = PythonOperator(
-            task_id='insert-from-copy-table-if-needed',
-            python_callable=insert_from_copy_table_if_needed,
+            task_id='rename-temporary-table',
+            python_callable=rename_temporary_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
 
-        tend << insert_group << t3 << t2
+        tend << insert_group << t3
         globals()[pipeline.__name__] = dag
