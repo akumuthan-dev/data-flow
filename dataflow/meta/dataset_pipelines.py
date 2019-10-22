@@ -1078,3 +1078,46 @@ class AdvisersDatasetPipeline:
             'boolean',
         ),
     ]
+
+
+class TeamsDatasetPipeline:
+    """Pipeline meta object for TeamsDataset."""
+
+    table_name = 'teams'
+    source_url = '{0}/v4/dataset/teams-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        (
+            'id',
+            'id',
+            'uuid',
+
+        ),
+        (
+            'name',
+            'name',
+            'character varying(255)',
+
+        ),
+        (
+            'role__name',
+            'role',
+            'character varying(255)',
+
+        ),
+        (
+            'uk_region__name',
+            'uk_region',
+            'character varying(255)',
+
+        ),
+        (
+            'country__name',
+            'country',
+            'character varying(255)',
+
+        ),
+    ]
