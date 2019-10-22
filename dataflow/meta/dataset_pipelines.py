@@ -1018,3 +1018,63 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
     ]
+
+
+class AdvisersDatasetPipeline:
+    """Pipeline meta object for AdvisersDataset."""
+
+    table_name = 'advisers'
+    source_url = '{0}/v4/dataset/advisers-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime.now().replace(day=1)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        (
+            'id',
+            'id',
+            'uuid',
+
+        ),
+        (
+            'date_joined',
+            'date_joined',
+            'date',
+
+        ),
+        (
+            'first_name',
+            'first_name',
+            'character varying(255)',
+
+        ),
+        (
+            'last_name',
+            'last_name',
+            'character varying(255)',
+
+        ),
+        (
+            'telephone_number',
+            'telephone_number',
+            'character varying(255)',
+
+        ),
+        (
+            'contact_email',
+            'contact_email',
+            'character varying(255)',
+
+        ),
+        (
+            'dit_team_id',
+            'team_id',
+            'uuid',
+
+        ),
+        (
+            'is_active',
+            'is_active',
+            'boolean',
+        ),
+    ]
