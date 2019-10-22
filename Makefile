@@ -1,9 +1,9 @@
 .PHONY: check
 check:
 	flake8 .
-	black --skip-string-normalization --check .
+	black --exclude=venv --skip-string-normalization --check .
 	mypy .
 
 .PHONY: format
 format:
-	black --skip-string-normalization .
+	black --exclude=venv --skip-string-normalization .
