@@ -7,10 +7,15 @@ from airflow.operators.postgres_operator import PostgresOperator
 
 from dataflow import constants
 from dataflow.meta import view_pipelines
-from dataflow.utils import XCOMIntegratedPostgresOperator, get_defined_pipeline_classes_by_key
+from dataflow.utils import (
+    XCOMIntegratedPostgresOperator,
+    get_defined_pipeline_classes_by_key,
+)
 
 
-view_pipeline_classes = get_defined_pipeline_classes_by_key(view_pipelines, 'ViewPipeline')
+view_pipeline_classes = get_defined_pipeline_classes_by_key(
+    view_pipelines, 'ViewPipeline'
+)
 
 
 default_args = {

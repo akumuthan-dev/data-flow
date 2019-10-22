@@ -22,7 +22,9 @@ from dataflow.meta import dataset_pipelines
 from dataflow.utils import get_defined_pipeline_classes_by_key
 
 
-dataset_pipeline_classes = get_defined_pipeline_classes_by_key(dataset_pipelines, 'DatasetPipeline')
+dataset_pipeline_classes = get_defined_pipeline_classes_by_key(
+    dataset_pipelines, 'DatasetPipeline'
+)
 
 credentials = {
     'id': constants.HAWK_ID,
@@ -81,28 +83,24 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
 
     index = 0
     while True:
-        sender = Sender(
-            credentials,
-            source_url,
-            'get',
-            always_hash_content=False,
-        )
+        sender = Sender(credentials, source_url, 'get', always_hash_content=False)
 
         logging.info(f'Fetching page {source_url}')
         response = requests.get(
-            source_url,
-            headers={'Authorization': sender.request_header},
+            source_url, headers={'Authorization': sender.request_header}
         )
         if response.status_code != 200:
             mark_task_failed(task_instance)
             raise Exception(
                 f'GET request to {source_url} is unsuccessful\n'
-                f'Message: {response.text}',
+                f'Message: {response.text}'
             )
         try:
-            sender.accept_response(response.headers['Server-Authorization'],
-                                   content=response.content,
-                                   content_type=response.headers['Content-Type'])
+            sender.accept_response(
+                response.headers['Server-Authorization'],
+                content=response.content,
+                content_type=response.headers['Content-Type'],
+            )
         except HawkFail as e:
             mark_task_failed(task_instance)
             raise Exception(f'HAWK Authentication failed {str(e)}')
@@ -126,12 +124,7 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     task_instance.xcom_push(key='state', value=True)
 
 
-def create_tables(
-    target_db,
-    table_name=None,
-    field_mapping=None,
-    **kwargs,
-):
+def create_tables(target_db, table_name=None, field_mapping=None, **kwargs):
     """
     Create a temporary table to be copied over to the target table `table_name`.
     """
@@ -148,9 +141,9 @@ def create_tables(
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
         logging.info(f'Creating temporary table {temp_table_name}')
-        target_db_cursor.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(
-            sql.Identifier(temp_table_name)
-        ))
+        target_db_cursor.execute(
+            sql.SQL('DROP TABLE IF EXISTS {}').format(sql.Identifier(temp_table_name))
+        )
         target_db_cursor.execute(
             Template(create_table_sql).render(
                 table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
@@ -179,11 +172,7 @@ def create_tables(
 
 
 def insert_from_temporary_table(
-    target_db,
-    table_name=None,
-    task_instance=None,
-    run_fetch_task_id=None,
-    **kwargs
+    target_db, table_name=None, task_instance=None, run_fetch_task_id=None, **kwargs
 ):
     """
     Insert data from temporary table into `table_name`.
@@ -201,11 +190,8 @@ def insert_from_temporary_table(
     inserter_state = True
     # Check all insertion tasks are completed successfully.
     for index in range(constants.INGEST_TASK_CONCURRENCY):
-        inserter_state = (
-            inserter_state and task_instance.xcom_pull(
-                key='state',
-                task_ids=f'execute-insert-into-{index}',
-            )
+        inserter_state = inserter_state and task_instance.xcom_pull(
+            key='state', task_ids=f'execute-insert-into-{index}'
         )
     if fetcher_state is True and inserter_state is True:
         logging.info(f'Inserting data from {temp_table_name} into {table_name}')
@@ -215,8 +201,10 @@ def insert_from_temporary_table(
             target_db_cursor.execute(
                 rename_table_sql.format(
                     table_name=sql.Identifier(table_name).as_string(target_db_conn),
-                    temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
-                ),
+                    temp_table_name=sql.Identifier(temp_table_name).as_string(
+                        target_db_conn
+                    ),
+                )
             )
             target_db_conn.commit()
 
@@ -242,7 +230,7 @@ def execute_insert_into(
     run_fetch_task_id=None,
     field_mapping=None,
     task_instance=None,
-    **kwargs
+    **kwargs,
 ):
     """Inserts each paginated response data into target database table.
     Polls to find variable hasn't been processed, generates regarding sql statement to
@@ -297,13 +285,19 @@ def execute_insert_into(
                     escaped_record = {}
                     for key, value in record.items():
                         if value and value != 'None':
-                            escaped_record[key] = sql.Literal(value).as_string(target_db_conn)
+                            escaped_record[key] = sql.Literal(value).as_string(
+                                target_db_conn
+                            )
                         else:
-                            escaped_record[key] = sql.Literal(None).as_string(target_db_conn)
+                            escaped_record[key] = sql.Literal(None).as_string(
+                                target_db_conn
+                            )
                     escaped_record_subset.append(escaped_record)
 
                 exec_sql = Template(insert_into_sql).render(
-                    temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
+                    temp_table_name=sql.Identifier(temp_table_name).as_string(
+                        target_db_conn
+                    ),
                     field_mapping=field_mapping,
                     record_subset=escaped_record_subset,
                 )
