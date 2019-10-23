@@ -140,8 +140,7 @@ def create_temporary_table(
     """
     temp_table_name = F'{table_name}_tmp'
     create_table_sql = """
-        DROP TABLE IF EXISTS {{ temp_table_name }};
-        CREATE TABLE {{ temp_table_name }} (
+        CREATE TABLE IF NOT EXISTS {{ table_name }} (
         {% for _, tt_field_name, tt_field_constraints in field_mapping %}
             {{ tt_field_name }} {{ tt_field_constraints }}{{ "," if not loop.last }}
         {% endfor %}
@@ -152,11 +151,19 @@ def create_temporary_table(
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
         logging.info(f'Creating temporary table {temp_table_name}')
-        rendered_create_table_sql = Template(create_table_sql).render(
-            temp_table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
-            field_mapping=field_mapping,
+        target_db_cursor.execute(
+            Template(create_table_sql).render(
+                table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
+                field_mapping=field_mapping,
+            )
         )
-        target_db_cursor.execute(rendered_create_table_sql)
+        logging.info(f'Creating target table {table_name}')
+        target_db_cursor.execute(
+            Template(create_table_sql).render(
+                table_name=sql.Identifier(table_name).as_string(target_db_conn),
+                field_mapping=field_mapping,
+            )
+        )
         target_db_conn.commit()
 
     # TODO: Gotta Catch'm all
@@ -188,7 +195,7 @@ def get_available_page_var(redis_client, pattern):
             return key
 
 
-def rename_temporary_table(
+def insert_from_temporary_table(
     target_db,
     table_name=None,
     task_instance=None,
@@ -196,14 +203,16 @@ def rename_temporary_table(
     **kwargs
 ):
     """
-    Drop target table `table_name` if it exists and rename the temporary table to `table_name`.
+    Insert data from temporary table into `table_name`.
     The rational behind is not doing any modification on target table
     before we make sure fetching from source and insertion is successful.
     """
     temp_table_name = F'{table_name}_tmp'
     rename_table_sql = """
-        DROP TABLE IF EXISTS {table_name};
-        ALTER TABLE {temp_table_name} RENAME TO {table_name}
+        TRUNCATE TABLE {table_name};
+        INSERT INTO {table_name}
+        SELECT * FROM {temp_table_name};
+        DROP TABLE {temp_table_name};
     """
     fetcher_state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
     inserter_state = True
@@ -402,8 +411,8 @@ for pipeline in dataset_pipeline_classes:
             )
 
         tend = PythonOperator(
-            task_id='rename-temporary-table',
-            python_callable=rename_temporary_table,
+            task_id='insert-from-temporary-table',
+            python_callable=insert_from_temporary_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
