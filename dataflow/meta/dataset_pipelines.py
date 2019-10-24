@@ -697,7 +697,7 @@ class InteractionsDatasetPipeline:
             'character varying(255)'
         ),
         (
-            'company__id',
+            'company_id',
             'company_id',
             'uuid'
         ),
@@ -725,6 +725,11 @@ class InteractionsDatasetPipeline:
             'grant_amount_offered',
             'grant_amount_offered',
             'decimal'
+        ),
+        (
+            'id',
+            'id',
+            'uuid'
         ),
         (
             'interaction_link',
