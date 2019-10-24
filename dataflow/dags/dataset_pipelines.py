@@ -129,7 +129,7 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     task_instance.xcom_push(key='state', value=True)
 
 
-def create_temporary_table(
+def create_tables(
     target_db,
     table_name=None,
     field_mapping=None,
@@ -151,6 +151,9 @@ def create_temporary_table(
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
         logging.info(f'Creating temporary table {temp_table_name}')
+        target_db_cursor.execute(sql.SQL('DROP TABLE IF EXISTS {}').format(
+            sql.Identifier(temp_table_name)
+        ))
         target_db_cursor.execute(
             Template(create_table_sql).render(
                 table_name=sql.Identifier(temp_table_name).as_string(target_db_conn),
@@ -225,7 +228,7 @@ def insert_from_temporary_table(
             )
         )
     if fetcher_state is True and inserter_state is True:
-        logging.info(f'Renaming {temp_table_name} table to {table_name}')
+        logging.info(f'Inserting data from {temp_table_name} into {table_name}')
         try:
             target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
             target_db_cursor = target_db_conn.cursor()
@@ -284,8 +287,7 @@ def execute_insert_into(
             {% endfor %}
         {{ ")," if not loop.last }}
         {% endfor %}
-        )
-        ON CONFLICT DO NOTHING;
+        );
     """
     # Give some initial time to fetch task to get a page and save it into variable
     time.sleep(3)
@@ -393,8 +395,8 @@ for pipeline in dataset_pipeline_classes:
         )
 
         t3 = PythonOperator(
-            task_id='create-temporary-table',
-            python_callable=create_temporary_table,
+            task_id='create-tables',
+            python_callable=create_tables,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
