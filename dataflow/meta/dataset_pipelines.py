@@ -795,24 +795,14 @@ class ContactsDatasetPipeline:
             'text',
         ),
         (
-            'company__company_number',
-            'companies_house_id',
+            'address_postcode',
+            'address_postcode',
             'character varying(255)',
         ),
         (
-            'company__name',
-            'company_name',
-            'character varying(255)',
-        ),
-        (
-            'company__uk_region__name',
-            'uk_region',
-            'text',
-        ),
-        (
-            'company_sector',
-            'company_sector',
-            'text',
+            'company_id',
+            'company_id',
+            'uuid',
         ),
         (
             'created_on',
@@ -828,6 +818,11 @@ class ContactsDatasetPipeline:
             'email_alternative',
             'email_alternative',
             'character varying(255)',
+        ),
+        (
+            'id',
+            'id',
+            'uuid',
         ),
         (
             'job_title',
