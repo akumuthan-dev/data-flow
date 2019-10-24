@@ -16,74 +16,9 @@ class OMISDatasetPipeline:
     schedule_interval = '@monthly'
     field_mapping = [
         (
-            'reference',
-            'omis_order_reference',
-            'character varying(100)',
-        ),
-        (
-            'company__name',
-            'company_name',
-            'character varying(255)',
-        ),
-        (
-            'status',
-            'order_status',
-            'character varying(100)',
-        ),
-        (
-            'contact__first_name',
-            'contact_first_name',
-            'character varying(255)',
-        ),
-        (
-            'contact__last_name',
-            'contact_last_name',
-            'character varying(255)',
-        ),
-        (
-            'contact__email',
-            'contact_email',
-            'character varying(255)',
-        ),
-        (
-            'contact__telephone_number',
-            'contact_phone_number',
-            'character varying(255)',
-        ),
-        (
-            'invoice__subtotal_cost',
-            'subtotal',
-            'integer',
-        ),
-        (
-            'subtotal_cost',
-            'net_price',
-            'integer',
-        ),
-        (
-            'sector_name',
-            'sector',
-            'character varying(255)',
-        ),
-        (
-            'primary_market__name',
-            'market',
+            'cancellation_reason__name',
+            'cancellation_reason',
             'text',
-        ),
-        (
-            'created_by__dit_team__name',
-            'dit_team',
-            'text',
-        ),
-        (
-            'uk_region__name',
-            'uk_region',
-            'text',
-        ),
-        (
-            'created_on',
-            'created_date',
-            'timestamp with time zone',
         ),
         (
             'cancelled_on',
@@ -91,13 +26,28 @@ class OMISDatasetPipeline:
             'timestamp with time zone',
         ),
         (
-            'cancellation_reason__name',
-            'cancellation_reason',
-            'text',
+            'company_id',
+            'company_id',
+            'uuid'
         ),
         (
             'completed_on',
             'completion_date',
+            'timestamp with time zone',
+        ),
+        (
+            'contact_id',
+            'contact_id',
+            'uuid'
+        ),
+        (
+            'created_by__dit_team_id',
+            'dit_team_id',
+            'uuid',
+        ),
+        (
+            'created_on',
+            'created_date',
             'timestamp with time zone',
         ),
         (
@@ -106,73 +56,53 @@ class OMISDatasetPipeline:
             'date',
         ),
         (
+            'id',
+            'id',
+            'uuid'
+        ),
+        (
+            'invoice__subtotal_cost',
+            'subtotal',
+            'integer',
+        ),
+        (
             'paid_on',
             'payment_received_date',
             'timestamp with time zone',
         ),
         (
-            'company__address_1',
-            'company_trading_address_line_1',
-            'character varying(255)',
+            'primary_market__name',
+            'market',
+            'text',
         ),
         (
-            'company__address_2',
-            'company_trading_address_line_2',
-            'character varying(255)',
+            'reference',
+            'omis_order_reference',
+            'character varying(100)',
         ),
         (
-            'company__address_town',
-            'company_trading_address_town',
-            'character varying(255)',
-        ),
-        (
-            'company__address_county',
-            'company_trading_address_county',
-            'character varying(255)',
-        ),
-        (
-            'company__address_country__name',
-            'company_trading_address_country',
-            'character varying(255)',
-        ),
-        (
-            'company__address_postcode',
-            'company_trading_address_postcode',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_1',
-            'company_registered_address_1',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_2',
-            'company_registered_address_2',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_town',
-            'company_registered_address_town',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_county',
-            'company_registered_address_county',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_country__name',
-            'company_registered_address_country',
-            'character varying(255)',
-        ),
-        (
-            'company__registered_address_postcode',
-            'company_registered_address_postcode',
+            'sector_name',
+            'sector',
             'character varying(255)',
         ),
         (
             'services',
             'services',
+            'text',
+        ),
+        (
+            'status',
+            'order_status',
+            'character varying(100)',
+        ),
+        (
+            'subtotal_cost',
+            'net_price',
+            'integer',
+        ),
+        (
+            'uk_region__name',
+            'uk_region',
             'text',
         ),
     ]
