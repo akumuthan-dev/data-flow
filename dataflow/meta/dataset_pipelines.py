@@ -813,6 +813,11 @@ class CompaniesDatasetPipeline:
             'character varying(255)',
         ),
         (
+            'address_country__name',
+            'address_country',
+            'character varying(255)',
+        ),
+        (
             'address_postcode',
             'address_postcode',
             'character varying(255)',
