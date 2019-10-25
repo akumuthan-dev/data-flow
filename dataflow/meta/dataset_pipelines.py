@@ -958,7 +958,7 @@ class CompaniesDatasetPipeline:
 class AdvisersDatasetPipeline:
     """Pipeline meta object for AdvisersDataset."""
 
-    table_name = 'advisers'
+    table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
@@ -1018,7 +1018,7 @@ class AdvisersDatasetPipeline:
 class TeamsDatasetPipeline:
     """Pipeline meta object for TeamsDataset."""
 
-    table_name = 'teams'
+    table_name = 'teams_dataset'
     source_url = '{0}/v4/dataset/teams-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
