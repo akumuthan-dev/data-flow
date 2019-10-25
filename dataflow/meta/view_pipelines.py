@@ -134,8 +134,8 @@ class InvestmentProjectsViewPipeline:
 class InteractionsViewPipeline:
     view_name = 'interactions'
     dataset_pipeline = InteractionsDatasetPipeline
-    start_date = datetime(2017, 11, 1)
-    end_date = datetime(2018, 2, 1)
+    start_date = datetime(2018, 12, 1)
+    end_date = None
     catchup = True
     fields = '__all__'
     where_clause = """
