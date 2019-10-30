@@ -14,25 +14,33 @@ class CompletedOMISOrderViewPipeline:
 
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 7, 1)
+    start_date = datetime(2019, 1, 1)
     end_date = None
     catchup = True
     fields = [
-        ('company_name', 'Company Name'),
-        ('dit_team', 'DIT Team'),
-        ('subtotal::numeric/100', 'Subtotal'),
-        ('uk_region', 'UK Region'),
-        ('market', 'Market'),
-        ('sector', 'Sector'),
-        ('services', 'Services'),
-        ('delivery_date', 'Delivery Date'),
-        ('payment_received_date', 'Payment Received Date'),
-        ('completion_date', 'Completion Date'),
+        ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
+        ('companies_dataset.name', 'Company name'),
+        ('teams_dataset.name', 'DIT Team'),
+        ('ROUND(omis_dataset.subtotal::numeric/100::numeric,2)', 'Net price'),
+        ('omis_dataset.uk_region', 'UK Region'),
+        ('omis_dataset.market', 'Market'),
+        ('omis_dataset.sector', 'Sector'),
+        ('omis_dataset.services', 'Services'),
+        ('to_char(omis_dataset.delivery_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Delivery date'),
+        ('to_char(omis_dataset.payment_received_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Payment received date'),
+        ('to_char(omis_dataset.completion_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Completion Date'),
+        ('to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Created date'),
+        ('to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Cancelled date'),
+        ('omis_dataset.cancellation_reason', 'Cancellation reason'),
     ]
+    join_clause = '''
+        LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
+        LEFT JOIN teams_dataset ON omis_dataset.dit_team_id=teams_dataset.id
+    '''
     where_clause = """
-        order_status = 'complete' AND
-        date_trunc('month', completion_date)::DATE =
-            date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'));
+        omis_dataset.order_status = 'complete'
+        AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        ORDER BY omis_dataset.completion_date
     """
     schedule_interval = '@monthly'
 
@@ -46,33 +54,28 @@ class CancelledOMISOrderViewPipeline:
     end_date = None
     catchup = True
     fields = [
-        ('omis_order_reference', 'OMIS Order Reference'),
-        ('company_name', 'Company Name'),
-        ('net_price::numeric/100', 'Net Price'),
-        ('dit_team', 'DIT Team'),
-        ('market', 'Market'),
-        ('sector', 'Sector'),
-        ('created_date', 'Created Date'),
-        ('cancelled_date', 'Cancelled Date'),
-        ('cancellation_reason', 'Cancellation Reason'),
+        ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
+        ('companies_dataset.name', 'Company Name'),
+        ('ROUND(omis_dataset.subtotal::numeric/100::numeric,2)', 'Net price'),
+        ('teams_dataset.name', 'DIT Team'),
+        ('omis_dataset.market', 'Market'),
+        ('to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Created Date'),
+        ('to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Cancelled Date'),
+        ('omis_dataset.cancellation_reason', 'Cancellation reason'),
     ]
+    join_clause = """
+        LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
+        LEFT JOIN teams_dataset ON omis_dataset.dit_team_id=teams_dataset.id
+    """
     where_clause = """
-        order_status = 'cancelled' AND
-        cancelled_date::DATE >=
-        {% if macros.datetime.strptime(ds, '%Y-%m-%d') <=
-            macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'),
-                                                      month_day_financial_year),
-                                     '%Y-%m-%d') %}
-            to_date('{{ macros.ds_format(macros.ds_add(ds, -365),
-                                         '%Y-%m-%d',
-                                         '%Y') }}-{{ month_day_financial_year }}',
-                    'YYYY-MM-DD');
+        omis_dataset.order_status = 'cancelled'
+        AND omis_dataset.cancelled_date >= 
+        {% if macros.datetime.strptime(ds, '%Y-%m-%d') <= macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'), month_day_financial_year), '%Y-%m-%d') %}
+            to_date('{{ macros.ds_format(macros.ds_add(ds, -365), '%Y-%m-%d', '%Y') }}-{{ month_day_financial_year }}', 'YYYY-MM-DD')
         {% else %}
-            to_date('{{ macros.ds_format(ds,
-                                         '%Y-%m-%d',
-                                         '%Y') }}-{{ month_day_financial_year }}',
-                    'YYYY-MM-DD');
+            to_date('{{ macros.ds_format(ds, '%Y-%m-%d', '%Y') }}-{{ month_day_financial_year }}', 'YYYY-MM-DD')
         {% endif %}
+        ORDER BY omis_dataset.cancelled_date
     """
     params = {
         'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY,
@@ -85,61 +88,35 @@ class OMISClientSurveyViewPipeline:
 
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 7, 1)
+    start_date = datetime(2019, 1, 1)
     end_date = None
     catchup = True
     fields = [
-        ('company_name', 'Company Name'),
-        ('contact_first_name', 'Contact First Name'),
-        ('contact_last_name', 'Contact Last Name'),
-        ('contact_email', 'Contact Email'),
-        ('company_trading_address_line_1', 'Company Trading Address Line 1'),
-        ('company_trading_address_line_2', 'Company Trading Address Line 2'),
-        ('company_trading_address_town', 'Company Trading Address Town'),
-        ('company_trading_address_county', 'Company Trading Address County'),
-        ('company_trading_address_postcode', 'Company Trading Address Postcode'),
-        ('company_registered_address_1', 'Company Registered Address 1'),
-        ('company_registered_address_2', 'Company Registered Address 2'),
-        ('company_registered_address_town', 'Company Registered Address Town'),
-        ('company_registered_address_county', 'Company Registered Address County'),
-        ('company_registered_address_country', 'Company Registered Address Country'),
-        ('company_registered_address_postcode', 'Company Registered Address Postcode'),
+        ('companies_dataset.name', 'Company Name'),
+        ('contacts_dataset.contact_name', 'Contact Name'),
+        ('contacts_dataset.phone', 'Contact Phone Number'),
+        ('contacts_dataset.email', 'Contact Email'),
+        ('companies_dataset.address_1', 'Company Trading Address Line 1'),
+        ('companies_dataset.address_2', 'Company Trading Address Line 2'),
+        ('companies_dataset.address_town', 'Company Trading Address Town'),
+        ('companies_dataset.address_county', 'Company Trading Address County'),
+        ('companies_dataset.address_country', 'Company Trading Address Country'),
+        ('companies_dataset.address_postcode', 'Company Trading Address Postcode'),
+        ('companies_dataset.registered_address_1', 'Company Registered Address Line 1'),
+        ('companies_dataset.registered_address_2', 'Company Registered Address Line 2'),
+        ('companies_dataset.registered_address_town', 'Company Registered Address Town'),
+        ('companies_dataset.registered_address_county', 'Company Registered Address County'),
+        ('companies_dataset.registered_address_country', 'Company Registered Address Country'),
+        ('companies_dataset.registered_address_postcode', 'Company Registered Address Postcode'),
+
     ]
-    where_clause = """
-        order_status = 'complete' AND
-        date_trunc('month', completion_date)::DATE =
-            date_trunc(
-                'month',
-                to_date('{{ ds }}', 'YYYY-MM-DD'));
+    join_clause = """
+        JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
+        JOIN contacts_dataset ON omis_dataset.contact_id=contacts_dataset.id
     """
-    schedule_interval = '@monthly'
-
-
-class InvestmentProjectsViewPipeline:
-    """Pipeline meta object for Investment Projects View."""
-
-    view_name = 'investment_projects'
-    dataset_pipeline = InvestmentProjectsDatasetPipeline
-    start_date = datetime(2019, 7, 1)
-    end_date = None
-    catchup = True
-    fields = '__all__'
     where_clause = """
-        date_trunc('month', created_on)::DATE =
-            date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'));
-    """
-    schedule_interval = '@monthly'
-
-
-class InteractionsViewPipeline:
-    view_name = 'interactions'
-    dataset_pipeline = InteractionsDatasetPipeline
-    start_date = datetime(2018, 12, 1)
-    end_date = None
-    catchup = True
-    fields = '__all__'
-    where_clause = """
-        date_trunc('month', created_on)::DATE =
-            date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'));
+        omis_dataset.order_status = 'complete'
+        AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        ORDER BY omis_dataset.completion_date
     """
     schedule_interval = '@monthly'
