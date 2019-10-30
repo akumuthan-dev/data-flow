@@ -36,6 +36,15 @@ def get_redis_client():
     return redis.from_url(url=constants.REDIS_URL)
 
 
+def mark_task_failed(task_instance):
+    """Marks task as failed and delete variables set by the task"""
+    redis_client = get_redis_client()
+    task_instance.xcom_push(key='state', value=False)
+    for i in range(0, redis_client.llen(run_fetch_task_id)):
+        Variable.delete(redis_client.lindex(run_fetch_task_id, i))
+    redis_client.delete(run_fetch_task_id)
+
+
 def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     """Fetch data from source.
 
@@ -66,18 +75,10 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
         support various pipeline types.
 
     """
-
-    def mark_task_failed():
-        """Marks task as failed and delete variables set by the task"""
-        def rollback_variables(index):
-            for i in range(index):
-                key = f'{run_fetch_task_id}{i}'
-                Variable.delete(key)
-                redis_client.delete(key)
-        task_instance.xcom_push(key='state', value=False)
-        rollback_variables(index)
-
     redis_client = get_redis_client()
+    # Clear any leftover requests from previous task runs
+    redis_client.delete(run_fetch_task_id)
+
     index = 0
     while True:
         sender = Sender(
@@ -87,12 +88,13 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
             always_hash_content=False,
         )
 
+        logging.info(f'Fetching page {source_url}')
         response = requests.get(
             source_url,
             headers={'Authorization': sender.request_header},
         )
         if response.status_code != 200:
-            mark_task_failed()
+            mark_task_failed(task_instance)
             raise Exception(
                 f'GET request to {source_url} is unsuccessful\n'
                 f'Message: {response.text}',
@@ -102,26 +104,21 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
                                    content=response.content,
                                    content_type=response.headers['Content-Type'])
         except HawkFail as e:
-            mark_task_failed()
+            mark_task_failed(task_instance)
             raise Exception(f'HAWK Authentication failed {str(e)}')
 
         response_json = response.json()
         if 'results' not in response_json or 'next' not in response_json:
-            mark_task_failed()
+            mark_task_failed(task_instance)
             raise Exception('Unexpected response structure')
 
         key = f'{run_fetch_task_id}{index}'
-        Variable.set(
-            key,
-            response_json['results'],
-            serialize_json=True,
-        )
-        redis_client.set(key, 1)
+        Variable.set(key, response_json['results'], serialize_json=True)
+        redis_client.rpush(run_fetch_task_id, key)
         next_page = response_json['next']
         if next_page:
             index += 1
             source_url = next_page
-            logging.info('Moving on to the next page')
         else:
             break
 
@@ -181,23 +178,6 @@ def create_tables(
             target_db_conn.close()
 
 
-def get_available_page_var(redis_client, pattern):
-    """Find and return variable name, which holds paginated response data,
-    that hasn't been picked up by a worker to be inserted into target.
-    """
-    for key in redis_client.keys(pattern=f'{pattern}*'):
-        logging.info(f'Getting available page {key}')
-        redis_value = redis_client.get(key)
-        if redis_value:
-            logging.info(f'Found an unprocessed variable {key}')
-            result = redis_client.delete(key)
-            if result == 0:
-                logging.info(f'Another worker already got this {key}')
-                continue
-
-            return key
-
-
 def insert_from_temporary_table(
     target_db,
     table_name=None,
@@ -243,6 +223,7 @@ def insert_from_temporary_table(
         # TODO: Gotta Catch'm all
         except Exception as e:
             logging.error(f'Exception: {e}')
+            mark_task_failed(task_instance)
             target_db_conn.rollback()
             raise
 
@@ -251,7 +232,8 @@ def insert_from_temporary_table(
                 target_db_cursor.close()
                 target_db_conn.close()
     else:
-        logging.info('Fetcher or inserter failed! Take no action!')
+        logging.info('Fetcher or inserter failed!')
+        mark_task_failed(task_instance)
 
 
 def execute_insert_into(
@@ -293,22 +275,21 @@ def execute_insert_into(
     time.sleep(3)
     # Used for providing incremental wait
     sleep_time = 5
-    number_of_run = 1
+    number_of_runs = 1
     redis_client = get_redis_client()
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
         target_db_cursor = target_db_conn.cursor()
-
         while True:
-            var_name = get_available_page_var(redis_client, run_fetch_task_id)
+            var_name = redis_client.lpop(run_fetch_task_id)
             if var_name:
-                logging.info(f'Got the unprocessed var_name {var_name}')
+                logging.info(f'Processing page {var_name}')
                 sleep_time = 5
                 var_name = var_name.decode('utf-8')
                 try:
                     record_subset = json.loads(Variable.get(var_name))
                 except KeyError:
-                    logging.info(f'Var {var_name} no more exist! It is processed by another worker. Moving on.')
+                    logging.info(f'Page {var_name} does not exist. Moving on.')
                     continue
 
                 escaped_record_subset = []
@@ -327,24 +308,27 @@ def execute_insert_into(
                     record_subset=escaped_record_subset,
                 )
                 target_db_cursor.execute(exec_sql)
-                logging.info(f'Deleting the var_name {var_name}')
+                logging.info(f'Page {var_name} ingested successfully')
                 Variable.delete(var_name)
             else:
                 # Check if fetch task completed successfully, if it's, break out of loop and commit
                 # the transaction because there is no more page to process.
                 # If it's failed raise Exception so that transaction will be rollbacked
                 state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
-                logging.info(f'Checking the state of fetcher task {state}')
+                logging.info(f'Fetcher task {run_fetch_task_id} state is "{state}"')
                 if state is False:
-                    raise Exception('Fetcher task failed!')
+                    mark_task_failed(task_instance)
+                    raise Exception(f'Fetcher task {run_fetch_task_id} failed!')
                 elif state is True:
-                    logging.info('Fetcher task successfully completed and there is no more variable to process.')
+                    logging.info(f'Fetcher task {run_fetch_task_id} has completed.')
                     break
                 else:
-                    logging.info(f'Sleeping for {sleep_time} fetcher task to catchup')
-                    sleep_time = sleep_time * number_of_run
+                    logging.info(
+                        f'Sleeping for {sleep_time} so task {run_fetch_task_id} can catchup'
+                    )
+                    sleep_time = sleep_time * number_of_runs
                     time.sleep(sleep_time)
-                    number_of_run += 1
+                    number_of_runs += 1
 
         target_db_conn.commit()
         task_instance.xcom_push(key='state', value=True)
@@ -352,8 +336,8 @@ def execute_insert_into(
     # TODO: Gotta Catch'm all
     except Exception as e:
         logging.error(f'Exception: {e}')
+        mark_task_failed(task_instance)
         target_db_conn.rollback()
-        task_instance.xcom_push(key='state', value=False)
         raise
 
     finally:
@@ -381,6 +365,7 @@ for pipeline in dataset_pipeline_classes:
         start_date=pipeline.start_date,
         end_date=pipeline.end_date,
         schedule_interval=pipeline.schedule_interval,
+        max_active_runs=1,
         user_defined_macros={
             'table_name': pipeline.table_name,
             'field_mapping': pipeline.field_mapping,

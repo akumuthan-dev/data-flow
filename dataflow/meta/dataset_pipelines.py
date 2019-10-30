@@ -58,7 +58,7 @@ class OMISDatasetPipeline:
         (
             'id',
             'id',
-            'uuid'
+            'uuid primary key'
         ),
         (
             'invoice__subtotal_cost',
@@ -231,7 +231,7 @@ class InvestmentProjectsDatasetPipeline:
         (
             'id',
             'id',
-            'uuid',
+            'uuid primary key',
         ),
         (
             'investment_type__name',
@@ -444,7 +444,7 @@ class InteractionsDatasetPipeline:
         (
             'id',
             'id',
-            'uuid'
+            'uuid primary key'
         ),
         (
             'interaction_link',
@@ -542,7 +542,7 @@ class ContactsDatasetPipeline:
         (
             'id',
             'id',
-            'uuid',
+            'uuid primary key',
         ),
         (
             'job_title',
@@ -645,7 +645,7 @@ class CompaniesDatasetPipeline:
         (
             'id',
             'id',
-            'uuid',
+            'uuid primary key',
         ),
         (
             'is_number_of_employees_estimated',
@@ -753,7 +753,7 @@ class AdvisersDatasetPipeline:
         (
             'id',
             'id',
-            'uuid',
+            'uuid primary key',
 
         ),
         (
@@ -813,7 +813,7 @@ class TeamsDatasetPipeline:
         (
             'id',
             'id',
-            'uuid',
+            'uuid primary key',
 
         ),
         (
