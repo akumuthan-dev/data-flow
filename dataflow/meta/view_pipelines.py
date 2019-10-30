@@ -3,9 +3,7 @@ from datetime import datetime
 
 from dataflow import constants
 from dataflow.meta.dataset_pipelines import (
-    InvestmentProjectsDatasetPipeline,
     OMISDatasetPipeline,
-    InteractionsDatasetPipeline,
 )
 
 
@@ -120,3 +118,5 @@ class OMISClientSurveyViewPipeline:
         ORDER BY omis_dataset.completion_date
     """
     schedule_interval = '@monthly'
+
+
