@@ -26,7 +26,12 @@ the new module will override this one.
 
 """
 import flask_login
-from flask_login import login_required, current_user, logout_user, login_user  # noqa: F401
+from flask_login import (  # noqa: F401
+    login_required,
+    current_user,
+    logout_user,
+    login_user,
+)
 from flask_oauthlib.client import OAuth
 
 from flask import url_for, redirect, request
@@ -45,7 +50,6 @@ log = LoggingMixin().log
 
 
 class StaffUser(models.User):
-
     def __init__(self, user):
         self.user = user
 
@@ -82,7 +86,6 @@ class AuthenticationError(Exception):
 
 
 class AuthbrokerBackend(object):
-
     def __init__(self):
         self.login_manager = flask_login.LoginManager()
         self.login_manager.login_view = 'airflow.login'
@@ -109,36 +112,35 @@ class AuthbrokerBackend(object):
             consumer_key=self.client_id,
             consumer_secret=self.client_secret,
             access_token_method='POST',
-            request_token_params={
-                'state': lambda: security.gen_salt(10)
-            }
+            request_token_params={'state': lambda: security.gen_salt(10)},
         )
 
         self.login_manager.user_loader(self.load_user)
 
-        self.flask_app.add_url_rule('/oauth2callback',
-                                    'oauth2callback',
-                                    self.oauth2callback)
+        self.flask_app.add_url_rule(
+            '/oauth2callback', 'oauth2callback', self.oauth2callback
+        )
 
     def login(self, request):
         log.info('================Redirecting===================')
-        return self.authbroker_client.authorize(callback=url_for(
-            'oauth2callback',
-            _external=True),
-            state=request.args.get('next') or request.referrer or None)
+        return self.authbroker_client.authorize(
+            callback=url_for('oauth2callback', _external=True),
+            state=request.args.get('next') or request.referrer or None,
+        )
 
     def get_user_profile_email(self, authbroker_token):
         log.info('================Getting user porfile===================')
         resp = self.authbroker_client.get(
-            f'{self.base_url}{self.me_path}',
-            token=(authbroker_token, '')
+            f'{self.base_url}{self.me_path}', token=(authbroker_token, '')
         )
 
         if not resp or resp.status != 200:
             log.info('user profile repsponse failed')
             raise AuthenticationError(
                 'Failed to fetch user profile, status ({0})'.format(
-                    resp.status if resp else 'None'))
+                    resp.status if resp else 'None'
+                )
+            )
         log.info('user profile resp ========= {}'.format(resp.__dict__))
 
         return resp.data['email']
@@ -156,8 +158,7 @@ class AuthbrokerBackend(object):
         if not userid or userid == 'None':
             return None
 
-        user = session.query(models.User).filter(
-            models.User.id == int(userid)).first()
+        user = session.query(models.User).filter(models.User.id == int(userid)).first()
         return StaffUser(user)
 
     @provide_session
@@ -171,9 +172,7 @@ class AuthbrokerBackend(object):
                 log.info('===========Couldnt fetch access token=============')
                 raise AuthenticationError(
                     'Access denied: reason={0} error={1} resp={2}'.format(
-                        request.args['error'],
-                        request.args['error_description'],
-                        resp
+                        request.args['error'], request.args['error_description'], resp
                     )
                 )
 
@@ -188,15 +187,10 @@ class AuthbrokerBackend(object):
             log.info('================Redirecting===================')
             return redirect(url_for('airflow.noaccess'))
 
-        user = session.query(models.User).filter(
-            models.User.username == email).first()
+        user = session.query(models.User).filter(models.User.username == email).first()
 
         if not user:
-            user = models.User(
-                username=email,
-                email=email,
-                is_superuser=False
-            )
+            user = models.User(username=email, email=email, is_superuser=False)
 
         session.merge(user)
         session.commit()

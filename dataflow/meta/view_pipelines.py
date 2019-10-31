@@ -2,9 +2,7 @@
 from datetime import datetime
 
 from dataflow import constants
-from dataflow.meta.dataset_pipelines import (
-    OMISDatasetPipeline,
-)
+from dataflow.meta.dataset_pipelines import OMISDatasetPipeline
 
 
 class CompletedOMISOrderViewPipeline:
@@ -24,11 +22,26 @@ class CompletedOMISOrderViewPipeline:
         ('omis_dataset.market', 'Market'),
         ('omis_dataset.sector', 'Sector'),
         ('omis_dataset.services', 'Services'),
-        ('to_char(omis_dataset.delivery_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Delivery date'),
-        ('to_char(omis_dataset.payment_received_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Payment received date'),
-        ('to_char(omis_dataset.completion_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Completion Date'),
-        ('to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Created date'),
-        ('to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Cancelled date'),
+        (
+            'to_char(omis_dataset.delivery_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Delivery date',
+        ),
+        (
+            'to_char(omis_dataset.payment_received_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Payment received date',
+        ),
+        (
+            'to_char(omis_dataset.completion_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Completion Date',
+        ),
+        (
+            'to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Created date',
+        ),
+        (
+            'to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Cancelled date',
+        ),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
     ]
     join_clause = '''
@@ -57,8 +70,14 @@ class CancelledOMISOrderViewPipeline:
         ('ROUND(omis_dataset.subtotal::numeric/100::numeric,2)', 'Net price'),
         ('teams_dataset.name', 'DIT Team'),
         ('omis_dataset.market', 'Market'),
-        ('to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Created Date'),
-        ('to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')', 'Cancelled Date'),
+        (
+            'to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Created Date',
+        ),
+        (
+            'to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'Cancelled Date',
+        ),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
     ]
     join_clause = """
@@ -67,7 +86,7 @@ class CancelledOMISOrderViewPipeline:
     """
     where_clause = """
         omis_dataset.order_status = 'cancelled'
-        AND omis_dataset.cancelled_date >= 
+        AND omis_dataset.cancelled_date >=
         {% if macros.datetime.strptime(ds, '%Y-%m-%d') <= macros.datetime.strptime('{0}-{1}'.format(macros.ds_format(ds, '%Y-%m-%d', '%Y'), month_day_financial_year), '%Y-%m-%d') %}
             to_date('{{ macros.ds_format(macros.ds_add(ds, -365), '%Y-%m-%d', '%Y') }}-{{ month_day_financial_year }}', 'YYYY-MM-DD')
         {% else %}
@@ -75,9 +94,7 @@ class CancelledOMISOrderViewPipeline:
         {% endif %}
         ORDER BY omis_dataset.cancelled_date
     """
-    params = {
-        'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY,
-    }
+    params = {'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY}
     schedule_interval = '@monthly'
 
 
@@ -102,11 +119,22 @@ class OMISClientSurveyViewPipeline:
         ('companies_dataset.address_postcode', 'Company Trading Address Postcode'),
         ('companies_dataset.registered_address_1', 'Company Registered Address Line 1'),
         ('companies_dataset.registered_address_2', 'Company Registered Address Line 2'),
-        ('companies_dataset.registered_address_town', 'Company Registered Address Town'),
-        ('companies_dataset.registered_address_county', 'Company Registered Address County'),
-        ('companies_dataset.registered_address_country', 'Company Registered Address Country'),
-        ('companies_dataset.registered_address_postcode', 'Company Registered Address Postcode'),
-
+        (
+            'companies_dataset.registered_address_town',
+            'Company Registered Address Town',
+        ),
+        (
+            'companies_dataset.registered_address_county',
+            'Company Registered Address County',
+        ),
+        (
+            'companies_dataset.registered_address_country',
+            'Company Registered Address Country',
+        ),
+        (
+            'companies_dataset.registered_address_postcode',
+            'Company Registered Address Postcode',
+        ),
     ]
     join_clause = """
         JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
@@ -118,5 +146,3 @@ class OMISClientSurveyViewPipeline:
         ORDER BY omis_dataset.completion_date
     """
     schedule_interval = '@monthly'
-
-
