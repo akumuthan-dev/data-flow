@@ -40,6 +40,7 @@ create_view = """
         {{ field_name }} AS "{{ field_alias }}"{{ "," if not loop.last }}
     {% endfor %}
     FROM "{{ table_name }}"
+    {{ join_clause }}
     WHERE
 """
 
@@ -58,18 +59,17 @@ for pipeline in view_pipeline_classes:
     user_defined_macros = {
         'view_name': pipeline.view_name,
         'table_name': pipeline.dataset_pipeline.table_name,
+        'join_clause': getattr(pipeline, 'join_clause', ''),
+        'fields': pipeline.fields,
     }
     if getattr(pipeline, 'params', None):
         user_defined_macros.update(pipeline.params)
 
     if pipeline.fields == '__all__':
-        user_defined_macros.update({
-            'fields': [(field_name, field_name) for _, field_name, _ in pipeline.dataset_pipeline.field_mapping],
-        })
-    else:
-        user_defined_macros.update({
-            'fields': pipeline.fields,
-        })
+        user_defined_macros['fields'] = [
+            (field_name, field_name)
+            for _, field_name, _ in pipeline.dataset_pipeline.field_mapping
+        ]
 
     with DAG(
         pipeline.__name__,
