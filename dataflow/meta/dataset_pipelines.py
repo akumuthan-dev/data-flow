@@ -13,7 +13,7 @@ class OMISDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
-    schedule_interval = '@monthly'
+    schedule_interval = '@daily'
     field_mapping = [
         ('cancellation_reason__name', 'cancellation_reason', 'text'),
         ('cancelled_on', 'cancelled_date', 'timestamp with time zone'),
@@ -166,7 +166,7 @@ class ContactsDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
-    schedule_interval = '@monthly'
+    schedule_interval = '@daily'
     field_mapping = [
         ('accepts_dit_email_marketing', 'accepts_dit_email_marketing', 'boolean'),
         ('address_country__name', 'address_country', 'text'),
@@ -192,7 +192,7 @@ class CompaniesDatasetPipeline:
     target_db = 'datasets_db'
     start_date = datetime.now().replace(day=1)
     end_date = None
-    schedule_interval = '@monthly'
+    schedule_interval = '@daily'
     field_mapping = [
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),
