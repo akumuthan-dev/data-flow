@@ -83,3 +83,5 @@ ssl.crt
 
 # Auto generated airflow directory
 airflow/
+
+.mypy_cache/
