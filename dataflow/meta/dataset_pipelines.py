@@ -169,8 +169,13 @@ class ContactsDatasetPipeline:
     schedule_interval = '@daily'
     field_mapping = [
         ('accepts_dit_email_marketing', 'accepts_dit_email_marketing', 'boolean'),
+        ('address_1', 'address_1', 'varying(255)'),
+        ('address_2', 'address_2', 'varying(255)'),
         ('address_country__name', 'address_country', 'text'),
+        ('address_county', 'address_county', 'varying(255)'),
         ('address_postcode', 'address_postcode', 'character varying(255)'),
+        ('address_same_as_company', 'address_same_as_company', 'boolean'),
+        ('address_town', 'address_town', 'varying(255)'),
         ('company_id', 'company_id', 'uuid'),
         ('created_on', 'date_added_to_datahub', 'date'),
         ('email', 'email', 'character varying(255)'),
@@ -179,6 +184,7 @@ class ContactsDatasetPipeline:
         ('job_title', 'job_title', 'character varying(255)'),
         ('name', 'contact_name', 'text'),
         ('notes', 'notes', 'text'),
+        ('primary', 'primary', 'boolean'),
         ('telephone_alternative', 'telephone_alternative', 'character varying(255)'),
         ('telephone_number', 'phone', 'character varying(255)'),
     ]
