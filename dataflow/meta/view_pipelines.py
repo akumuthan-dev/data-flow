@@ -53,7 +53,7 @@ class CompletedOMISOrderViewPipeline:
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY omis_dataset.completion_date
     """
-    schedule_interval = '@monthly'
+    schedule_interval = '0 5 1 * *'
 
 
 class CancelledOMISOrderViewPipeline:
@@ -95,7 +95,7 @@ class CancelledOMISOrderViewPipeline:
         ORDER BY omis_dataset.cancelled_date
     """
     params = {'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY}
-    schedule_interval = '@monthly'
+    schedule_interval = '0 5 1 * *'
 
 
 class OMISClientSurveyViewPipeline:
@@ -145,4 +145,4 @@ class OMISClientSurveyViewPipeline:
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY omis_dataset.completion_date
     """
-    schedule_interval = '@monthly'
+    schedule_interval = '0 5 1 * *'
