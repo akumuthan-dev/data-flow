@@ -11,7 +11,7 @@ class OMISDatasetPipeline:
     table_name = 'omis_dataset'
     source_url = '{0}/v4/dataset/omis-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
@@ -44,7 +44,7 @@ class InvestmentProjectsDatasetPipeline:
         constants.DATAHUB_BASE_URL
     )
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
@@ -125,7 +125,7 @@ class InteractionsDatasetPipeline:
     table_name = 'interactions_dataset'
     source_url = '{}/v4/dataset/interactions-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
@@ -164,18 +164,18 @@ class ContactsDatasetPipeline:
     table_name = 'contacts_dataset'
     source_url = '{0}/v4/dataset/contacts-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
         ('accepts_dit_email_marketing', 'accepts_dit_email_marketing', 'boolean'),
-        ('address_1', 'address_1', 'varying(255)'),
-        ('address_2', 'address_2', 'varying(255)'),
+        ('address_1', 'address_1', 'character varying(255)'),
+        ('address_2', 'address_2', 'character varying(255)'),
         ('address_country__name', 'address_country', 'text'),
-        ('address_county', 'address_county', 'varying(255)'),
+        ('address_county', 'address_county', 'character varying(255)'),
         ('address_postcode', 'address_postcode', 'character varying(255)'),
         ('address_same_as_company', 'address_same_as_company', 'boolean'),
-        ('address_town', 'address_town', 'varying(255)'),
+        ('address_town', 'address_town', 'character varying(255)'),
         ('company_id', 'company_id', 'uuid'),
         ('created_on', 'date_added_to_datahub', 'date'),
         ('email', 'email', 'character varying(255)'),
@@ -184,7 +184,7 @@ class ContactsDatasetPipeline:
         ('job_title', 'job_title', 'character varying(255)'),
         ('name', 'contact_name', 'text'),
         ('notes', 'notes', 'text'),
-        ('primary', 'primary', 'boolean'),
+        ('primary', 'is_primary', 'boolean'),
         ('telephone_alternative', 'telephone_alternative', 'character varying(255)'),
         ('telephone_number', 'phone', 'character varying(255)'),
     ]
@@ -196,7 +196,7 @@ class CompaniesDatasetPipeline:
     table_name = 'companies_dataset'
     source_url = '{0}/v4/dataset/companies-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
@@ -264,7 +264,7 @@ class AdvisersDatasetPipeline:
     table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [
@@ -285,7 +285,7 @@ class TeamsDatasetPipeline:
     table_name = 'teams_dataset'
     source_url = '{0}/v4/dataset/teams-dataset'.format(constants.DATAHUB_BASE_URL)
     target_db = 'datasets_db'
-    start_date = datetime.now().replace(day=1)
+    start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
     field_mapping = [

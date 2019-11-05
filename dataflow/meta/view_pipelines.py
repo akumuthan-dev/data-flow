@@ -10,7 +10,7 @@ class CompletedOMISOrderViewPipeline:
 
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 1, 1)
+    start_date = datetime(2019, 10, 1)
     end_date = None
     catchup = True
     fields = [
@@ -61,7 +61,7 @@ class CancelledOMISOrderViewPipeline:
 
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 7, 1)
+    start_date = datetime(2019, 10, 1)
     end_date = None
     catchup = True
     fields = [
@@ -103,7 +103,7 @@ class OMISClientSurveyViewPipeline:
 
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 1, 1)
+    start_date = datetime(2019, 10, 1)
     end_date = None
     catchup = True
     fields = [
