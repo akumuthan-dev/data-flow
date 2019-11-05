@@ -295,3 +295,35 @@ class TeamsDatasetPipeline:
         ('uk_region__name', 'uk_region', 'character varying(255)'),
         ('country__name', 'country', 'character varying(255)'),
     ]
+
+
+class EventsDatasetPipeline:
+    """Pipeline meta object for EventsDataset."""
+
+    table_name = 'events_dataset'
+    source_url = '{0}/v4/dataset/events-dataset'.format(constants.DATAHUB_BASE_URL)
+    target_db = 'datasets_db'
+    start_date = datetime(2019, 11, 5)
+    end_date = None
+    schedule_interval = '@daily'
+    field_mapping = [
+        ('address_1', 'address_1', 'character varying(255)'),
+        ('address_2', 'address_2', 'character varying(255)'),
+        ('address_country__name', 'address_country', 'character varying(255)'),
+        ('address_county', 'address_county', 'character varying(255)'),
+        ('address_postcode', 'address_postcode', 'character varying(255)'),
+        ('address_town', 'address_town', 'character varying(255)'),
+        ('created_on', 'created_on', 'timestamp with time zone'),
+        ('end_date', 'end_date', 'date'),
+        ('event_type__name', 'event_type', 'character varying(255)'),
+        ('id', 'id', 'uuid primary key'),
+        ('lead_team_id', 'lead_team_id', 'uuid'),
+        ('location_type__name', 'location_type', 'character varying(255)'),
+        ('name', 'name', 'character varying(255)'),
+        ('notes', 'notes', 'text'),
+        ('organiser_id', 'organiser_id', 'uuid'),
+        ('service_name', 'service_name', 'character varying(255)'),
+        ('start_date', 'start_date', 'date'),
+        ('team_ids', 'team_ids', 'text []'),
+        ('uk_region__name', 'uk_region', 'character varying(255)'),
+    ]
