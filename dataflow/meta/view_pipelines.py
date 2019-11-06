@@ -2,7 +2,10 @@
 from datetime import datetime
 
 from dataflow import constants
-from dataflow.meta.dataset_pipelines import OMISDatasetPipeline
+from dataflow.meta.dataset_pipelines import (
+    OMISDatasetPipeline,
+    InteractionsDatasetPipeline,
+)
 
 
 class CompletedOMISOrderViewPipeline:
@@ -145,4 +148,169 @@ class OMISClientSurveyViewPipeline:
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY omis_dataset.completion_date
     """
+    schedule_interval = '0 5 1 * *'
+
+
+class InteractionsViewPipeline:
+    """Pipeline meta object for Interactions View."""
+
+    view_name = 'interactions'
+    dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 10, 1)
+    end_date = None
+    catchup = True
+    fields = [
+        ('interactions_dataset.interaction_date', 'Date of Interaction'),
+        ('interactions_dataset.interaction_kind', 'Interaction Type'),
+        ('companies_dataset.name', 'Company Name'),
+        ('companies_dataset.company_number', 'Companies HouseID'),
+        ('companies_dataset.id', 'Data Hub Company ID'),
+        ('companies_dataset.cdms_reference_code', 'CDMS Reference Code'),
+        ('companies_dataset.address_postcode', 'Company Postcode'),
+        ('companies_dataset.address_1', 'Company Address Line 1'),
+        ('companies_dataset.address_2', 'Company Address Line 2'),
+        ('companies_dataset.address_town', 'Company Address Town'),
+        ('companies_dataset.address_country', 'Company Address Country'),
+        ('companies_dataset.website', 'Company Website'),
+        ('companies_dataset.number_of_employees', 'Number of Employees'),
+        (
+            'companies_dataset.is_number_of_employees_estimated',
+            'Number of Employees Estimated',
+        ),
+        ('companies_dataset.turnover', 'Turnover'),
+        ('companies_dataset.is_turnover_estimated', 'Turnover Estimated'),
+        ('companies_dataset.sector', 'Sector'),
+        ('contacts_dataset.contact_name', 'Contact Name'),
+        ('contacts_dataset.phone', 'Contact Phone'),
+        ('contacts_dataset.email', 'Contact Email'),
+        ('contacts_dataset.address_postcode', 'Contact Postcode'),
+        ('contacts_dataset.address_1', 'Contact Address Line 1'),
+        ('contacts_dataset.address_2', 'Contact Address Line 2'),
+        ('contacts_dataset.address_town', 'Contact Address Town'),
+        ('contacts_dataset.address_country', 'Contact Address Country'),
+        ('advisers_dataset.first_name', 'DIT Adviser First Name'),
+        ('advisers_dataset.last_name', 'DIT Adviser Last Name'),
+        ('advisers_dataset.telephone_number', 'DIT Adviser Phone'),
+        ('advisers_dataset.contact_email', 'DIT Adviser Email'),
+        ('teams_dataset.name', 'DIT Team'),
+        ('companies_dataset.uk_region', 'Company UK Region'),
+        ('interactions_dataset.service_delivery', 'Service Delivery'),
+        ('interactions_dataset.interaction_subject', 'Subject'),
+        ('interactions_dataset.interaction_notes', 'Notes'),
+        ('interactions_dataset.net_company_receipt', 'Net Company Receipt'),
+        ('interactions_dataset.grant_amount_offered', 'Grant Amount Offered'),
+        ('interactions_dataset.service_delivery_status', 'Service Delivery Status'),
+        ('events_dataset.name', 'Event Name'),
+        ('events_dataset.event_type', 'Event Type'),
+        ('events_dataset.start_date', 'Event Start Date'),
+        ('events_dataset.address_town', 'Event Town'),
+        ('events_dataset.address_country', 'Event Country'),
+        ('events_dataset.uk_region', 'Event UK Region'),
+        ('events_dataset.service_name', 'Event Service Name'),
+        ('interactions_dataset.created_on', 'Created On Date'),
+        ('interactions_dataset.communication_channel', 'Communication Channel'),
+        ('interactions_dataset.interaction_link', 'Interaction Link'),
+    ]
+    join_clause = '''
+        JOIN companies_dataset ON interactions_dataset.company_id = companies_dataset.id
+        JOIN advisers_dataset ON interactions_dataset.adviser_ids[1]::uuid = advisers_dataset.id
+        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
+        LEFT JOIN events_dataset ON interactions_dataset.event_id = events_dataset.id
+        JOIN contacts_dataset ON contacts_dataset.id = (
+            select contact_id
+            FROM (
+                SELECT UNNEST(contact_ids)::uuid AS contact_id
+                FROM interactions_dataset i
+                WHERE interactions_dataset.id=i.id
+            ) nested_contacts
+            JOIN contacts_dataset ON contacts_dataset.id = contact_id
+            ORDER BY contacts_dataset.is_primary DESC NULLS LAST
+            LIMIT 1
+        )
+    '''
+    where_clause = '''
+        date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        ORDER BY interactions_dataset.interaction_date
+    '''
+    schedule_interval = '0 5 1 * *'
+
+
+class ExportClientSurveyViewPipeline:
+    """Pipeline meta object for Export Client Survey View."""
+
+    view_name = 'export_client_survey'
+    dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 10, 1)
+    end_date = None
+    catchup = True
+    fields = [
+        ('interactions_dataset.interaction_date', 'Service Delivery Interaction'),
+        ('companies_dataset.name', 'Company Name'),
+        ('companies_dataset.company_number as "Companies House ID'),
+        ('companies_dataset.id', 'Data Hub Company ID'),
+        ('companies_dataset.cdms_reference_code', 'CDMS Reference Code'),
+        ('companies_dataset.address_postcode', 'Company Postcode'),
+        ('companies_dataset.company_number', 'Companies HouseID'),
+        ('companies_dataset.cdms_reference_code', 'CDMS Reference Code'),
+        ('companies_dataset.address_1', 'Company Address Line 1'),
+        ('companies_dataset.address_2', 'Company Address Line 2'),
+        ('companies_dataset.address_town', 'Company Address Town'),
+        ('companies_dataset.address_country', 'Company Address Country'),
+        ('companies_dataset.website', 'Company Website'),
+        ('companies_dataset.number_of_employees', 'Number of Employees'),
+        (
+            'companies_dataset.is_number_of_employees_estimated',
+            'Number of Employees Estimated',
+        ),
+        ('companies_dataset.turnover', 'Turnover'),
+        ('companies_dataset.is_turnover_estimated', 'Turnover Estimated'),
+        ('companies_dataset.sector', 'Sector'),
+        ('contacts_dataset.contact_name', 'Contact Name'),
+        ('contacts_dataset.phone', 'Contact Phone'),
+        ('contacts_dataset.email', 'Contact Email'),
+        ('contacts_dataset.address_postcode', 'Contact Postcode'),
+        ('contacts_dataset.address_1', 'Contact Address Line 1'),
+        ('contacts_dataset.address_2', 'Contact Address Line 2'),
+        ('contacts_dataset.address_town', 'Contact Address Town'),
+        ('contacts_dataset.address_country', 'Contact Address Country'),
+        ('teams_dataset.name', 'DIT Team'),
+        ('companies_dataset.uk_region', 'Company UK Region'),
+        ('interactions_dataset.service_delivery', 'Service Delivery'),
+        ('interactions_dataset.interaction_subject', 'Subject'),
+        ('interactions_dataset.interaction_notes', 'Notes'),
+        ('interactions_dataset.net_company_receipt', 'Net Company Receipt'),
+        ('interactions_dataset.grant_amount_offered', 'Grant Amount Offered'),
+        ('interactions_dataset.service_delivery_status', 'Service Delivery Status'),
+        ('events_dataset.name', 'Event Name'),
+        ('events_dataset.event_type', 'Event Type'),
+        ('events_dataset.start_date', 'Event Start Date'),
+        ('events_dataset.address_town', 'Event Town'),
+        ('events_dataset.address_country', 'Event Country'),
+        ('events_dataset.uk_region', 'Event UK Region'),
+        ('events_dataset.service_name', 'Event Service Name'),
+        ('teams_dataset.role', 'Team Role'),
+        ('interactions_dataset.created_on', 'Created On Date'),
+    ]
+    join_clause = '''
+        JOIN companies_dataset ON interactions_dataset.company_id = companies_dataset.id
+        JOIN advisers_dataset ON interactions_dataset.adviser_ids[1]::uuid = advisers_dataset.id
+        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
+        LEFT JOIN events_dataset ON interactions_dataset.event_id = events_dataset.id
+        JOIN contacts_dataset ON contacts_dataset.id = (
+            select contact_id
+            FROM (
+                SELECT UNNEST(contact_ids)::uuid AS contact_id
+                FROM interactions_dataset i
+                WHERE interactions_dataset.id=i.id
+            ) nested_contacts
+            JOIN contacts_dataset ON contacts_dataset.id = contact_id
+            ORDER BY contacts_dataset.is_primary DESC NULLS LAST
+            LIMIT 1
+        )
+    '''
+    where_clause = '''
+        interactions_dataset.interaction_kind = 'service_delivery'
+        AND date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        ORDER BY interactions_dataset.interaction_date
+    '''
     schedule_interval = '0 5 1 * *'
