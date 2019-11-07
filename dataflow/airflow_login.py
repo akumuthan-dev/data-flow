@@ -43,7 +43,7 @@ from airflow import models
 from airflow.utils.db import provide_session
 from airflow.utils.log.logging_mixin import LoggingMixin
 
-from dataflow import constants
+from dataflow import config
 
 
 log = LoggingMixin().log
@@ -93,10 +93,10 @@ class AuthbrokerBackend(object):
         self.auth_path = 'o/authorize/'
         self.token_path = 'o/token/'
         self.me_path = 'api/v1/user/me/'
-        self.client_id = constants.AUTHBROKER_CLIENT_ID
-        self.client_secret = constants.AUTHBROKER_CLIENT_SECRET
-        self.allowed_domains = constants.AUTHBROKER_ALLOWED_DOMAINS.split(',')
-        self.base_url = constants.AUTHBROKER_URL
+        self.client_id = config.AUTHBROKER_CLIENT_ID
+        self.client_secret = config.AUTHBROKER_CLIENT_SECRET
+        self.allowed_domains = config.AUTHBROKER_ALLOWED_DOMAINS.split(',')
+        self.base_url = config.AUTHBROKER_URL
 
     def init_app(self, flask_app):
         self.flask_app = flask_app
