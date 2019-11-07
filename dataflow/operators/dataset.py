@@ -1,9 +1,10 @@
 import json
 import logging
 import time
+from typing import List, Tuple
 
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import Variable
+from airflow.models import Variable, TaskInstance
 from jinja2 import Template
 from mohawk import Sender
 from mohawk.exc import HawkFail
@@ -35,7 +36,9 @@ def mark_task_failed(task_instance):
     redis_client.delete(run_fetch_task_id)
 
 
-def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
+def run_fetch(
+    source_url: str, run_fetch_task_id: str, task_instance: TaskInstance, **kwargs
+):
     """Fetch data from source.
 
     Args:
@@ -112,7 +115,9 @@ def run_fetch(source_url, run_fetch_task_id=None, task_instance=None, **kwargs):
     task_instance.xcom_push(key='state', value=True)
 
 
-def create_tables(target_db, table_name=None, field_mapping=None, **kwargs):
+def create_tables(
+    target_db: str, table_name: str, field_mapping: List[Tuple[str, str, str]], **kwargs
+):
     """
     Create a temporary table to be copied over to the target table `table_name`.
     """
@@ -160,7 +165,11 @@ def create_tables(target_db, table_name=None, field_mapping=None, **kwargs):
 
 
 def insert_from_temporary_table(
-    target_db, table_name=None, task_instance=None, run_fetch_task_id=None, **kwargs
+    target_db: str,
+    table_name: str,
+    task_instance: TaskInstance,
+    run_fetch_task_id: str,
+    **kwargs,
 ):
     """
     Insert data from temporary table into `table_name`.
@@ -213,11 +222,11 @@ def insert_from_temporary_table(
 
 
 def execute_insert_into(
-    target_db,
-    table_name=None,
-    run_fetch_task_id=None,
-    field_mapping=None,
-    task_instance=None,
+    target_db: str,
+    table_name: str,
+    run_fetch_task_id: str,
+    field_mapping: List[Tuple[str, str, str]],
+    task_instance: TaskInstance,
     **kwargs,
 ):
     """Inserts each paginated response data into target database table.
