@@ -280,6 +280,9 @@ def execute_insert_into(
                     logging.info(f'Page {var_name} does not exist. Moving on.')
                     continue
 
+                if not record_subset:
+                    continue
+
                 escaped_record_subset = []
                 for record in record_subset:
                     escaped_record = {}
