@@ -12,6 +12,12 @@ from dataflow.utils import XCOMIntegratedPostgresOperator
 
 
 class BaseViewPipeline:
+    start_date = datetime(2019, 10, 1)
+    end_date = None
+    catchup = True
+
+    schedule_interval = '0 5 1 * *'
+
     @classmethod
     def get_dag(pipeline):
         user_defined_macros = {
@@ -66,9 +72,6 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 10, 1)
-    end_date = None
-    catchup = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company name'),
@@ -109,7 +112,6 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY omis_dataset.completion_date
     """
-    schedule_interval = '0 5 1 * *'
 
 
 class CancelledOMISOrderViewPipeline(BaseViewPipeline):
@@ -117,9 +119,6 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 10, 1)
-    end_date = None
-    catchup = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company Name'),
@@ -151,7 +150,6 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
         ORDER BY omis_dataset.cancelled_date
     """
     params = {'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY}
-    schedule_interval = '0 5 1 * *'
 
 
 class OMISClientSurveyViewPipeline(BaseViewPipeline):
@@ -159,9 +157,6 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
 
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
-    start_date = datetime(2019, 10, 1)
-    end_date = None
-    catchup = True
     fields = [
         ('companies_dataset.name', 'Company Name'),
         ('contacts_dataset.contact_name', 'Contact Name'),
@@ -201,7 +196,6 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY omis_dataset.completion_date
     """
-    schedule_interval = '0 5 1 * *'
 
 
 for pipeline in BaseViewPipeline.__subclasses__():

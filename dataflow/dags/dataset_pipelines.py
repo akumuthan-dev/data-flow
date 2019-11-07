@@ -15,6 +15,11 @@ from dataflow.operators.dataset import (
 
 
 class BaseDatasetPipeline:
+    target_db = 'datasets_db'
+    start_date = datetime(2019, 11, 5)
+    end_date = None
+    schedule_interval = '@daily'
+
     @classmethod
     def get_dag(pipeline):
         run_fetch_task_id = f'RunFetch{pipeline.__name__}'
@@ -84,10 +89,6 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'omis_dataset'
     source_url = '{0}/v4/dataset/omis-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('cancellation_reason__name', 'cancellation_reason', 'text'),
         ('cancelled_on', 'cancelled_date', 'timestamp with time zone'),
@@ -117,10 +118,6 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
     source_url = '{0}/v4/dataset/investment-projects-dataset'.format(
         constants.DATAHUB_BASE_URL
     )
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('actual_land_date', 'actual_land_date', 'date'),
         ('actual_uk_region_names', 'actual_uk_regions', 'text'),
@@ -198,10 +195,6 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
 class InteractionsDatasetPipeline(BaseDatasetPipeline):
     table_name = 'interactions_dataset'
     source_url = '{}/v4/dataset/interactions-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('adviser_ids', 'adviser_ids', 'text []'),
         (
@@ -237,10 +230,6 @@ class ContactsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'contacts_dataset'
     source_url = '{0}/v4/dataset/contacts-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('accepts_dit_email_marketing', 'accepts_dit_email_marketing', 'boolean'),
         ('address_1', 'address_1', 'character varying(255)'),
@@ -269,10 +258,6 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'companies_dataset'
     source_url = '{0}/v4/dataset/companies-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),
@@ -337,10 +322,6 @@ class AdvisersDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('id', 'id', 'uuid primary key'),
         ('date_joined', 'date_joined', 'date'),
@@ -358,10 +339,6 @@ class TeamsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'teams_dataset'
     source_url = '{0}/v4/dataset/teams-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('id', 'id', 'uuid primary key'),
         ('name', 'name', 'character varying(255)'),
@@ -376,10 +353,6 @@ class EventsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'events_dataset'
     source_url = '{0}/v4/dataset/events-dataset'.format(constants.DATAHUB_BASE_URL)
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
     field_mapping = [
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),
