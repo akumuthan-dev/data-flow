@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
-from dataflow import constants
+from dataflow import config
 from dataflow.operators.dataset import (
     run_fetch,
     create_tables,
@@ -61,7 +61,7 @@ class BaseDatasetPipeline:
         )
 
         insert_group = []
-        for index in range(constants.INGEST_TASK_CONCURRENCY):
+        for index in range(config.INGEST_TASK_CONCURRENCY):
             insert_group.append(
                 PythonOperator(
                     task_id=f'execute-insert-into-{index}',
@@ -88,7 +88,7 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for OMISDataset."""
 
     table_name = 'omis_dataset'
-    source_url = '{0}/v4/dataset/omis-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/omis-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('cancellation_reason__name', 'cancellation_reason', 'text'),
         ('cancelled_on', 'cancelled_date', 'timestamp with time zone'),
@@ -116,7 +116,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'investment_projects_dataset'
     source_url = '{0}/v4/dataset/investment-projects-dataset'.format(
-        constants.DATAHUB_BASE_URL
+        config.DATAHUB_BASE_URL
     )
     field_mapping = [
         ('actual_land_date', 'actual_land_date', 'date'),
@@ -194,7 +194,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
 
 class InteractionsDatasetPipeline(BaseDatasetPipeline):
     table_name = 'interactions_dataset'
-    source_url = '{}/v4/dataset/interactions-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{}/v4/dataset/interactions-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('adviser_ids', 'adviser_ids', 'text []'),
         (
@@ -229,7 +229,7 @@ class ContactsDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
     table_name = 'contacts_dataset'
-    source_url = '{0}/v4/dataset/contacts-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('accepts_dit_email_marketing', 'accepts_dit_email_marketing', 'boolean'),
         ('address_1', 'address_1', 'character varying(255)'),
@@ -257,7 +257,7 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for CompaniesDataset."""
 
     table_name = 'companies_dataset'
-    source_url = '{0}/v4/dataset/companies-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/companies-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),
@@ -321,7 +321,7 @@ class AdvisersDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for AdvisersDataset."""
 
     table_name = 'advisers_dataset'
-    source_url = '{0}/v4/dataset/advisers-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('id', 'id', 'uuid primary key'),
         ('date_joined', 'date_joined', 'date'),
@@ -338,7 +338,7 @@ class TeamsDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for TeamsDataset."""
 
     table_name = 'teams_dataset'
-    source_url = '{0}/v4/dataset/teams-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/teams-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('id', 'id', 'uuid primary key'),
         ('name', 'name', 'character varying(255)'),
@@ -352,7 +352,7 @@ class EventsDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for EventsDataset."""
 
     table_name = 'events_dataset'
-    source_url = '{0}/v4/dataset/events-dataset'.format(constants.DATAHUB_BASE_URL)
+    source_url = '{0}/v4/dataset/events-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),

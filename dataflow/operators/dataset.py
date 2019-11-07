@@ -12,19 +12,19 @@ from psycopg2 import sql
 import redis
 import requests
 
-from dataflow import constants
+from dataflow import config
 
 
 credentials = {
-    'id': constants.HAWK_ID,
-    'key': constants.HAWK_KEY,
-    'algorithm': constants.HAWK_ALGORITHM,
+    'id': config.HAWK_ID,
+    'key': config.HAWK_KEY,
+    'algorithm': config.HAWK_ALGORITHM,
 }
 
 
 def get_redis_client():
     """Returns redis client from connection URL"""
-    return redis.from_url(url=constants.REDIS_URL)
+    return redis.from_url(url=config.REDIS_URL)
 
 
 def mark_task_failed(task_instance: TaskInstance, run_fetch_task_id: str = None):
@@ -187,7 +187,7 @@ def insert_from_temporary_table(
     fetcher_state = task_instance.xcom_pull(key='state', task_ids=run_fetch_task_id)
     inserter_state = True
     # Check all insertion tasks are completed successfully.
-    for index in range(constants.INGEST_TASK_CONCURRENCY):
+    for index in range(config.INGEST_TASK_CONCURRENCY):
         inserter_state = inserter_state and task_instance.xcom_pull(
             key='state', task_ids=f'execute-insert-into-{index}'
         )

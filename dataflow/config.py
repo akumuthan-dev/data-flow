@@ -1,4 +1,4 @@
-"""A module that defines project wide constants."""
+"""A module that defines project wide config."""
 
 import os
 

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 
-from dataflow import constants
+from dataflow import config
 from dataflow.dags.dataset_pipelines import OMISDatasetPipeline
 from dataflow.operators.db_view import create_view, list_all_views
 from dataflow.utils import XCOMIntegratedPostgresOperator
@@ -57,7 +57,7 @@ class BaseViewPipeline:
             sql=create_view + pipeline.where_clause,
             postgres_conn_id=pipeline.dataset_pipeline.target_db,
         )
-        if constants.DEBUG:
+        if config.DEBUG:
             dag << XCOMIntegratedPostgresOperator(
                 task_id='list-views',
                 sql=list_all_views,
@@ -149,7 +149,7 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
         {% endif %}
         ORDER BY omis_dataset.cancelled_date
     """
-    params = {'month_day_financial_year': constants.FINANCIAL_YEAR_FIRST_MONTH_DAY}
+    params = {'month_day_financial_year': config.FINANCIAL_YEAR_FIRST_MONTH_DAY}
 
 
 class OMISClientSurveyViewPipeline(BaseViewPipeline):
