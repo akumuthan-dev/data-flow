@@ -169,7 +169,7 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 
 
 - Step 2:
-Project is configured for buildpack deployment on PaaS, normal process can be followed to deploy on PaaS. Use Procfile-master to deploy master node, use Procfile-worker to deploy a worker node. Env vars (AIRFLOW__CORE__SQL_ALCHEMY_CONN, AIRFLOW_CONN_DATASETS_DB, AIRFLOW__CELERY__RESULT_BACKEND, AIRFLOW__CELERY__BROKER_URL) defined in workers should point to the same values master node points. (This process can be improved by using CloudFoundry v7, it's in beta phase).
+Project is configured for buildpack deployment on PaaS, normal process can be followed to deploy on PaaS. 
 - Step 3:
 As described in step 1,
 	set DATA_FLOW_API_ACCESS_KEY_ID and 
