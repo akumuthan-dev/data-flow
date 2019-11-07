@@ -27,13 +27,14 @@ def get_redis_client():
     return redis.from_url(url=constants.REDIS_URL)
 
 
-def mark_task_failed(task_instance):
+def mark_task_failed(task_instance: TaskInstance, run_fetch_task_id: str = None):
     """Marks task as failed and delete variables set by the task"""
     redis_client = get_redis_client()
     task_instance.xcom_push(key='state', value=False)
-    for i in range(0, redis_client.llen(run_fetch_task_id)):
-        Variable.delete(redis_client.lindex(run_fetch_task_id, i))
-    redis_client.delete(run_fetch_task_id)
+    if run_fetch_task_id:
+        for i in range(0, redis_client.llen(run_fetch_task_id)):
+            Variable.delete(redis_client.lindex(run_fetch_task_id, i))
+        redis_client.delete(run_fetch_task_id)
 
 
 def run_fetch(
@@ -81,7 +82,7 @@ def run_fetch(
             source_url, headers={'Authorization': sender.request_header}
         )
         if response.status_code != 200:
-            mark_task_failed(task_instance)
+            mark_task_failed(task_instance, run_fetch_task_id)
             raise Exception(
                 f'GET request to {source_url} is unsuccessful\n'
                 f'Message: {response.text}'
@@ -93,12 +94,12 @@ def run_fetch(
                 content_type=response.headers['Content-Type'],
             )
         except HawkFail as e:
-            mark_task_failed(task_instance)
+            mark_task_failed(task_instance, run_fetch_task_id)
             raise Exception(f'HAWK Authentication failed {str(e)}')
 
         response_json = response.json()
         if 'results' not in response_json or 'next' not in response_json:
-            mark_task_failed(task_instance)
+            mark_task_failed(task_instance, run_fetch_task_id)
             raise Exception('Unexpected response structure')
 
         key = f'{run_fetch_task_id}{index}'
