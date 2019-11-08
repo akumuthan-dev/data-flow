@@ -157,7 +157,7 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 - AUTHBROKER_CLIENT_ID='{{ authbroker-client-id }}'  # When it's created redirect url needs to point production {{ data-flow-production-url }}/oauth2callback
 - AUTHBROKER_CLIENT_SECRET='{{ authbroker-client-secret }}'
 - AUTHBROKER_URL='{{ authbroker_url }}'
-- AUTHBROKER_ALLOWED_DOMAINS='digitial.trade.gov.uk,trade.gov.uk’
+- AUTHBROKER_ALLOWED_DOMAINS="digital.trade.gov.uk,trade.gov.uk,mobile.ukti.gov.uk"
 - DATAHUB_BASE_URL='{{ production-data-hub-url }}'
 - FINANCIAL_YEAR_FIRST_MONTH_DAY='04-25'
 - DEBUG=False
@@ -169,11 +169,15 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 
 
 - Step 2:
-Project is configured for buildpack deployment on PaaS, normal process can be followed to deploy on PaaS. 
+Project is configured for buildpack deployment on PaaS, normal process can be followed to deploy on PaaS:
+    - `cf v3-push <app name>`
+    - `cf v3-scale <app name> --process worker -i <number of workers required>`
+    
 - Step 3:
 As described in step 1,
 	set DATA_FLOW_API_ACCESS_KEY_ID and 
 	    DATA_FLOW_API_SECRET_ACCESS_KEY env vars in data-hub production
+
 - Step 4:
 Add data-flow ip into HAWK_RECEIVER_IP_WHITELIST env var in data-hub production
 
