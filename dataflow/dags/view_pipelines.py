@@ -360,4 +360,3 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
 
 for pipeline in BaseViewPipeline.__subclasses__():
     globals()[pipeline.__name__ + '__dag'] = pipeline.get_dag()
-
