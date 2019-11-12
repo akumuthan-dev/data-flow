@@ -84,6 +84,34 @@ class BaseDatasetPipeline:
         return dag
 
 
+class CompanyExportToCountries(BaseDatasetPipeline):
+
+    table_name = 'company_export_to_countries_dataset'
+    source_url = '{0}/v4/dataset/company-export-to-countries-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    field_mapping = [
+        ('id', 'id', 'integer primary key'),
+        ('company_id', 'company_id', 'uuid'),
+        ('country__name', 'country', 'character varying(255)'),
+        ('country__iso_alpha2_code', 'country_iso_alpha2_code', 'character varying(2)'),
+    ]
+
+
+class CompanyFutureInterestCountries(BaseDatasetPipeline):
+
+    table_name = 'company_future_interest_countries_dataset'
+    source_url = '{0}/v4/dataset/company-future-interest-countries-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    field_mapping = [
+        ('id', 'id', 'integer primary key'),
+        ('company_id', 'company_id', 'uuid'),
+        ('country__name', 'country', 'character varying(255)'),
+        ('country__iso_alpha2_code', 'country_iso_alpha2_code', 'character varying(2)'),
+    ]
+
+
 class OMISDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for OMISDataset."""
 

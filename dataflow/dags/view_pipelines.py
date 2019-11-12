@@ -201,10 +201,10 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
     """
 
 
-class InteractionsViewPipeline(BaseViewPipeline):
+class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
-    view_name = 'datahub_interactions'
+    view_name = 'datahub_service_interactions'
     dataset_pipeline = InteractionsDatasetPipeline
     fields = [
         ('interactions_dataset.interaction_date', 'Date of Interaction'),
@@ -277,11 +277,12 @@ class InteractionsViewPipeline(BaseViewPipeline):
     '''
     where_clause = '''
         date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        AND interactions_dataset.interaction_kind = 'service_delivery'
         ORDER BY interactions_dataset.interaction_date
     '''
 
 
-class ExportClientSurveyViewPipeline(BaseViewPipeline):
+class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
     """Pipeline meta object for the data hub export client survey report."""
 
     view_name = 'datahub_export_client_survey'
