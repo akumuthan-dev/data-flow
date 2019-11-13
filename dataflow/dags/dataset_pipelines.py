@@ -52,7 +52,7 @@ class BaseDatasetPipeline:
             python_callable=run_fetch,
             provide_context=True,
             op_args=[f'{pipeline.source_url}'],
-            priority_weight=2
+            priority_weight=2,
         )
 
         create_tables_task = PythonOperator(

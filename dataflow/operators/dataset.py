@@ -81,7 +81,7 @@ def run_fetch(
             'get',
             content='',
             content_type='',
-            always_hash_content=True
+            always_hash_content=True,
         )
 
         logging.info(f'Fetching page {source_url}')
