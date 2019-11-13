@@ -34,6 +34,7 @@ class BaseDatasetPipeline:
                 'email_on_retry': False,
                 'retries': 0,
                 'retry_delay': timedelta(minutes=5),
+                'priority_weight': 1,
             },
             start_date=pipeline.start_date,
             end_date=pipeline.end_date,
@@ -46,23 +47,24 @@ class BaseDatasetPipeline:
             },
         )
 
-        t1 = PythonOperator(
+        fetch_task = PythonOperator(
             task_id=run_fetch_task_id,
             python_callable=run_fetch,
             provide_context=True,
             op_args=[f'{pipeline.source_url}'],
+            priority_weight=2,
         )
 
-        t3 = PythonOperator(
+        create_tables_task = PythonOperator(
             task_id='create-tables',
             python_callable=create_tables,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
 
-        insert_group = []
+        insert_task_group = []
         for index in range(config.INGEST_TASK_CONCURRENCY):
-            insert_group.append(
+            insert_task_group.append(
                 PythonOperator(
                     task_id=f'execute-insert-into-{index}',
                     python_callable=execute_insert_into,
@@ -71,15 +73,15 @@ class BaseDatasetPipeline:
                 )
             )
 
-        tend = PythonOperator(
+        insert_from_temp_task = PythonOperator(
             task_id='insert-from-temporary-table',
             python_callable=insert_from_temporary_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
 
-        dag << t1
-        dag << tend << insert_group << t3
+        dag << fetch_task
+        dag << insert_from_temp_task << insert_task_group << create_tables_task
 
         return dag
 
@@ -466,6 +468,206 @@ class EventsDatasetPipeline(BaseDatasetPipeline):
         ('start_date', 'start_date', 'date'),
         ('team_ids', 'team_ids', 'text []'),
         ('uk_region__name', 'uk_region', 'character varying(255)'),
+    ]
+
+
+class ExportWinsAdvisersDatasetPipeline(BaseDatasetPipeline):
+    """Pipeline meta object for Export wins advisers."""
+
+    table_name = 'export_wins_advisers_dataset'
+    source_url = '{0}/datasets/advisors'.format(config.EXPORT_WINS_BASE_URL)
+    field_mapping = [
+        ('hq_team_display', 'hq_team', 'character varying(255)'),
+        ('id', 'id', 'integer primary key'),
+        ('location', 'location', 'character varying(255)'),
+        ('name', 'name', 'character varying(255)'),
+        ('team_type_display', 'team_type', 'character varying(255)'),
+        ('win__id', 'win_id', 'uuid'),
+    ]
+
+
+class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
+    """Pipeline meta object for Export wins yearly export/non-export value."""
+
+    table_name = 'export_wins_breakdowns_dataset'
+    source_url = '{0}/datasets/breakdowns'.format(config.EXPORT_WINS_BASE_URL)
+    field_mapping = [
+        ('id', 'id', 'integer primary key'),
+        ('win__id', 'win_id', 'uuid'),
+        ('breakdown_type', 'type', 'character varying(255)'),
+        ('year', 'year', 'integer'),
+        ('value', 'value', 'bigint'),
+    ]
+
+
+class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
+    """Pipeline meta object for Export wins wins."""
+
+    table_name = 'export_wins_wins_dataset'
+    source_url = '{0}/datasets/wins'.format(config.EXPORT_WINS_BASE_URL)
+    field_mapping = [
+        (
+            'associated_programme_1_display',
+            'associated_programme_1',
+            'character varying(255)',
+        ),
+        (
+            'associated_programme_2_display',
+            'associated_programme_2',
+            'character varying(255)',
+        ),
+        (
+            'associated_programme_3_display',
+            'associated_programme_3',
+            'character varying(255)',
+        ),
+        (
+            'associated_programme_4_display',
+            'associated_programme_4',
+            'character varying(255)',
+        ),
+        (
+            'associated_programme_5_display',
+            'associated_programme_5',
+            'character varying(255)',
+        ),
+        ('audit', 'audit', 'text'),
+        ('business_potential_display', 'business_potential', 'character varying(255)'),
+        ('business_type', 'business_type', 'character varying(255)'),
+        ('cdms_reference', 'cdms_reference', 'character varying(255)'),
+        ('company_name', 'company_name', 'character varying(255)'),
+        ('complete', 'complete', 'boolean'),
+        (
+            'confirmation__access_to_contacts',
+            'confirmation_access_to_contacts',
+            'integer',
+        ),
+        (
+            'confirmation__access_to_information',
+            'confirmation_access_to_information',
+            'integer',
+        ),
+        ('confirmation__agree_with_win', 'confirmation_agree_with_win', 'boolean'),
+        (
+            'confirmation__case_study_willing',
+            'confirmation_case_study_willing',
+            'boolean',
+        ),
+        ('confirmation__comments', 'confirmation_comments', 'text'),
+        (
+            'confirmation__company_was_at_risk_of_not_exporting',
+            'confirmation_company_was_at_risk_of_not_exporting',
+            'boolean',
+        ),
+        ('confirmation__created', 'confirmation_created', 'timestamp with time zone'),
+        (
+            'confirmation__developed_relationships',
+            'confirmation_developed_relationships',
+            'integer',
+        ),
+        (
+            'confirmation__gained_confidence',
+            'confirmation_gained_confidence',
+            'integer',
+        ),
+        (
+            'confirmation__has_enabled_expansion_into_new_market',
+            'confirmation_has_enabled_expansion_into_new_market',
+            'boolean',
+        ),
+        (
+            'confirmation__has_explicit_export_plans',
+            'confirmation_has_explicit_export_plans',
+            'boolean',
+        ),
+        ('confirmation__improved_profile', 'confirmation_improved_profile', 'integer'),
+        (
+            'confirmation__interventions_were_prerequisite',
+            'confirmation_interventions_were_prerequisite',
+            'boolean',
+        ),
+        (
+            'confirmation__involved_state_enterprise',
+            'confirmation_involved_state_enterprise',
+            'boolean',
+        ),
+        ('confirmation__name', 'confirmation_name', 'character varying(255)'),
+        (
+            'confirmation__other_marketing_source',
+            'confirmation_other_marketing_source',
+            'character varying(255)',
+        ),
+        ('confirmation__our_support', 'confirmation_our_support', 'integer'),
+        ('confirmation__overcame_problem', 'confirmation_overcame_problem', 'integer'),
+        (
+            'confirmation__support_improved_speed',
+            'confirmation_support_improved_speed',
+            'boolean',
+        ),
+        (
+            'confirmation_last_export',
+            'confirmation_last_export',
+            'character varying(255)',
+        ),
+        (
+            'confirmation_marketing_source',
+            'confirmation_marketing_source',
+            'character varying(255)',
+        ),
+        (
+            'confirmation_portion_without_help',
+            'confirmation_portion_without_help',
+            'character varying(255)',
+        ),
+        ('country', 'country', 'character varying(255)'),
+        ('created', 'created', 'timestamp with time zone'),
+        ('customer_email_address', 'customer_email_address', 'character varying(255)'),
+        ('customer_email_date', 'customer_email_date', 'timestamp with time zone'),
+        ('customer_job_title', 'customer_job_title', 'character varying(255)'),
+        ('customer_location_display', 'customer_location', 'character varying(255)'),
+        ('customer_name', 'customer_name', 'character varying(255)'),
+        ('date', 'date', 'date'),
+        ('description', 'description', 'text'),
+        ('export_experience_display', 'export_experience', 'character varying(255)'),
+        ('goods_vs_services_display', 'goods_vs_services', 'character varying(255)'),
+        ('has_hvo_specialist_involvement', 'has_hvo_specialist_involvement', 'boolean'),
+        ('hq_team_display', 'hq_team', 'character varying(255)'),
+        ('hvc', 'hvc', 'character varying(255)'),
+        ('hvo_programme_display', 'hvo_programme', 'character varying(255)'),
+        ('id', 'id', 'uuid primary key'),
+        ('is_e_exported', 'is_e_exported', 'boolean'),
+        ('is_line_manager_confirmed', 'is_line_manager_confirmed', 'boolean'),
+        ('is_personally_confirmed', 'is_personally_confirmed', 'boolean'),
+        ('is_prosperity_fund_related', 'is_prosperity_fund_related', 'boolean'),
+        (
+            'lead_officer_email_address',
+            'lead_officer_email_address',
+            'character varying(255)',
+        ),
+        ('lead_officer_name', 'lead_officer_name', 'character varying(255)'),
+        ('line_manager_name', 'line_manager_name', 'character varying(255)'),
+        ('name_of_customer', 'name_of_customer', 'character varying(255)'),
+        ('name_of_export', 'name_of_export', 'character varying(255)'),
+        ('num_notifications', 'num_notifications', 'integer'),
+        (
+            'other_official_email_address',
+            'other_official_email_address',
+            'character varying(255)',
+        ),
+        ('sector_display', 'sector', 'character varying(255)'),
+        ('team_type_display', 'team_type', 'character varying(255)'),
+        ('total_expected_export_value', 'total_expected_export_value', 'bigint'),
+        (
+            'total_expected_non_export_value',
+            'total_expected_non_export_value',
+            'bigint',
+        ),
+        ('total_expected_odi_value', 'total_expected_odi_value', 'bigint'),
+        ('type_of_support_1_display', 'type_of_support_1', 'character varying(255)'),
+        ('type_of_support_2_display', 'type_of_support_2', 'character varying(255)'),
+        ('type_of_support_3_display', 'type_of_support_3', 'character varying(255)'),
+        ('user__email', 'user_email', 'character varying(255)'),
+        ('user__name', 'user_name', 'character varying(255)'),
     ]
 
 
