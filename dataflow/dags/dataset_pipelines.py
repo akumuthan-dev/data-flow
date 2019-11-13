@@ -115,10 +115,10 @@ class CompanyFutureInterestCountries(BaseDatasetPipeline):
 class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipeline):
 
     table_name = 'countries_of_interest_service_countries_and_sectors_of_interest'
-    source_url = '{0}/api/v1/get-company-countries-and-sectors-of-interest' \
-        '?orientation=records'.format(
-            config.COUNTRIES_OF_INTEREST_BASE_URL
-        )
+    source_url = (
+        '{0}/api/v1/get-company-countries-and-sectors-of-interest'
+        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
+    )
     field_mapping = [
         ('companyId', 'company_id', 'character varying(100)'),
         ('countryOfInterest', 'country_of_interest', 'character varying(2)'),
@@ -132,26 +132,26 @@ class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipelin
 class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
 
     table_name = 'countries_of_interest_service_countries_of_interest'
-    source_url = '{0}/api/v1/get-company-countries-of-interest' \
-        '?orientation=records'.format(
-            config.COUNTRIES_OF_INTEREST_BASE_URL
-        )
+    source_url = (
+        '{0}/api/v1/get-company-countries-of-interest'
+        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
+    )
     field_mapping = [
         ('company_id', 'character varying(100)'),
         ('country_of_interest', 'character varying(2)'),
         ('source', 'character varying(50)'),
         ('source_id', 'character varying(100)'),
-        ('timestamp', 'timestamp with time zone')
+        ('timestamp', 'timestamp with time zone'),
     ]
 
 
 class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
 
     table_name = 'countries_of_interest_service_export_countries'
-    source_url = '{0}/api/v1/get-company-export-countries' \
-        '?orientation=records'.format(
-            config.COUNTRIES_OF_INTEREST_BASE_URL
-        )
+    source_url = (
+        '{0}/api/v1/get-company-export-countries'
+        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
+    )
     field_mapping = [
         ('companyId', 'company_id', 'character varying(100)'),
         ('exportCountry', 'export_country', 'character varying(2)'),
@@ -164,16 +164,16 @@ class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
 class CountriesOfInterestServiceSectorsOfInterest(BaseDatasetPipeline):
 
     table_name = 'countries_of_interest_service_sectors_of_interest'
-    source_url = '{0}/api/v1/get-company-sectors-of-interest' \
-        '?orientation=records'.format(
-            config.COUNTRIES_OF_INTEREST_BASE_URL
-        )
+    source_url = (
+        '{0}/api/v1/get-company-sectors-of-interest'
+        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
+    )
     field_mapping = [
         ('companyId', 'company_id', 'character varying(100)'),
         ('sectorOfInterest', 'sector_of_interest', 'character varying(50)'),
         ('source', 'source', 'character varying(50)'),
         ('sourceId', 'source_id', 'character varying(100)'),
-        ('timestamp', 'timestamp', 'timestamp with time zone')
+        ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
 
