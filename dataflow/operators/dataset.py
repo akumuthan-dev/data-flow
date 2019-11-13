@@ -75,7 +75,14 @@ def run_fetch(
 
     index = 0
     while True:
-        sender = Sender(credentials, source_url, 'get', always_hash_content=False)
+        sender = Sender(
+            credentials,
+            source_url,
+            'get',
+            content='',
+            content_type='',
+            always_hash_content=True
+        )
 
         logging.info(f'Fetching page {source_url}')
         response = requests.get(
@@ -259,9 +266,8 @@ def execute_insert_into(
     """
     # Give some initial time to fetch task to get a page and save it into variable
     time.sleep(3)
-    # Used for providing incremental wait
+    # Used for providing wait timeout
     sleep_time = 5
-    number_of_runs = 1
     redis_client = get_redis_client()
     try:
         target_db_conn = PostgresHook(postgres_conn_id=target_db).get_conn()
@@ -321,9 +327,7 @@ def execute_insert_into(
                     logging.info(
                         f'Sleeping for {sleep_time} so task {run_fetch_task_id} can catchup'
                     )
-                    sleep_time = sleep_time * number_of_runs
                     time.sleep(sleep_time)
-                    number_of_runs += 1
 
         target_db_conn.commit()
         task_instance.xcom_push(key='state', value=True)
