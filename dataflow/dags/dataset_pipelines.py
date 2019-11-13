@@ -34,6 +34,7 @@ class BaseDatasetPipeline:
                 'email_on_retry': False,
                 'retries': 0,
                 'retry_delay': timedelta(minutes=5),
+                'priority_weight': 1,
             },
             start_date=pipeline.start_date,
             end_date=pipeline.end_date,
@@ -46,23 +47,24 @@ class BaseDatasetPipeline:
             },
         )
 
-        t1 = PythonOperator(
+        fetch_task = PythonOperator(
             task_id=run_fetch_task_id,
             python_callable=run_fetch,
             provide_context=True,
             op_args=[f'{pipeline.source_url}'],
+            priority_weight=2
         )
 
-        t3 = PythonOperator(
+        create_tables_task = PythonOperator(
             task_id='create-tables',
             python_callable=create_tables,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
 
-        insert_group = []
+        insert_task_group = []
         for index in range(config.INGEST_TASK_CONCURRENCY):
-            insert_group.append(
+            insert_task_group.append(
                 PythonOperator(
                     task_id=f'execute-insert-into-{index}',
                     python_callable=execute_insert_into,
@@ -71,15 +73,15 @@ class BaseDatasetPipeline:
                 )
             )
 
-        tend = PythonOperator(
+        insert_from_temp_task = PythonOperator(
             task_id='insert-from-temporary-table',
             python_callable=insert_from_temporary_table,
             provide_context=True,
             op_args=[f'{pipeline.target_db}'],
         )
 
-        dag << t1
-        dag << tend << insert_group << t3
+        dag << fetch_task
+        dag << insert_from_temp_task << insert_task_group << create_tables_task
 
         return dag
 
