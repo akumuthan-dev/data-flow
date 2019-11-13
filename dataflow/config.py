@@ -14,3 +14,4 @@ DATAHUB_BASE_URL = os.environ.get('DATAHUB_BASE_URL')
 DEBUG = True if os.environ.get('DEBUG') == 'True' else False
 INGEST_TASK_CONCURRENCY = int(os.environ.get('INGEST_TASK_CONCURRENCY', 1))
 REDIS_URL = os.environ.get('AIRFLOW__CELERY__BROKER_URL')
+COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get('COUNTRIES_OF_INTEREST_BASE_URL', 'localhost:5000')
