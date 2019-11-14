@@ -589,14 +589,14 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             'export_wins_wins_dataset.confirmation_has_enabled_expansion_into_new_market',
             'It enabled you to expand into a new market',
         ),
-        # (
-        #     'export_wins_wins_dataset.confirmation_increased_exports_percent_of_turnover',
-        #     'It enabled you to increase exports as a proportion of your turnover',
-        # ),
-        # (
-        #     'export_wins_wins_dataset.has_enabled_expansion_into_existing_market',
-        #     'It enabled you to maintain or expand in an existing market',
-        # ),
+        (
+            'export_wins_wins_dataset.confirmation_has_increased_exports_as_percent_of_turnover',
+            'It enabled you to increase exports as a proportion of your turnover',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_has_enabled_expansion_into_existing_market',
+            'It enabled you to maintain or expand in an existing market',
+        ),
         (
             'export_wins_wins_dataset.confirmation_case_study_willing',
             'Would you be willing for DIT/Exporting is GREAT to feature your success in marketing materials?',

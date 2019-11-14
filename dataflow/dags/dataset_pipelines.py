@@ -571,6 +571,11 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
             'integer',
         ),
         (
+            'confirmation__has_enabled_expansion_into_existing_market',
+            'confirmation_has_enabled_expansion_into_existing_market',
+            'boolean',
+        ),
+        (
             'confirmation__has_enabled_expansion_into_new_market',
             'confirmation_has_enabled_expansion_into_new_market',
             'boolean',
@@ -584,6 +589,11 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
         (
             'confirmation__interventions_were_prerequisite',
             'confirmation_interventions_were_prerequisite',
+            'boolean',
+        ),
+        (
+            'confirmation__has_increased_exports_as_percent_of_turnover',
+            'confirmation_has_increased_exports_as_percent_of_turnover',
             'boolean',
         ),
         (
