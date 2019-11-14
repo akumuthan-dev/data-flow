@@ -9,6 +9,7 @@ from dataflow import config
 from dataflow.dags.dataset_pipelines import (
     OMISDatasetPipeline,
     InteractionsDatasetPipeline,
+    ExportWinsWinsDatasetPipeline,
 )
 from dataflow.operators.db_view import create_view, list_all_views
 from dataflow.utils import XCOMIntegratedPostgresOperator
@@ -355,6 +356,363 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
         interactions_dataset.interaction_kind = 'service_delivery'
         AND date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
         ORDER BY interactions_dataset.interaction_date
+    '''
+
+
+class ExportWinsYearlyViewPipeline(BaseViewPipeline):
+    """Pipeline meta object for the yearly export wins report."""
+
+    view_name = 'export_wins_yearly'
+    dataset_pipeline = ExportWinsWinsDatasetPipeline
+    start_date = datetime(2018, 1, 1)
+    schedule_interval = '@yearly'
+    fields = [
+        ('export_wins_wins_dataset.id', 'ID'),
+        ('export_wins_wins_dataset.user_name', 'User name'),
+        ('export_wins_wins_dataset.user_email', 'User email'),
+        ('export_wins_wins_dataset.company_name', 'Company name'),
+        (
+            'export_wins_wins_dataset.cdms_reference',
+            'Data Hub (Companies House) or CDMS reference number',
+        ),
+        ('export_wins_wins_dataset.customer_name', 'Contact name'),
+        ('export_wins_wins_dataset.customer_job_title', 'Job title'),
+        ('export_wins_wins_dataset.customer_email_address', 'Contact email'),
+        ('export_wins_wins_dataset.customer_location', 'HQ location'),
+        (
+            'export_wins_wins_dataset.business_type',
+            'What kind of business deal was this win?',
+        ),
+        (
+            'export_wins_wins_dataset.description',
+            'Summarise the support provided to help achieve this win',
+        ),
+        ('export_wins_wins_dataset.name_of_customer', 'Overseas customer'),
+        ('export_wins_wins_dataset.name_of_export', 'What are the goods or services?'),
+        ('to_char(export_wins_wins_dataset.date, \'DD/MM/YYYY\')', 'Date business won'),
+        ('export_wins_wins_dataset.country', 'Country'),
+        (
+            'export_wins_wins_dataset.total_expected_export_value',
+            'Total expected export value',
+        ),
+        (
+            'export_wins_wins_dataset.total_expected_non_export_value',
+            'Total expected non export value',
+        ),
+        (
+            'export_wins_wins_dataset.total_expected_odi_value',
+            'Total expected odi value',
+        ),
+        (
+            'export_wins_wins_dataset.goods_vs_services',
+            'Does the expected value relate to',
+        ),
+        ('export_wins_wins_dataset.sector', 'Sector'),
+        (
+            'COALESCE(export_wins_wins_dataset.is_prosperity_fund_related, False)',
+            'Prosperity Fund',
+        ),
+        ('export_wins_wins_dataset.hvc', 'HVC code (if applicable)'),
+        ('export_wins_wins_dataset.hvo_programme', 'HVO Programme (if applicable)'),
+        (
+            'COALESCE(export_wins_wins_dataset.has_hvo_specialist_involvement, False)',
+            'An HVO specialist was involved',
+        ),
+        (
+            'COALESCE(export_wins_wins_dataset.is_e_exported, False)',
+            'E-exporting programme',
+        ),
+        ('export_wins_wins_dataset.type_of_support_1', 'type of support 1'),
+        ('export_wins_wins_dataset.type_of_support_2', 'type of support 2'),
+        ('export_wins_wins_dataset.type_of_support_3', 'type of support 3'),
+        ('export_wins_wins_dataset.associated_programme_1', 'associated programme 1'),
+        ('export_wins_wins_dataset.associated_programme_2', 'associated programme 2'),
+        ('export_wins_wins_dataset.associated_programme_3', 'associated programme 3'),
+        ('export_wins_wins_dataset.associated_programme_4', 'associated programme 4'),
+        ('export_wins_wins_dataset.associated_programme_5', 'associated programme 5'),
+        (
+            'export_wins_wins_dataset.is_personally_confirmed',
+            'I confirm that this information is complete and accurate',
+        ),
+        (
+            'export_wins_wins_dataset.is_line_manager_confirmed',
+            'My line manager has confirmed the decision to record this win',
+        ),
+        ('export_wins_wins_dataset.lead_officer_name', 'Lead officer name'),
+        (
+            'export_wins_wins_dataset.lead_officer_email_address',
+            'Lead officer email address',
+        ),
+        (
+            'export_wins_wins_dataset.other_official_email_address',
+            'Secondary email address',
+        ),
+        ('export_wins_wins_dataset.line_manager_name', 'Line manager'),
+        ('export_wins_wins_dataset.team_type', 'team type'),
+        ('export_wins_wins_dataset.hq_team', 'HQ team, Region or Post'),
+        (
+            'export_wins_wins_dataset.business_potential',
+            'Medium-sized and high potential companies',
+        ),
+        ('export_wins_wins_dataset.export_experience', 'Export experience'),
+        ('to_char(export_wins_wins_dataset.created, \'DD/MM/YYYY\')', 'Created'),
+        ('export_wins_wins_dataset.audit', 'Audit'),
+        ('contributing_advisers.advisers', 'Contributing advisors/team'),
+        ('export_wins_wins_dataset.customer_email_date', 'Customer email date'),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, \': \', COALESCE(export_breakdowns_1.value, 0))',
+            'Export breakdown 1',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, \': \', COALESCE(export_breakdowns_2.value, 0))',
+            'Export breakdown 2',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, \': \', COALESCE(export_breakdowns_3.value, 0))',
+            'Export breakdown 3',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, \': \', COALESCE(export_breakdowns_4.value, 0))',
+            'Export breakdown 4',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, \': \', COALESCE(export_breakdowns_5.value, 0))',
+            'Export breakdown 5',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, \': \', COALESCE(non_export_breakdowns_1.value, 0))',
+            'Non-export breakdown 1',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, \': \', COALESCE(non_export_breakdowns_2.value, 0))',
+            'Non-export breakdown 2',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, \': \', COALESCE(non_export_breakdowns_3.value, 0))',
+            'Non-export breakdown 3',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, \': \', COALESCE(non_export_breakdowns_4.value, 0))',
+            'Non-export breakdown 4',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, \': \', COALESCE(non_export_breakdowns_5.value, 0))',
+            'Non-export breakdown 5',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, \': \', COALESCE(odi_breakdowns_1.value, 0))',
+            'Outward Direct Investment breakdown 1',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, \': \', COALESCE(odi_breakdowns_2.value, 0))',
+            'Outward Direct Investment breakdown 2',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, \': \', COALESCE(odi_breakdowns_3.value, 0))',
+            'Outward Direct Investment breakdown 3',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, \': \', COALESCE(odi_breakdowns_4.value, 0))',
+            'Outward Direct Investment breakdown 4',
+        ),
+        (
+            'CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, \': \', COALESCE(odi_breakdowns_5.value, 0))',
+            'Outward Direct Investment breakdown 5',
+        ),
+        ('export_wins_wins_dataset.confirmation_created', 'Date response received'),
+        ('export_wins_wins_dataset.confirmation_name', 'Your name'),
+        (
+            'export_wins_wins_dataset.confirmation_agree_with_win ',
+            'Please confirm these details are correct',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_comments',
+            'Other comments or changes to the win details',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_our_support',
+            'Securing the win overall?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_access_to_contacts',
+            'Gaining access to contacts?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_access_to_information',
+            'Getting information or improved understanding of the country?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_improved_profile',
+            'Improving your profile or credibility in the country?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_gained_confidence',
+            'Having confidence to explore or expand in the country?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_developed_relationships',
+            'Developing or nurturing critical relationships?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_overcame_problem',
+            'Overcoming a problem in the country (eg legal, regulatory, commercial)?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_involved_state_enterprise',
+            'The win involved a foreign government or state-owned enterprise (eg as an intermediary or facilitator)',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_interventions_were_prerequisite',
+            'Our support was a prerequisite to generate this export value',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_support_improved_speed',
+            'Our support helped you achieve this win more quickly',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_portion_without_help',
+            'What value do you estimate you would have achieved without our support?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_last_export',
+            'Apart from this win, when did your company last export goods or services?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_company_was_at_risk_of_not_exporting',
+            'If you hadnt achieved this win, your company might have stopped exporting',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_has_explicit_export_plans',
+            'Apart from this win, you already have specific plans to export in the next 12 months',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_has_enabled_expansion_into_new_market',
+            'It enabled you to expand into a new market',
+        ),
+        # (
+        #     'export_wins_wins_dataset.confirmation_increased_exports_percent_of_turnover',
+        #     'It enabled you to increase exports as a proportion of your turnover',
+        # ),
+        # (
+        #     'export_wins_wins_dataset.has_enabled_expansion_into_existing_market',
+        #     'It enabled you to maintain or expand in an existing market',
+        # ),
+        (
+            'export_wins_wins_dataset.confirmation_case_study_willing',
+            'Would you be willing for DIT/Exporting is GREAT to feature your success in marketing materials?',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_marketing_source',
+            'How did you first hear about DIT (or its predecessor, UKTI)',
+        ),
+        (
+            'export_wins_wins_dataset.confirmation_other_marketing_source',
+            'Other marketing source',
+        ),
+    ]
+    join_clause = '''
+        -- Export breakdowns
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int
+        ) export_breakdowns_1 ON  export_breakdowns_1.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 1
+        ) export_breakdowns_2 ON  export_breakdowns_2.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins_breakdowns_dataset.year::int = extract(year FROM CURRENT_DATE)::int + 2
+        ) export_breakdowns_3 ON  export_breakdowns_3.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins_breakdowns_dataset.year::int = extract(year FROM CURRENT_DATE)::int + 3
+        ) export_breakdowns_4 ON  export_breakdowns_4.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins_breakdowns_dataset.year::int = extract(year FROM CURRENT_DATE)::int + 4
+        ) export_breakdowns_5 ON  export_breakdowns_5.win_id = export_wins_wins_dataset.id
+        -- Non export breakdowns
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int
+        ) non_export_breakdowns_1 ON  non_export_breakdowns_1.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 1
+        ) non_export_breakdowns_2 ON  non_export_breakdowns_2.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 2
+        ) non_export_breakdowns_3 ON non_export_breakdowns_3.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 3
+        ) non_export_breakdowns_4 ON non_export_breakdowns_4.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins_breakdowns_dataset.year::int = extract(year FROM CURRENT_DATE)::int + 4
+        ) non_export_breakdowns_5 ON non_export_breakdowns_5.win_id = export_wins_wins_dataset.id
+        -- Outward Direct Investment breakdowns
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int
+        ) odi_breakdowns_1 ON  odi_breakdowns_1.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 1
+        ) odi_breakdowns_2 ON  odi_breakdowns_2.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 2
+        ) odi_breakdowns_3 ON odi_breakdowns_3.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins_breakdowns_dataset.year = extract(year FROM CURRENT_DATE)::int + 3
+        ) odi_breakdowns_4 ON odi_breakdowns_4.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT export_wins_breakdowns_dataset.win_id, export_wins_breakdowns_dataset.value
+            FROM export_wins_breakdowns_dataset
+            WHERE export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins_breakdowns_dataset.year::int = extract(year FROM CURRENT_DATE)::int + 4
+        ) odi_breakdowns_5 ON odi_breakdowns_5.win_id = export_wins_wins_dataset.id
+        LEFT JOIN (
+            SELECT win_id, STRING_AGG(CONCAT('Name: ', name, ', Team: ', team_type, ' - ', hq_team, ' - ', location), ', ') as advisers
+            FROM export_wins_advisers_dataset
+            GROUP  BY 1
+        ) contributing_advisers ON contributing_advisers.win_id = export_wins_wins_dataset.id
+    '''
+    where_clause = '''
+        date_trunc('year', export_wins_wins_dataset.date) =  date_trunc('year', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        ORDER BY export_wins_wins_dataset.date
     '''
 
 
