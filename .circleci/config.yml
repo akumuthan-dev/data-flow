@@ -16,3 +16,8 @@ jobs:
           command: |
             . venv/bin/activate
             make check
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            make test
