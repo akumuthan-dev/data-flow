@@ -86,23 +86,23 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
         ('omis_dataset.sector', 'Sector'),
         ('omis_dataset.services', 'Services'),
         (
-            'to_char(omis_dataset.delivery_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.delivery_date, \'DD/MM/YYYY\')',
             'Delivery date',
         ),
         (
-            'to_char(omis_dataset.payment_received_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.payment_received_date, \'DD/MM/YYYY\')',
             'Payment received date',
         ),
         (
-            'to_char(omis_dataset.completion_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.completion_date, \'DD/MM/YYYY\')',
             'Completion Date',
         ),
         (
-            'to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.created_date, \'DD/MM/YYYY\')',
             'Created date',
         ),
         (
-            'to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.cancelled_date, \'DD/MM/YYYY\')',
             'Cancelled date',
         ),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
@@ -130,11 +130,11 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
         ('teams_dataset.name', 'DIT Team'),
         ('omis_dataset.market', 'Market'),
         (
-            'to_char(omis_dataset.created_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.created_date, \'DD/MM/YYYY\')',
             'Created Date',
         ),
         (
-            'to_char(omis_dataset.cancelled_date, \'YYYY-MM-DD HH24:MI:SS\')',
+            'to_char(omis_dataset.cancelled_date, \'DD/MM/YYYY\')',
             'Cancelled Date',
         ),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
@@ -208,7 +208,7 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
     view_name = 'datahub_service_interactions'
     dataset_pipeline = InteractionsDatasetPipeline
     fields = [
-        ('interactions_dataset.interaction_date', 'Date of Interaction'),
+        ('to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')', 'Date of Interaction'),
         ('interactions_dataset.interaction_kind', 'Interaction Type'),
         ('companies_dataset.name', 'Company Name'),
         ('companies_dataset.company_number', 'Companies HouseID'),
@@ -250,12 +250,12 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
         ('interactions_dataset.service_delivery_status', 'Service Delivery Status'),
         ('events_dataset.name', 'Event Name'),
         ('events_dataset.event_type', 'Event Type'),
-        ('events_dataset.start_date', 'Event Start Date'),
+        ('to_char(events_dataset.start_date, \'DD/MM/YYYY\')', 'Event Start Date'),
         ('events_dataset.address_town', 'Event Town'),
         ('events_dataset.address_country', 'Event Country'),
         ('events_dataset.uk_region', 'Event UK Region'),
         ('events_dataset.service_name', 'Event Service Name'),
-        ('interactions_dataset.created_on', 'Created On Date'),
+        ('to_char(interactions_dataset.created_on, \'DD/MM/YYYY\')', 'Created On Date'),
         ('interactions_dataset.communication_channel', 'Communication Channel'),
         ('interactions_dataset.interaction_link', 'Interaction Link'),
     ]
@@ -289,7 +289,7 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
     view_name = 'datahub_export_client_survey'
     dataset_pipeline = InteractionsDatasetPipeline
     fields = [
-        ('interactions_dataset.interaction_date', 'Service Delivery Interaction'),
+        ('to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')', 'Service Delivery Interaction'),
         ('companies_dataset.name', 'Company Name'),
         ('companies_dataset.company_number', 'Companies House ID'),
         ('companies_dataset.id', 'Data Hub Company ID'),
@@ -327,13 +327,13 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
         ('interactions_dataset.service_delivery_status', 'Service Delivery Status'),
         ('events_dataset.name', 'Event Name'),
         ('events_dataset.event_type', 'Event Type'),
-        ('events_dataset.start_date', 'Event Start Date'),
+        ('to_char(events_dataset.start_date, \'DD/MM/YYYY\')', 'Event Start Date'),
         ('events_dataset.address_town', 'Event Town'),
         ('events_dataset.address_country', 'Event Country'),
         ('events_dataset.uk_region', 'Event UK Region'),
         ('events_dataset.service_name', 'Event Service Name'),
         ('teams_dataset.role', 'Team Role'),
-        ('interactions_dataset.created_on', 'Created On Date'),
+        ('to_char(interactions_dataset.created_on, \'DD/MM/YYYY\')', 'Created On Date'),
     ]
     join_clause = '''
         JOIN companies_dataset ON interactions_dataset.company_id = companies_dataset.id
