@@ -197,12 +197,17 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
         ('invoice__subtotal_cost', 'subtotal', 'integer'),
         ('paid_on', 'payment_received_date', 'timestamp with time zone'),
         ('primary_market__name', 'market', 'text'),
+        ('quote__created_on', 'quote_created_on', 'timestamp with time zone'),
         ('reference', 'omis_order_reference', 'character varying(100)'),
+        ('refund_created', 'refund_created', 'timestamp with time zone'),
+        ('refund_total_amount', 'refund_total_amount', 'integer'),
         ('sector_name', 'sector', 'character varying(255)'),
         ('services', 'services', 'text'),
         ('status', 'order_status', 'character varying(100)'),
         ('subtotal_cost', 'net_price', 'integer'),
+        ('total_cost', 'total_cost', 'integer'),
         ('uk_region__name', 'uk_region', 'text'),
+        ('vat_cost', 'vat_cost', 'integer'),
     ]
 
 
