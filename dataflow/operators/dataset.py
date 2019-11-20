@@ -9,22 +9,16 @@ from jinja2 import Template
 from mohawk import Sender
 from mohawk.exc import HawkFail
 from psycopg2 import sql
-import redis
 import requests
 
 from dataflow import config
-
+from dataflow.utils import get_redis_client
 
 credentials = {
     'id': config.HAWK_ID,
     'key': config.HAWK_KEY,
     'algorithm': config.HAWK_ALGORITHM,
 }
-
-
-def get_redis_client():
-    """Returns redis client from connection URL"""
-    return redis.from_url(url=config.REDIS_URL)
 
 
 def mark_task_failed(task_instance: TaskInstance, run_fetch_task_id: str = None):

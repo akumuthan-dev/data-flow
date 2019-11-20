@@ -3,4 +3,4 @@
 airflow initdb
 airflow scheduler &
 airflow worker &
-airflow webserver -p 8080 
+airflow webserver --pid /tmp/airflow-webserver.pid -p 8080
