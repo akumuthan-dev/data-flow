@@ -317,6 +317,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ),
         ('service_delivery', 'service_delivery', 'character varying(255)'),
         ('subject', 'interaction_subject', 'text'),
+        ('theme', 'theme', 'character varying(255)'),
     ]
 
 
