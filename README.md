@@ -159,7 +159,7 @@ print(fernet_key.decode()) # your fernet_key, keep it in secured place!
 - AUTHBROKER_URL='{{ authbroker_url }}'
 - AUTHBROKER_ALLOWED_DOMAINS="digital.trade.gov.uk,trade.gov.uk,mobile.ukti.gov.uk"
 - DATAHUB_BASE_URL='{{ production-data-hub-url }}'
-- FINANCIAL_YEAR_FIRST_MONTH_DAY='04-25'
+- FINANCIAL_YEAR_FIRST_MONTH_DAY='04-1'
 - DEBUG=False
 - HAWK_ID='{{ data-flow-hawk-id }}' # Needs to be defined in env var DATA_FLOW_API_ACCESS_KEY_ID in data-hub production
 - HAWK_KEY=some-key # Needs to be defined in env var DATA_FLOW_API_SECRET_ACCESS_KEY
