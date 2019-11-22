@@ -271,7 +271,6 @@ def execute_insert_into(
             if var_name:
                 logging.info(f'Processing page {var_name}')
                 sleep_time = 5
-                var_name = var_name.decode('utf-8')
                 try:
                     record_subset = json.loads(Variable.get(var_name))
                 except KeyError:
