@@ -349,7 +349,7 @@ class ContactsDatasetPipeline(BaseDatasetPipeline):
         ('address_postcode', 'address_postcode', 'character varying(255)'),
         ('address_same_as_company', 'address_same_as_company', 'boolean'),
         ('address_town', 'address_town', 'character varying(255)'),
-        ('archived' 'archived', 'boolean'),
+        ('archived', 'archived', 'boolean'),
         ('archived_on', 'archived_on', 'timestamp with time zone'),
         ('company_id', 'company_id', 'uuid'),
         ('created_on', 'date_added_to_datahub', 'date'),
