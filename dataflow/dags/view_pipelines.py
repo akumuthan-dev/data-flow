@@ -94,6 +94,11 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
         ('to_char(omis_dataset.created_date, \'DD/MM/YYYY\')', 'Created date'),
         ('to_char(omis_dataset.cancelled_date, \'DD/MM/YYYY\')', 'Cancelled date'),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
+        ('to_char(omis_dataset.refund_created, \'DD/MM/YYYY\')', 'Date of Refund'),
+        ('(omis_dataset.refund_total_amount/100)::numeric(15, 2)', 'Refund Amount'),
+        ('(omis_dataset.vat_cost/100)::numeric(15, 2)', 'VAT Amount'),
+        ('(omis_dataset.total_cost/100)::numeric(15, 2)', 'Gross Amount'),
+        ('to_char(omis_dataset.quote_created_on, \'DD/MM/YYYY\')', 'Quote Created'),
     ]
     join_clause = '''
         LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
@@ -120,6 +125,11 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
         ('to_char(omis_dataset.created_date, \'DD/MM/YYYY\')', 'Created Date'),
         ('to_char(omis_dataset.cancelled_date, \'DD/MM/YYYY\')', 'Cancelled Date'),
         ('omis_dataset.cancellation_reason', 'Cancellation reason'),
+        ('to_char(omis_dataset.refund_created, \'DD/MM/YYYY\')', 'Date of Refund'),
+        ('(omis_dataset.refund_total_amount/100)::numeric(15, 2)', 'Refund Amount'),
+        ('(omis_dataset.vat_cost/100)::numeric(15, 2)', 'VAT Amount'),
+        ('(omis_dataset.total_cost/100)::numeric(15, 2)', 'Gross Amount'),
+        ('to_char(omis_dataset.quote_created_on, \'DD/MM/YYYY\')', 'Quote Created'),
     ]
     join_clause = """
         LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
@@ -172,6 +182,11 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
             'companies_dataset.registered_address_postcode',
             'Company Registered Address Postcode',
         ),
+        ('to_char(omis_dataset.refund_created, \'DD/MM/YYYY\')', 'Date of Refund'),
+        ('(omis_dataset.refund_total_amount/100)::numeric(15, 2)', 'Refund Amount'),
+        ('(omis_dataset.vat_cost/100)::numeric(15, 2)', 'VAT Amount'),
+        ('(omis_dataset.total_cost/100)::numeric(15, 2)', 'Gross Amount'),
+        ('to_char(omis_dataset.quote_created_on, \'DD/MM/YYYY\')', 'Quote Created'),
     ]
     join_clause = """
         JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
