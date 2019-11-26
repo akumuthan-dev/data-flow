@@ -10,7 +10,7 @@ export AIRFLOW__CORE__DAGS_FOLDER=/home/vcap/app/dataflow/dags
 export AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
 export AIRFLOW__CORE__LOAD_EXAMPLES=False
 
-export AIRFLOW_CONN_DEFAULT_S3="s3://"$(echo $VCAP_SERVICES | jq -r '.["aws-s3-bucket"][0].credentials | "\(.aws_access_key_id):\(.aws_secret_access_key)"')"@S3"
+export AIRFLOW_CONN_DEFAULT_S3="s3://"$(echo $VCAP_SERVICES | jq -r '.["aws-s3-bucket"][0].credentials | "\(.aws_access_key_id | @uri):\(.aws_secret_access_key | @uri)"')"@S3"
 
 export AIRFLOW__CORE__SECURE_MODE=True
 export AIRFLOW__CORE__DONOT_PICKLE=True
