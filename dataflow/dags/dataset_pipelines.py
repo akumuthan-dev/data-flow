@@ -236,7 +236,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('business_activity_names', 'business_activities', 'text'),
         ('client_relationship_manager_id', 'client_relationship_manager_id', 'uuid'),
         ('client_requirements', 'client_requirements', 'text'),
-        ('competing_countries', 'competing_countries', 'text'),
+        ('competing_countries', 'competing_countries', 'text []'),
         ('created_by_id', 'created_by_id', 'uuid'),
         ('created_on', 'created_on', 'timestamp with time zone'),
         ('delivery_partner_names', 'delivery_partners', 'text'),
