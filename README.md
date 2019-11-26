@@ -121,9 +121,9 @@ class CompletedOMISOrderViewPipeline():
 - Modify user in init.sql and run it against the local postgres to initialize dbs
 - Get redis running on your local machine
 - Create virtualenv
-- Install pypi dependencies 
-- Update local.env for your configurations
-- Copy local.env to .env
+- Install pypi dependencies
+- Copy sample.env to .env
+- Update .env for your configuration (for example paths, DB and redis URLs)
 - run ./entrypoint.sh
 
 ## Deployment to production steps:
