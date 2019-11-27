@@ -1,5 +1,16 @@
 #!/bin/sh
 
+require_variable() {
+    local var_name var_val
+    var_name=$1
+    eval var_val=\$${var_name}
+
+    if [ -z "${var_val}" ]; then
+        echo "${var_name} is unset"
+        exit 1
+    fi
+}
+
 export PYTHONPATH=/app:${PYTHONPATH}
 export AIRFLOW_HOME=/home/vcap/app/airflow
 export DEBUG=False
@@ -27,7 +38,6 @@ export AIRFLOW__CORE__SQL_ALCHEMY_CONN=$(echo $VCAP_SERVICES | jq -r '.postgres[
 export AIRFLOW__CORE__EXECUTOR=CeleryExecutor
 export AIRFLOW__CELERY__BROKER_URL=$(echo $VCAP_SERVICES | jq -r '.redis[0].credentials.uri')
 export AIRFLOW__CELERY__RESULT_BACKEND="db+${AIRFLOW__CORE__SQL_ALCHEMY_CONN}"
-export AIRFLOW__CELERY__FLOWER_BASIC_AUTH="${FLOWER_USERNAME}:${FLOWER_PASSWORD}"
 export AIRFLOW__CELERY__FLOWER_PORT=8080
 
 export AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=86400
@@ -37,5 +47,9 @@ export AIRFLOW__WEBSERVER__AUTHENTICATE=True
 export AIRFLOW__WEBSERVER__AUTH_BACKEND=dataflow.airflow_login
 export AIRFLOW__WEBSERVER__COOKIE_SECURE=True
 export AIRFLOW__WEBSERVER__COOKIE_SAMESITE=Lax
+
+require_variable AIRFLOW__CELERY__FLOWER_BASIC_AUTH
+require_variable AIRFLOW__CORE__FERNET_KEY
+require_variable AIRFLOW__WEBSERVER__SECRET_KEY
 
 exec $@
