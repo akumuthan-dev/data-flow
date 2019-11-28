@@ -210,6 +210,7 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
 
     view_name = 'all_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
+    start_date = datetime(2019, 12, 1)
     materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'Order ID'),
@@ -239,7 +240,7 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
     '''
     where_clause = '''
-        omis_dataset.created_date < date_trunc('month', CURRENT_DATE)
+        omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))        
     '''
 
 
