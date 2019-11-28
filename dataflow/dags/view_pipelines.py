@@ -204,6 +204,45 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
     """
 
 
+class OMISAllOrdersViewPipeline(BaseViewPipeline):
+    """View pipeline for all OMIS orders created up to the end
+     of the last calendar month"""
+
+    view_name = 'all_omis_orders'
+    dataset_pipeline = OMISDatasetPipeline
+    materialized = True
+    fields = [
+        ('omis_dataset.omis_order_reference', 'Order ID'),
+        ('omis_dataset.order_status', 'Order status'),
+        ('companies_dataset.name', 'Company'),
+        ('teams_dataset.name', 'Creator team'),
+        ('omis_dataset.uk_region', 'UK region'),
+        ('omis_dataset.market', 'Primary market'),
+        ('omis_dataset.sector', 'Sector'),
+        ('companies_dataset.sector', 'Company sector'),
+        ('omis_dataset.net_price', 'Net price'),
+        ('omis_dataset.services', 'Services'),
+        ('omis_dataset.created_date', 'Order created'),
+        ('omis_dataset.quote_created_on', 'Quote created'),
+        # TODO: enable this once field has been made available on Data Hub
+        # ('omis_dataset.quote_accepted_on', 'Quote accepted'),
+        ('omis_dataset.delivery_date', 'Planned delivery date'),
+        ('omis_dataset.vat_cost', 'VAT'),
+        ('omis_dataset.payment_received_date', 'Payment received date'),
+        ('omis_dataset.completion_date', 'Completion date'),
+        ('omis_dataset.cancelled_date', 'Cancellation date'),
+        ('omis_dataset.refund_created', 'Refund date'),
+        ('omis_dataset.refund_total_amount', 'Refund amount'),
+    ]
+    join_clause = '''
+        JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
+        JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
+    '''
+    where_clause = '''
+        omis_dataset.created_date < date_trunc('month', CURRENT_DATE)
+    '''
+
+
 class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
