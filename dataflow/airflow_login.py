@@ -25,23 +25,18 @@ Copy and alter this file and put in your PYTHONPATH as airflow_login.py,
 the new module will override this one.
 
 """
-import flask_login
-from flask_login import (  # noqa: F401
-    login_required,
-    current_user,
-    logout_user,
-    login_user,
-)
-from flask_oauthlib.client import OAuth
-
-from flask import url_for, redirect, request
-
-from werkzeug import security
-
-from airflow import settings  # noqa: F401
 from airflow import models
 from airflow.utils.db import provide_session
 from airflow.utils.log.logging_mixin import LoggingMixin
+from flask import url_for, redirect, request, session as flask_session
+from flask_login import (  # noqa: F401
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+    LoginManager,
+)
+from requests_oauthlib import OAuth2Session
 
 from dataflow import config
 
@@ -87,12 +82,9 @@ class AuthenticationError(Exception):
 
 class AuthbrokerBackend(object):
     def __init__(self):
-        self.login_manager = flask_login.LoginManager()
+        self.login_manager = LoginManager()
         self.login_manager.login_view = 'airflow.login'
         self.flask_app = None
-        self.auth_path = 'o/authorize/'
-        self.token_path = 'o/token/'
-        self.me_path = 'api/v1/user/me/'
         self.client_id = config.AUTHBROKER_CLIENT_ID
         self.client_secret = config.AUTHBROKER_CLIENT_SECRET
         self.allowed_domains = config.AUTHBROKER_ALLOWED_DOMAINS.split(',')
@@ -102,19 +94,6 @@ class AuthbrokerBackend(object):
         self.flask_app = flask_app
 
         self.login_manager.init_app(self.flask_app)
-
-        self.authbroker_client = OAuth(self.flask_app).remote_app(
-            'authbroker',
-            base_url=self.base_url,
-            request_token_url=None,
-            access_token_url=f'{self.base_url}{self.token_path}',
-            authorize_url=f'{self.base_url}{self.auth_path}',
-            consumer_key=self.client_id,
-            consumer_secret=self.client_secret,
-            access_token_method='POST',
-            request_token_params={'state': lambda: security.gen_salt(10)},
-        )
-
         self.login_manager.user_loader(self.load_user)
 
         self.flask_app.add_url_rule(
@@ -122,33 +101,31 @@ class AuthbrokerBackend(object):
         )
 
     def login(self, request):
-        log.info('================Redirecting===================')
-        return self.authbroker_client.authorize(
-            callback=url_for('oauth2callback', _external=True),
-            state=request.args.get('next') or request.referrer or None,
+        sso = OAuth2Session(
+            self.client_id, redirect_uri=url_for('oauth2callback', _external=True)
         )
+        authorization_url, state = sso.authorization_url(self.base_url + 'o/authorize/')
+
+        flask_session["sso_state"] = {"state": state, "next": request.args.get('next')}
+
+        return redirect(authorization_url)
 
     def get_user_profile_email(self, authbroker_token):
-        log.info('================Getting user porfile===================')
         resp = self.authbroker_client.get(
             f'{self.base_url}{self.me_path}', token=(authbroker_token, '')
         )
 
         if not resp or resp.status != 200:
-            log.info('user profile repsponse failed')
             raise AuthenticationError(
                 'Failed to fetch user profile, status ({0})'.format(
                     resp.status if resp else 'None'
                 )
             )
-        log.info('user profile resp ========= {}'.format(resp.__dict__))
 
         return resp.data['email']
 
     def domain_check(self, email):
-        domain = email.split('@')[1]
-        log.info('======DOMAIN {} ==========='.format(domain))
-        log.info('======ALLOWED DOMAIN {} ========'.format(self.allowed_domains))
+        domain = email.split('@')[-1]
         if domain in self.allowed_domains:
             return True
         return False
@@ -164,28 +141,30 @@ class AuthbrokerBackend(object):
     @provide_session
     def oauth2callback(self, session=None):
         log.debug('Authbroker callback called')
+        sso = OAuth2Session(
+            self.client_id,
+            state=flask_session['sso_state']['state'],
+            redirect_uri=url_for('oauth2callback', _external=True),
+        )
 
-        next_url = request.args.get('state') or url_for('admin.index')
-        resp = self.authbroker_client.authorized_response()
-        try:
-            if resp is None or resp.get('access_token') is None:
-                log.info('===========Couldnt fetch access token=============')
-                raise AuthenticationError(
-                    'Access denied: reason={0} error={1} resp={2}'.format(
-                        request.args['error'], request.args['error_description'], resp
-                    )
-                )
+        sso.fetch_token(
+            self.base_url + 'o/token/',
+            client_secret=self.client_secret,
+            authorization_response=request.url,
+        )
 
-            authbroker_token = resp['access_token']
-            email = self.get_user_profile_email(authbroker_token)
+        resp = sso.get(self.base_url + 'api/v1/user/me/')
 
-            if not self.domain_check(email):
-                log.info('==========Domain check failed ==================')
-                return redirect(url_for('airflow.noaccess'))
-
-        except AuthenticationError:
-            log.info('================Redirecting===================')
+        if resp.status_code != 200:
+            log.info('User profile request failed')
             return redirect(url_for('airflow.noaccess'))
+
+        email = resp.json()['email']
+
+        if not self.domain_check(email):
+            return redirect(url_for('airflow.noaccess'))
+
+        next_url = flask_session['sso_state'].get('next', url_for('admin.index'))
 
         user = session.query(models.User).filter(models.User.username == email).first()
 
