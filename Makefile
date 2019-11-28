@@ -11,3 +11,7 @@ format:
 .PHONY: test
 test:
 	pytest --cov=dataflow --cov-report=term-missing
+
+.PHONY: compile-requirements
+compile-requirements:
+	pip-compile

@@ -1,0 +1,5 @@
+mohawk
+requests
+apache-airflow[postgres,crypto,celery,s3]
+requests-oauthlib
+redis
