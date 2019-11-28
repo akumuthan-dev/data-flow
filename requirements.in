@@ -1,5 +1,5 @@
 mohawk
 requests
-apache-airflow[postgres,crypto,celery,s3]
+apache-airflow[postgres,crypto,celery,s3,sentry]
 requests-oauthlib
 redis
