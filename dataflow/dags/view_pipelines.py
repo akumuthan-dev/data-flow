@@ -21,6 +21,7 @@ class BaseViewPipeline:
     catchup = True
 
     schedule_interval = '0 5 1 * *'
+    materialized = False
 
     @classmethod
     def get_dag(pipeline):
@@ -29,6 +30,7 @@ class BaseViewPipeline:
             'table_name': pipeline.dataset_pipeline.table_name,
             'join_clause': getattr(pipeline, 'join_clause', ''),
             'fields': pipeline.fields,
+            'materialized': pipeline.materialized,
         }
         if getattr(pipeline, 'params', None):
             user_defined_macros.update(pipeline.params)
@@ -76,6 +78,7 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
+    materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company name'),
@@ -116,6 +119,7 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
+    materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company Name'),
@@ -153,6 +157,7 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
 
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
+    materialized = True
     fields = [
         ('companies_dataset.name', 'Company Name'),
         ('contacts_dataset.contact_name', 'Contact Name'),
