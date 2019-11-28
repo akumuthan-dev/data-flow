@@ -240,7 +240,7 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
     '''
     where_clause = '''
-        omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))        
+        omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
     '''
 
 
