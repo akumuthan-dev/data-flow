@@ -51,7 +51,10 @@ class BaseDatasetPipeline:
             task_id=run_fetch_task_id,
             python_callable=run_fetch,
             provide_context=True,
-            op_args=[f'{pipeline.source_url}'],
+            op_kwargs={
+                'run_fetch_task_id': run_fetch_task_id,
+                'source_url': pipeline.source_url,
+            },
             priority_weight=2,
         )
 
@@ -59,7 +62,11 @@ class BaseDatasetPipeline:
             task_id='create-tables',
             python_callable=create_tables,
             provide_context=True,
-            op_args=[f'{pipeline.target_db}'],
+            op_kwargs={
+                'target_db': pipeline.target_db,
+                'table_name': pipeline.table_name,
+                'field_mapping': pipeline.field_mapping,
+            },
         )
 
         insert_task_group = []
@@ -69,7 +76,12 @@ class BaseDatasetPipeline:
                     task_id=f'execute-insert-into-{index}',
                     python_callable=execute_insert_into,
                     provide_context=True,
-                    op_args=[f'{pipeline.target_db}'],
+                    op_kwargs={
+                        'target_db': pipeline.target_db,
+                        'table_name': pipeline.table_name,
+                        'run_fetch_task_id': run_fetch_task_id,
+                        'field_mapping': pipeline.field_mapping,
+                    },
                 )
             )
 
@@ -77,7 +89,11 @@ class BaseDatasetPipeline:
             task_id='insert-from-temporary-table',
             python_callable=insert_from_temporary_table,
             provide_context=True,
-            op_args=[f'{pipeline.target_db}'],
+            op_kwargs={
+                'target_db': pipeline.target_db,
+                'table_name': pipeline.table_name,
+                'run_fetch_task_id': run_fetch_task_id,
+            },
         )
 
         dag << fetch_task
