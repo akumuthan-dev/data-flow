@@ -96,10 +96,11 @@ class BaseActivityStreamPipeline:
 class ERPPipeline(BaseActivityStreamPipeline):
     name = "erp"
     index = "objects"
-    table_name = "erp_activity_stream"
+    table_name = "erp_submissions"
 
     field_mapping = [
         ("id", sa.Column("id", sa.String, primary_key=True)),
+        ("url", sa.Column("url", sa.String, primary_key=True)),
         (
             ("dit:directoryFormsApi:Submission:Data", "commodity", "commodity_code"),
             sa.Column("commodity_code", sa.ARRAY(sa.String)),
@@ -111,6 +112,22 @@ class ERPPipeline(BaseActivityStreamPipeline):
         (
             ("dit:directoryFormsApi:Submission:Data", "company_name"),
             sa.Column("company_name", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "company_number"),
+            sa.Column("company_number", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "company_type"),
+            sa.Column("company_type", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "consumer_region"),
+            sa.Column("consumer_region", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "consumer_type"),
+            sa.Column("consumer_type", sa.String),
         ),
         (
             ("dit:directoryFormsApi:Submission:Data", "country"),
@@ -125,12 +142,28 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("employees", sa.String),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "employment_regions"),
+            sa.Column("employment_regions", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "equivalent_uk_goods"),
+            sa.Column("equivalent_uk_goods", sa.Boolean),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "family_name"),
             sa.Column("family_name", sa.String),
         ),
         (
             ("dit:directoryFormsApi:Submission:Data", "given_name"),
             sa.Column("given_name", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "has_consumer_choice_changed"),
+            sa.Column("has_consumer_choice_changed", sa.Boolean),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "has_consumer_price_changed"),
+            sa.Column("has_consumer_price_changed", sa.Boolean),
         ),
         (
             ("dit:directoryFormsApi:Submission:Data", "has_market_price_changed"),
@@ -153,8 +186,31 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("has_volume_changed", sa.Boolean),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "import_countries"),
+            sa.Column("import_countries", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "income_bracket"),
+            sa.Column("income_bracket", sa.ARRAY(sa.String)),
+        ),
+        (
+            (
+                "dit:directoryFormsApi:Submission:Data",
+                "imported_goods_makes_something_else",
+            ),
+            sa.Column("imported_goods_makes_something_else", sa.Boolean),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "market_size_known"),
+            sa.Column("market_size_known", sa.Boolean),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "other_information"),
             sa.Column("other_information", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "production_cost_percentage"),
+            sa.Column("production_cost_percentage", sa.Integer),
         ),
         (
             (
