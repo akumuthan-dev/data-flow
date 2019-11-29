@@ -21,6 +21,7 @@ class BaseViewPipeline:
     catchup = True
 
     schedule_interval = '0 5 1 * *'
+    materialized = False
 
     @classmethod
     def get_dag(pipeline):
@@ -29,6 +30,7 @@ class BaseViewPipeline:
             'table_name': pipeline.dataset_pipeline.table_name,
             'join_clause': getattr(pipeline, 'join_clause', ''),
             'fields': pipeline.fields,
+            'materialized': pipeline.materialized,
         }
         if getattr(pipeline, 'params', None):
             user_defined_macros.update(pipeline.params)
@@ -153,6 +155,7 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
 
     view_name = 'omis_client_survey'
     dataset_pipeline = OMISDatasetPipeline
+    materialized = True
     fields = [
         ('companies_dataset.name', 'Company Name'),
         ('contacts_dataset.contact_name', 'Contact Name'),
@@ -199,11 +202,52 @@ class OMISClientSurveyViewPipeline(BaseViewPipeline):
     """
 
 
+class OMISAllOrdersViewPipeline(BaseViewPipeline):
+    """View pipeline for all OMIS orders created up to the end
+     of the last calendar month"""
+
+    view_name = 'all_omis_orders'
+    dataset_pipeline = OMISDatasetPipeline
+    start_date = datetime(2019, 12, 1)
+    fields = [
+        ('omis_dataset.omis_order_reference', 'Order ID'),
+        ('omis_dataset.order_status', 'Order status'),
+        ('companies_dataset.name', 'Company'),
+        ('teams_dataset.name', 'Creator team'),
+        ('omis_dataset.uk_region', 'UK region'),
+        ('omis_dataset.market', 'Primary market'),
+        ('omis_dataset.sector', 'Sector'),
+        ('companies_dataset.sector', 'Company sector'),
+        ('omis_dataset.net_price', 'Net price'),
+        ('omis_dataset.services', 'Services'),
+        ('omis_dataset.created_date', 'Order created'),
+        ('omis_dataset.quote_created_on', 'Quote created'),
+        # TODO: enable this once field has been made available on Data Hub
+        # ('omis_dataset.quote_accepted_on', 'Quote accepted'),
+        ('omis_dataset.delivery_date', 'Planned delivery date'),
+        ('omis_dataset.vat_cost', 'VAT'),
+        ('omis_dataset.payment_received_date', 'Payment received date'),
+        ('omis_dataset.completion_date', 'Completion date'),
+        ('omis_dataset.cancelled_date', 'Cancellation date'),
+        ('omis_dataset.refund_created', 'Refund date'),
+        ('omis_dataset.refund_total_amount', 'Refund amount'),
+    ]
+    join_clause = '''
+        JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
+        JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
+    '''
+    where_clause = '''
+        omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+    '''
+
+
 class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
     view_name = 'datahub_service_interactions'
     dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 11, 15)
+    schedule_interval = '0 5 15 * *'
     fields = [
         (
             'to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')',
@@ -288,6 +332,9 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
 
     view_name = 'datahub_export_client_survey'
     dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 11, 15)
+    schedule_interval = '0 5 15 * *'
+    materialized = True
     fields = [
         (
             'to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')',
