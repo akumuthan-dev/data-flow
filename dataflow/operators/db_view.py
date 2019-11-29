@@ -1,12 +1,5 @@
 create_view = """
-    {% if not materialized %}
-        DROP VIEW IF EXISTS
-            {{ view_name }}_{{ (
-                macros.datetime.strptime(ds, '%Y-%m-%d') +
-                macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)
-            ).date() | replace('-', '_') }};
-    {% endif %}
-    CREATE{% if materialized %} MATERIALIZED{%endif %} VIEW
+    CREATE {% if materialized %}MATERIALIZED{% else %} OR REPLACE{%endif %} VIEW
         {{ view_name }}_{{ (
             macros.datetime.strptime(ds, '%Y-%m-%d') +
             macros.dateutil.relativedelta.relativedelta(months=+1, days=-1)
