@@ -78,7 +78,6 @@ class CompletedOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'completed_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company name'),
@@ -119,7 +118,6 @@ class CancelledOMISOrderViewPipeline(BaseViewPipeline):
 
     view_name = 'cancelled_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
-    materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'OMIS Order Reference'),
         ('companies_dataset.name', 'Company Name'),
@@ -211,7 +209,6 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
     view_name = 'all_omis_orders'
     dataset_pipeline = OMISDatasetPipeline
     start_date = datetime(2019, 12, 1)
-    materialized = True
     fields = [
         ('omis_dataset.omis_order_reference', 'Order ID'),
         ('omis_dataset.order_status', 'Order status'),
@@ -249,6 +246,8 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
 
     view_name = 'datahub_service_interactions'
     dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 11, 15)
+    schedule_interval = '0 5 15 * *'
     fields = [
         (
             'to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')',
@@ -333,6 +332,9 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
 
     view_name = 'datahub_export_client_survey'
     dataset_pipeline = InteractionsDatasetPipeline
+    start_date = datetime(2019, 11, 15)
+    schedule_interval = '0 5 15 * *'
+    materialized = True
     fields = [
         (
             'to_char(interactions_dataset.interaction_date, \'DD/MM/YYYY\')',
