@@ -49,13 +49,12 @@ class BaseActivityStreamPipeline:
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
             max_active_runs=1,
-            user_defined_macros={"run_fetch_task_id": run_fetch_task_id},
         ) as dag:
             _fetch = PythonOperator(
                 task_id=run_fetch_task_id,
                 python_callable=fetch_from_activity_stream,
                 provide_context=True,
-                op_args=[self.index, self.query],
+                op_args=[self.index, self.query, run_fetch_task_id],
             )
 
             _create_tables = PythonOperator(
@@ -69,7 +68,12 @@ class BaseActivityStreamPipeline:
                 task_id="insert-into-temp-table",
                 python_callable=insert_data_into_db,
                 provide_context=True,
-                op_args=[self.target_db, self.table, self.field_mapping],
+                op_args=[
+                    self.target_db,
+                    self.table,
+                    self.field_mapping,
+                    run_fetch_task_id,
+                ],
             )
 
             _swap_dataset_table = PythonOperator(
