@@ -1,2 +1,4 @@
-web: /home/vcap/app/bin/data-flow-web.sh
-worker: /home/vcap/app/bin/data-flow-worker.sh
+web: /home/vcap/app/bin/paas-wrapper.sh airflow webserver -p 8080
+worker: /home/vcap/app/bin/paas-wrapper.sh airflow worker
+scheduler: /home/vcap/app/bin/paas-wrapper.sh airflow scheduler
+flower: /home/vcap/app/bin/paas-wrapper.sh airflow flower
