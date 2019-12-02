@@ -220,23 +220,20 @@ class ERPPipeline(BaseActivityStreamPipeline):
     ]
 
     query = {
-        "size": 10,
-        "query": {
-            "bool": {
-                "filter": [
-                    {
-                        "term": {
-                            "attributedTo.id": "dit:directoryFormsApi:SubmissionType:ExceptionalReviewProcedure"
-                        }
-                    },
-                    {
-                        "term": {
-                            "attributedTo.type": "dit:directoryFormsApi:SubmissionAction:zendesk"
-                        }
-                    },
-                ]
-            }
-        },
+        "bool": {
+            "filter": [
+                {
+                    "term": {
+                        "attributedTo.id": "dit:directoryFormsApi:SubmissionType:ExceptionalReviewProcedure"
+                    }
+                },
+                {
+                    "term": {
+                        "attributedTo.type": "dit:directoryFormsApi:SubmissionAction:zendesk"
+                    }
+                },
+            ]
+        }
     }
 
 
