@@ -7,6 +7,14 @@ from airflow.models import Variable
 from dataflow.utils import get_nested_key, get_redis_client, FieldMapping
 
 
+class MissingDataError(ValueError):
+    pass
+
+
+class UnusedColumnError(ValueError):
+    pass
+
+
 def _get_temp_table(table, suffix):
     """Get a Table object for the temporary dataset table.
 
@@ -54,7 +62,7 @@ def insert_data_into_db(
 ):
     """Insert fetched response data into temporary DB tables.
 
-    Goes through the stored reponse contents and loads individual
+    Goes through the stored response contents and loads individual
     records into the temporary DB table.
 
     DB columns are populated according to the field mapping, which
@@ -97,6 +105,53 @@ def insert_data_into_db(
         Variable.delete(var_name)
 
     redis_client.delete(run_fetch_task_id)
+
+
+def _check_table(engine, conn, temp: sa.Table, target: sa.Table):
+    logging.info(f"Checking {temp.name}")
+
+    if engine.dialect.has_table(conn, target.name):
+        logging.info("Checking record counts")
+        temp_count = conn.execute(
+            sa.select([sa.func.count()]).select_from(temp)
+        ).fetchone()[0]
+        target_count = conn.execute(
+            sa.select([sa.func.count()]).select_from(target)
+        ).fetchone()[0]
+
+        logging.info(
+            "Current records count {}, new import count {}".format(
+                target_count, temp_count
+            )
+        )
+
+        if temp_count / target_count < 0.9:
+            raise MissingDataError("New record count is less than 90% of current data")
+
+    logging.info("Checking for empty columns")
+    for col in temp.columns:
+        row = conn.execute(
+            sa.select([temp]).select_from(temp).where(col.isnot(None)).limit(1)
+        ).fetchone()
+        if row is None:
+            raise UnusedColumnError(f"Column {col} only contains NULL values")
+    logging.info("All columns are used")
+
+
+def check_table_data(target_db: str, *tables: sa.Table, **kwargs):
+    """Verify basic constraints on temp table data.
+
+    """
+
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    with engine.begin() as conn:
+        for table in tables:
+            temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+            _check_table(engine, conn, temp_table, table)
 
 
 def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):

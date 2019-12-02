@@ -5,6 +5,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.operators.db_tables import (
+    check_table_data,
     create_temp_tables,
     drop_temp_tables,
     insert_data_into_db,
@@ -76,6 +77,13 @@ class BaseActivityStreamPipeline:
                 ],
             )
 
+            _check_tables = PythonOperator(
+                task_id="check-temp-table-data",
+                python_callable=check_table_data,
+                provide_context=True,
+                op_args=[self.target_db, self.table],
+            )
+
             _swap_dataset_table = PythonOperator(
                 task_id="swap-dataset-table",
                 python_callable=swap_dataset_table,
@@ -91,8 +99,13 @@ class BaseActivityStreamPipeline:
                 op_args=[self.target_db, self.table],
             )
 
-        [_fetch, _create_tables] >> _insert_into_temp_table
-        _insert_into_temp_table >> _swap_dataset_table >> _drop_tables
+        (
+            [_fetch, _create_tables]
+            >> _insert_into_temp_table
+            >> _check_tables
+            >> _swap_dataset_table
+            >> _drop_tables
+        )
 
         return dag
 
