@@ -28,6 +28,7 @@ class BaseViewPipeline:
         user_defined_macros = {
             'view_name': pipeline.view_name,
             'table_name': pipeline.dataset_pipeline.table_name,
+            'materialized': pipeline.materialized,
         }
         if getattr(pipeline, 'params', None):
             user_defined_macros.update(pipeline.params)
