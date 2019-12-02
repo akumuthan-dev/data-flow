@@ -23,7 +23,8 @@ def test_activity_stream_request_raises_error_without_hits(requests_mock):
         activity_stream._activity_stream_request('http://test', {})
 
 
-def test_activity_stream_request_raises_for_non_2xx_status(requests_mock):
+def test_activity_stream_request_raises_for_non_2xx_status(mocker, requests_mock):
+    mocker.patch("time.sleep")  # skip backoff retry delay
     requests_mock.get('http://test', status_code=404)
 
     with pytest.raises(HTTPError):

@@ -1,6 +1,7 @@
 import json
 import logging
 
+import backoff
 import requests
 from airflow.models import Variable
 from mohawk import Sender
@@ -9,6 +10,7 @@ from dataflow import config
 from .dataset import get_redis_client
 
 
+@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
 def _activity_stream_request(url: str, query: dict):
     body = json.dumps(query)
     header = Sender(
