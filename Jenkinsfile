@@ -1,14 +1,17 @@
 pipeline {
   agent none
   parameters {
-      string(name: 'VERSION', defaultValue: 'master', description: 'Branch name or commit SHA to deploy')
+      string(name: 'GIT_COMMIT', defaultValue: 'origin/master', description: 'Commit SHA or origin branch to deploy')
   }
 
   stages {
     stage('prepare') {
       agent any
       steps {
-        checkout scm
+        checkout([
+            $class: 'GitSCM',
+            branches: [[name: params.GIT_COMMIT]],
+        ])
         script {
           pullRequestNumber = sh(
               script: "git log -1 --pretty=%B | grep 'Merge pull request' | cut -d ' ' -f 4 | tr -cd '[[:digit:]]'",
@@ -22,7 +25,7 @@ pipeline {
 
     stage('release: dev') {
       steps {
-        ci_pipeline("dev", params.VERSION)
+        ci_pipeline("dev", params.GIT_COMMIT)
       }
     }
 
@@ -38,7 +41,7 @@ pipeline {
       }
 
       steps {
-        ci_pipeline("staging", params.VERSION)
+        ci_pipeline("staging", params.GIT_COMMIT)
       }
     }
 
@@ -54,7 +57,7 @@ pipeline {
       }
 
       steps {
-        ci_pipeline("production", params.VERSION)
+        ci_pipeline("production", params.GIT_COMMIT)
       }
     }
 
