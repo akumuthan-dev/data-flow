@@ -65,10 +65,12 @@ pipeline {
 }
 
 void ci_pipeline(env, version) {
-  build job: "ci-pipeline", parameters: [
-    string(name: "Team", value: "datasci"),
-    string(name: "Project", value: "data-flow"),
-    string(name: "Environment", value: env),
-    string(name: "Version", value: version)
-  ]
+  lock("data-flow-ci-pipeline-${env}") {
+    build job: "ci-pipeline", parameters: [
+        string(name: "Team", value: "datasci"),
+        string(name: "Project", value: "data-flow"),
+        string(name: "Environment", value: env),
+        string(name: "Version", value: version)
+    ]
+  }
 }
