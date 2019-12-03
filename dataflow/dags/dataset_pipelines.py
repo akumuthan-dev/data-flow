@@ -213,6 +213,7 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
         ('invoice__subtotal_cost', 'subtotal', 'integer'),
         ('paid_on', 'payment_received_date', 'timestamp with time zone'),
         ('primary_market__name', 'market', 'text'),
+        ('quote__accepted_on', 'quote_accepted_on', 'timestamp with time zone'),
         ('quote__created_on', 'quote_created_on', 'timestamp with time zone'),
         ('reference', 'omis_order_reference', 'character varying(100)'),
         ('refund_created', 'refund_created', 'timestamp with time zone'),

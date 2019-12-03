@@ -193,8 +193,7 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
             omis_dataset.services AS "Services",
             omis_dataset.created_date AS "Order created",
             omis_dataset.quote_created_on AS "Quote created",
-            -- TODO: enable this once field has been made available on Data Hub
-            -- omis_dataset.quote_accepted_on AS "Quote accepted",
+            omis_dataset.quote_accepted_on AS "Quote accepted",
             omis_dataset.delivery_date AS "Planned delivery date",
             omis_dataset.vat_cost AS "VAT",
             omis_dataset.payment_received_date AS "Payment received date",
