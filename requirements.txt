@@ -11,6 +11,7 @@ apispec[yaml]==3.1.0      # via flask-appbuilder
 argcomplete==1.10.3       # via apache-airflow
 attrs==19.3.0             # via jsonschema
 babel==2.7.0              # via flask-babel, flower
+backoff==1.9.2
 billiard==3.6.1.0         # via celery
 blinker==1.4              # via apache-airflow
 boto3==1.7.84             # via apache-airflow
