@@ -853,7 +853,7 @@ class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
             referral_source_activity_website, referral_source_activity_marketing, delivery_partners,
             possible_uk_regions, actual_uk_regions, business_activities, project_arrived_in_triage_on,
             proposal_deadline, export_revenue, strategic_drivers, gross_value_added, gva_multiplier
-        FROM fdi_report f    
+        FROM fdi_report f
     '''
 
 
