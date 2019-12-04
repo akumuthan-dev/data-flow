@@ -663,7 +663,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
 class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
     """Static (materialized) monthly view of the FDI (investment projects) report"""
 
-    view_name = 'fdi_monthly_static'
+    view_name = 'data_hub_fdi_monthly_static'
     dataset_pipeline = InvestmentProjectsDatasetPipeline
     start_date = datetime(2020, 1, 1)
     materialized = True
