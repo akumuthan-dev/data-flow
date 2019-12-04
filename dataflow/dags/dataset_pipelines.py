@@ -540,6 +540,19 @@ class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
+class ExportWinsHVCDatasetPipeline(BaseDatasetPipeline):
+    """Pipeline meta object for Export wins HVC data."""
+
+    table_name = 'export_wins_hvc_dataset'
+    source_url = '{0}/datasets/hvc'.format(config.EXPORT_WINS_BASE_URL)
+    field_mapping = [
+        ('id', 'id', 'integer primary key'),
+        ('campaign_id', 'campaign_id', 'character varying(6)'),
+        ('financial_year', 'financial_year', 'integer'),
+        ('name', 'name', 'character varying(255)'),
+    ]
+
+
 class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for Export wins wins."""
 
@@ -669,7 +682,8 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
             'confirmation_portion_without_help',
             'character varying(255)',
         ),
-        ('country', 'country', 'character varying(255)'),
+        ('country', 'country_code', 'character varying(255)'),
+        ('country_name', 'country', 'character varying(255)'),
         ('created', 'created', 'timestamp with time zone'),
         ('customer_email_address', 'customer_email_address', 'character varying(255)'),
         ('customer_email_date', 'customer_email_date', 'timestamp with time zone'),
