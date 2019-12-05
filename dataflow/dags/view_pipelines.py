@@ -403,13 +403,13 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "HVO Programme (if applicable)",
             "An HVO specialist was involved",
             "E-exporting programme",
-            "type of support 1", 
-            "type of support 2", 
-            "type of support 3", 
-            "associated programme 1", 
-            "associated programme 2", 
-            "associated programme 3", 
-            "associated programme 4", 
+            "type of support 1",
+            "type of support 2",
+            "type of support 3",
+            "associated programme 1",
+            "associated programme 2",
+            "associated programme 3",
+            "associated programme 4",
             "associated programme 5",
             "I confirm that this information is complete and accurate",
             "My line manager has confirmed the decision to record this win",
@@ -479,7 +479,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 AND year >= EXTRACT(year FROM CURRENT_DATE)::int
                 AND export_wins_breakdowns_dataset.type = 'Export'
             ), non_export_breakdowns AS (
-                SELECT win_id, year, value 
+                SELECT win_id, year, value
                 FROM export_wins_breakdowns_dataset
                 WHERE win_id IN (select id from export_wins)
                 AND year >= EXTRACT(year FROM CURRENT_DATE)::int
@@ -529,13 +529,13 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 export_wins.hvo_programme AS "HVO Programme (if applicable)",
                 COALESCE(export_wins.has_hvo_specialist_involvement, 'False') AS "An HVO specialist was involved",
                 COALESCE(export_wins.is_e_exported, 'False') AS "E-exporting programme",
-                export_wins.type_of_support_1 AS "type of support 1", 
-                export_wins.type_of_support_2 AS "type of support 2", 
-                export_wins.type_of_support_3 AS "type of support 3", 
-                export_wins.associated_programme_1 AS "associated programme 1", 
-                export_wins.associated_programme_2 AS "associated programme 2", 
-                export_wins.associated_programme_3 AS "associated programme 3", 
-                export_wins.associated_programme_4 AS "associated programme 4", 
+                export_wins.type_of_support_1 AS "type of support 1",
+                export_wins.type_of_support_2 AS "type of support 2",
+                export_wins.type_of_support_3 AS "type of support 3",
+                export_wins.associated_programme_1 AS "associated programme 1",
+                export_wins.associated_programme_2 AS "associated programme 2",
+                export_wins.associated_programme_3 AS "associated programme 3",
+                export_wins.associated_programme_4 AS "associated programme 4",
                 export_wins.associated_programme_5 AS "associated programme 5",
                 export_wins.is_personally_confirmed AS "I confirm that this information is complete and accurate",
                 export_wins.is_line_manager_confirmed AS "My line manager has confirmed the decision to record this win",
