@@ -380,9 +380,8 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
     query = '''
         SELECT
             "ID",
-            "User name",
-            "User email",
-            "Company name",
+            "User",
+            "Organisation or company name",
             "Data Hub (Companies House) or CDMS reference number",
             "Contact name",
             "Job title",
@@ -425,6 +424,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "Created",
             "Audit",
             "Contributing advisors/team",
+            "Customer email sent",
             "Customer email date",
             "Export breakdown 1",
             "Export breakdown 2",
@@ -441,6 +441,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "Outward Direct Investment breakdown 3",
             "Outward Direct Investment breakdown 4",
             "Outward Direct Investment breakdown 5",
+            "Customer response received",
             "Date response received",
             "Your name",
             "Please confirm these details are correct",
@@ -459,9 +460,9 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "Apart from this win, when did your company last export goods or services?",
             "If you hadnt achieved this win, your company might have stopped exporting",
             "Apart from this win, you already have specific plans to export in the next 12 months",
-            "It enabled you to maintain or expand in an existing market",
             "It enabled you to expand into a new market",
             "It enabled you to increase exports as a proportion of your turnover",
+            "It enabled you to maintain or expand in an existing market",
             "Would you be willing for DIT/Exporting is GREAT to feature your success in marketing materials?",
             "How did you first hear about DIT (or its predecessor, UKTI)",
             "Other marketing source"
@@ -470,7 +471,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 SELECT *
                 FROM export_wins_wins_dataset
                 WHERE export_wins_wins_dataset.customer_email_date IS NOT NULL
-                AND date_trunc('year', export_wins_wins_dataset.date) =  date_trunc('year', to_date('{{ ds }}', 'YYYY-MM-DD'))
+                AND date_trunc('year', export_wins_wins_dataset.confirmation_created) =  date_trunc('year', to_date('{{ ds }}', 'YYYY-MM-DD'))
             ), export_breakdowns AS (
                 SELECT win_id, year, value
                 FROM export_wins_breakdowns_dataset
@@ -495,18 +496,18 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 GROUP  BY 1
             )
             SELECT
-                CASE WHEN EXTRACT('month' FROM CURRENT_DATE)::int > 4
+                CASE WHEN EXTRACT('month' FROM CURRENT_DATE)::int >= 4
                 THEN (to_char(CURRENT_DATE, 'YYYY-04'))
                 ELSE (to_char(CURRENT_DATE + interval '-1' year, 'YYYY-04'))
                 END as current_financial_year,
-                CASE WHEN EXTRACT('month' FROM export_wins.confirmation_created)::int > 4
+                CASE WHEN EXTRACT('month' FROM export_wins.confirmation_created)::int >= 4
                 THEN (to_char(export_wins.confirmation_created, 'YYYY-04'))
                 ELSE (to_char(export_wins.confirmation_created + interval '-1' year, 'YYYY-04'))
                 END as export_win_financial_year,
                 export_wins.id AS "ID",
-                export_wins.user_name AS "User name",
+                CONCAT(export_wins.user_name, ' <', export_wins.user_email, '>') AS "User",
                 export_wins.user_email AS "User email",
-                export_wins.company_name AS "Company name",
+                export_wins.company_name AS "Organisation or company name",
                 export_wins.cdms_reference AS "Data Hub (Companies House) or CDMS reference number",
                 export_wins.customer_name AS "Contact name",
                 export_wins.customer_job_title AS "Job title",
@@ -518,13 +519,13 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 export_wins.name_of_export AS "What are the goods or services?",
                 to_char(export_wins.date, 'DD/MM/YYYY') AS "Date business won",
                 export_wins.country AS "Country",
-                export_wins.total_expected_export_value AS "Total expected export value",
-                export_wins.total_expected_non_export_value AS "Total expected non export value",
-                export_wins.total_expected_odi_value AS "Total expected odi value",
+                COALESCE(export_wins.total_expected_export_value, 0) AS "Total expected export value",
+                COALESCE(export_wins.total_expected_non_export_value, 0) AS "Total expected non export value",
+                COALESCE(export_wins.total_expected_odi_value, 0) AS "Total expected odi value",
                 export_wins.goods_vs_services AS "Does the expected value relate to",
                 export_wins.sector AS "Sector",
                 COALESCE(export_wins.is_prosperity_fund_related, 'False') AS "Prosperity Fund",
-                export_wins.hvc AS "HVC code (if applicable)",
+                export_wins_hvc_dataset.name AS "HVC code (if applicable)",
                 export_wins.hvo_programme AS "HVO Programme (if applicable)",
                 COALESCE(export_wins.has_hvo_specialist_involvement, 'False') AS "An HVO specialist was involved",
                 COALESCE(export_wins.is_e_exported, 'False') AS "E-exporting programme",
@@ -549,23 +550,31 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 to_char(export_wins.created, 'DD/MM/YYYY') AS "Created",
                 export_wins.audit AS "Audit",
                 contributing_advisers.advisers AS "Contributing advisors/team",
-                export_wins.customer_email_date AS "Customer email date",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': ', COALESCE(ebd1.value, 0)) AS "Export breakdown 1",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': ', COALESCE(ebd2.value, 0)) AS "Export breakdown 2",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': ', COALESCE(ebd3.value, 0)) "Export breakdown 3",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': ', COALESCE(ebd4.value, 0)) AS "Export breakdown 4",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': ', COALESCE(ebd5.value, 0)) AS "Export breakdown 5",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': ', COALESCE(nebd1.value, 0)) AS "Non-export breakdown 1",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': ', COALESCE(nebd2.value, 0)) AS "Non-export breakdown 2",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': ', COALESCE(nebd3.value, 0)) AS "Non-export breakdown 3",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': ', COALESCE(nebd4.value, 0)) AS "Non-export breakdown 4",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': ', COALESCE(nebd5.value, 0)) AS "Non-export breakdown 5",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': ', COALESCE(odibd1.value, 0)) AS "Outward Direct Investment breakdown 1",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': ', COALESCE(odibd2.value, 0)) AS "Outward Direct Investment breakdown 2",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': ', COALESCE(odibd3.value, 0)) AS "Outward Direct Investment breakdown 3",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': ', COALESCE(odibd4.value, 0)) AS "Outward Direct Investment breakdown 4",
-                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': ', COALESCE(odibd5.value, 0)) AS "Outward Direct Investment breakdown 5",
-                export_wins.confirmation_created AS "Date response received",
+                CASE WHEN export_wins.customer_email_date IS NOT NULL
+                THEN 'Yes'
+                ELSE 'No'
+                END AS "Customer email sent",
+                to_char(export_wins.customer_email_date, 'DD/MM/YYYY') AS "Customer email date",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': £', COALESCE(ebd1.value, 0)) AS "Export breakdown 1",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': £', COALESCE(ebd2.value, 0)) AS "Export breakdown 2",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': £', COALESCE(ebd3.value, 0)) "Export breakdown 3",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': £', COALESCE(ebd4.value, 0)) AS "Export breakdown 4",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': £', COALESCE(ebd5.value, 0)) AS "Export breakdown 5",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': £', COALESCE(nebd1.value, 0)) AS "Non-export breakdown 1",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': £', COALESCE(nebd2.value, 0)) AS "Non-export breakdown 2",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': £', COALESCE(nebd3.value, 0)) AS "Non-export breakdown 3",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': £', COALESCE(nebd4.value, 0)) AS "Non-export breakdown 4",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': £', COALESCE(nebd5.value, 0)) AS "Non-export breakdown 5",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int, ': £', COALESCE(odibd1.value, 0)) AS "Outward Direct Investment breakdown 1",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 1, ': £', COALESCE(odibd2.value, 0)) AS "Outward Direct Investment breakdown 2",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 2, ': £', COALESCE(odibd3.value, 0)) AS "Outward Direct Investment breakdown 3",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 3, ': £', COALESCE(odibd4.value, 0)) AS "Outward Direct Investment breakdown 4",
+                CONCAT(EXTRACT(year FROM CURRENT_DATE)::int + 4, ': £', COALESCE(odibd5.value, 0)) AS "Outward Direct Investment breakdown 5",
+                CASE WHEN export_wins.confirmation_created IS NOT NULL
+                THEN 'Yes'
+                ELSE 'No'
+                END AS "Customer response received",
+                to_char(export_wins.confirmation_created, 'DD/MM/YYYY') AS "Date response received",
                 export_wins.confirmation_name AS "Your name",
                 export_wins.confirmation_agree_with_win  AS "Please confirm these details are correct",
                 export_wins.confirmation_comments AS "Other comments or changes to the win details",
@@ -654,9 +663,9 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 AND odibd5.year = extract(year FROM CURRENT_DATE)::int + 4
             )
             LEFT JOIN contributing_advisers ON contributing_advisers.win_id = export_wins.id
+            LEFT JOIN export_wins_hvc_dataset ON export_wins.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year)
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
-        WHERE (export_win_financial_year IS NULL OR export_win_financial_year = current_financial_year)
     '''
 
 
