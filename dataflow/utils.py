@@ -23,9 +23,13 @@ def get_nested_key(data: dict, path: Union[Tuple, str], required: bool = False) 
         path = (path,)
 
     for key in path:
-        data = data[key] if required else data.get(key)
-        if not required and data is None:
-            return data
+        try:
+            data = data[key]
+        except (KeyError, IndexError):
+            if required:
+                raise
+            else:
+                return None
 
     return data
 

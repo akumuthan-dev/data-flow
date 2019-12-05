@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import sqlalchemy as sa
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow.operators.db_tables import (
     check_table_data,
@@ -305,6 +306,70 @@ class ERPPipeline(BaseActivityStreamPipeline):
                         "attributedTo.type": "dit:directoryFormsApi:SubmissionAction:zendesk"
                     }
                 },
+            ]
+        }
+    }
+
+
+class GreatGOVUKExportOpportunitiesPipeline(BaseActivityStreamPipeline):
+    name = "great-gov-uk-export-opportunitites"
+    table_name = "great_gov_uk_export_opportunities"
+
+    index = "objects"
+    field_mapping = [
+        ("id", sa.Column("id", sa.String, primary_key=True)),
+        ("name", sa.Column("name", sa.String, nullable=False)),
+        ("url", sa.Column("url", sa.String, nullable=False)),
+        ("content", sa.Column("content", sa.Text)),
+        ("summary", sa.Column("summary", sa.Text)),
+        ("endTime", sa.Column("end_time", sa.DateTime)),
+        ("dit:country", sa.Column("countries", sa.ARRAY(sa.String))),
+        (
+            "dit:exportOpportunities:Opportunity:id",
+            sa.Column("opportunity_id", UUID(as_uuid=True)),
+        ),
+    ]
+
+    query = {"bool": {"filter": [{"term": {"type": "dit:Opportunity"}}]}}
+
+
+class GreatGOVUKExportOpportunityEnquiriesPipeline(BaseActivityStreamPipeline):
+    name = "great-gov-uk-export-opportunity-enquiries"
+    index = "activities"
+    table_name = "great_gov_uk_export_opportunity_enquiries"
+
+    field_mapping = [
+        (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+        (("actor", 0, "name"), sa.Column("company_name", sa.String, nullable=False)),
+        (("actor", 0, "url"), sa.Column("company_url", sa.String)),
+        (
+            ("actor", 0, "dit:companiesHouseNumber"),
+            sa.Column("company_number", sa.String),
+        ),
+        (
+            ("actor", 0, "dit:companyIsExistingExporter"),
+            sa.Column("is_existing_exporter", sa.String),
+        ),
+        (("actor", 0, "dit:phoneNumber"), sa.Column("company_phone_number", sa.String)),
+        (("actor", 0, "dit:sector"), sa.Column("sector", sa.String)),
+        (("actor", 0, "location", "dit:postcode"), sa.Column("postcode", sa.String)),
+        (
+            ("actor", 1, "dit:emailAddress"),
+            sa.Column("contact_email_address", sa.String),
+        ),
+        (("actor", 1, "name"), sa.Column("contact_name", sa.ARRAY(sa.String))),
+        (("object", "url"), sa.Column("url", sa.String)),
+        (
+            ("object", "inReplyTo", "dit:exportOpportunities:Opportunity:id"),
+            sa.Column("opportunity_id", UUID(as_uuid=True)),
+        ),
+    ]
+
+    query = {
+        "bool": {
+            "filter": [
+                {"term": {"object.type": "dit:exportOpportunities:Enquiry"}},
+                {"term": {"type": "Create"}},
             ]
         }
     }
