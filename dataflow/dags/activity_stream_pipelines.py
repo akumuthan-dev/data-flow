@@ -340,6 +340,7 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(BaseActivityStreamPipeline):
 
     field_mapping = [
         (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+        (("object", "published"), sa.Column("published", sa.DateTime)),
         (("actor", 0, "name"), sa.Column("company_name", sa.String, nullable=False)),
         (("actor", 0, "url"), sa.Column("company_url", sa.String)),
         (
