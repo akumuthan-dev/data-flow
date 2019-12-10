@@ -377,9 +377,8 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(BaseActivityStreamPipeline):
 
 
 class LITECasesPipeline(BaseActivityStreamPipeline):
-    name = "lite-cases-pipeline"
-    table_name = "lite_cases_pipeline"
-
+    name = "lite-cases"
+    table_name = "lite_cases"
     index = "activities"
     field_mapping = [
         (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
