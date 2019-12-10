@@ -376,5 +376,22 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(BaseActivityStreamPipeline):
     }
 
 
+class LITECasesPipeline(BaseActivityStreamPipeline):
+    name = "lite-cases-pipeline"
+    table_name = "lite_cases_pipeline"
+
+    index = "activities"
+    field_mapping = [
+        (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+        (("object", "dit:caseOfficer"), sa.Column("case_officer", sa.String)),
+        (("object", "dit:countries"), sa.Column("countries", sa.ARRAY(sa.String))),
+        (("object", "dit:status"), sa.Column("status", sa.String)),
+        (("object", "dit:submittedDate"), sa.Column("submitted_date", sa.DateTime)),
+        (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
+    ]
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case"}}]}}
+
+
 for pipeline in BaseActivityStreamPipeline.__subclasses__():
     globals()[pipeline.__name__ + "__dag"] = pipeline().get_dag()
