@@ -10,7 +10,7 @@ apache-airflow[celery,crypto,postgres,s3]==1.10.5
 apispec[yaml]==3.1.0      # via flask-appbuilder
 attrs==19.3.0             # via jsonschema
 babel==2.7.0              # via flask-babel, flower
-backoff==1.9.2
+backoff==1.10.0
 billiard==3.6.1.0         # via celery
 boto3==1.7.84             # via apache-airflow
 botocore==1.10.84         # via boto3, s3transfer
@@ -45,7 +45,6 @@ funcsigs==1.0.0           # via apache-airflow
 future==0.16.0            # via apache-airflow
 gunicorn==19.10.0         # via apache-airflow
 idna==2.8                 # via requests
-importlib-metadata==0.23  # via jsonschema
 iso8601==0.1.12           # via apache-airflow
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.3            # via apache-airflow, flask, flask-babel
@@ -62,7 +61,6 @@ marshmallow-enum==1.5.1   # via flask-appbuilder
 marshmallow-sqlalchemy==0.18.0  # via flask-appbuilder
 marshmallow==2.19.5       # via flask-appbuilder, marshmallow-enum, marshmallow-sqlalchemy
 mohawk==1.1.0
-more-itertools==7.2.0     # via zipp
 numpy==1.17.4             # via pandas
 oauthlib==3.1.0           # via requests-oauthlib
 ordereddict==1.1          # via funcsigs
@@ -101,8 +99,7 @@ urllib3==1.25.7           # via requests
 vine==1.3.0               # via amqp, celery
 werkzeug==0.16.0          # via flask, flask-caching, flask-jwt-extended
 wtforms==2.2.1            # via flask-admin, flask-wtf
-zipp==0.6.0               # via importlib-metadata
 zope.deprecation==4.4.0   # via apache-airflow
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==42.0.2        # via jsonschema, python-daemon, zope.deprecation
+# setuptools
