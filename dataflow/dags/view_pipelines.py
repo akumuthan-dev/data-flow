@@ -193,20 +193,20 @@ class OMISAllOrdersViewPipeline(BaseViewPipeline):
             companies_dataset.sector AS "Company sector",
             omis_dataset.net_price AS "Net price",
             omis_dataset.services AS "Services",
-            omis_dataset.created_date AS "Order created",
-            omis_dataset.quote_created_on AS "Quote created",
-            omis_dataset.quote_accepted_on AS "Quote accepted",
-            omis_dataset.delivery_date AS "Planned delivery date",
+            TO_CHAR(omis_dataset.created_date, 'YYYY-MM-DD')::DATE AS "Order created",
+            TO_CHAR(omis_dataset.quote_created_on, 'YYYY-MM-DD')::DATE AS "Quote created",
+            TO_CHAR(omis_dataset.quote_accepted_on, 'YYYY-MM-DD')::DATE AS "Quote accepted",
+            TO_CHAR(omis_dataset.delivery_date, 'YYYY-MM-DD')::DATE AS "Planned delivery date",
             omis_dataset.vat_cost AS "VAT",
-            omis_dataset.payment_received_date AS "Payment received date",
-            omis_dataset.completion_date AS "Completion date",
-            omis_dataset.cancelled_date AS "Cancellation date",
+            TO_CHAR(omis_dataset.payment_received_date, 'YYYY-MM-DD')::DATE AS "Payment received date",
+            TO_CHAR(omis_dataset.completion_date, 'YYYY-MM-DD')::DATE AS "Completion date",
+            TO_CHAR(omis_dataset.cancelled_date, 'YYYY-MM-DD')::DATE AS "Cancellation date",
             omis_dataset.refund_created AS "Refund date",
             omis_dataset.refund_total_amount AS "Refund amount"
         FROM omis_dataset
         JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
-        WHERE omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
+        WHERE omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD')) + INTERVAL '1 MONTH'
     '''
 
 
