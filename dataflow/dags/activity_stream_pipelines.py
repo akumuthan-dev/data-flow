@@ -379,6 +379,7 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(BaseActivityStreamPipeline):
 class LITECasesPipeline(BaseActivityStreamPipeline):
     name = "lite-cases"
     table_name = "lite_cases"
+
     index = "activities"
     field_mapping = [
         (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
@@ -390,6 +391,22 @@ class LITECasesPipeline(BaseActivityStreamPipeline):
     ]
 
     query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case"}}]}}
+
+
+class LITECaseChangesPipeline(BaseActivityStreamPipeline):
+    name = "lite-case-changes"
+    table_name = "lite_case_changes"
+
+    index = "activities"
+    field_mapping = [
+        (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+        (("object", "dit:from"), sa.Column("from", sa.JSON)),
+        (("object", "dit:to"), sa.Column("to", sa.JSON)),
+        (("object", "attributedTo"), sa.Column("to", sa.JSON)),
+        (("object", "type"), sa.Column("type", sa.ARRAY(sa.String)))
+    ]
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case:change"}}]}}
 
 
 for pipeline in BaseActivityStreamPipeline.__subclasses__():
