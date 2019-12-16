@@ -401,7 +401,7 @@ class LITECaseChangesPipeline(BaseActivityStreamPipeline):
         (("object", "dit:from"), sa.Column("from", sa.JSON)),
         (("object", "dit:to"), sa.Column("to", sa.JSON)),
         (("object", "attributedTo"), sa.Column("to", sa.JSON)),
-        (("object", "type"), sa.Column("type", sa.ARRAY(sa.String)))
+        (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
     ]
 
     query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case:change"}}]}}
