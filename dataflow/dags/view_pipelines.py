@@ -391,7 +391,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "Summarise the support provided to help achieve this win",
             "Overseas customer",
             "What are the goods or services?",
-            "Date business won",
+            "Date business won [MM/YY]",
             "Country",
             "Total expected export value",
             "Total expected non export value",
@@ -404,7 +404,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "An HVO specialist was involved",
             "E-exporting programme",
             "type of support 1",
-            "type of support 2",
+            "type of support 2"
             "type of support 3",
             "associated programme 1",
             "associated programme 2",
@@ -452,18 +452,18 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
             "Improving your profile or credibility in the country?",
             "Having confidence to explore or expand in the country?",
             "Developing or nurturing critical relationships?",
-            "Overcoming a problem in the country (eg legal, regulatory, commercial)?",
+            "Overcoming a problem in the country (eg legal, regulatory)?",
             "The win involved a foreign government or state-owned enterprise (eg as an intermediary or facilitator)",
             "Our support was a prerequisite to generate this export value",
             "Our support helped you achieve this win more quickly",
-            "What value do you estimate you would have achieved without our support?",
-            "Apart from this win, when did your company last export goods or services?",
-            "If you hadnt achieved this win, your company might have stopped exporting",
+            "Estimated value you would have achieved without our support?",
+            "Apart from this win, when did your company last export?",
+            "Without this win, your company might have stopped exporting",
             "Apart from this win, you already have specific plans to export in the next 12 months",
             "It enabled you to expand into a new market",
             "It enabled you to increase exports as a proportion of your turnover",
             "It enabled you to maintain or expand in an existing market",
-            "Would you be willing for DIT/Exporting is GREAT to feature your success in marketing materials?",
+            "Would you be willing to be featured in marketing materials?",
             "How did you first hear about DIT (or its predecessor, UKTI)",
             "Other marketing source"
         FROM (
@@ -496,14 +496,6 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 GROUP  BY 1
             )
             SELECT
-                CASE WHEN EXTRACT('month' FROM CURRENT_DATE)::int >= 4
-                THEN (to_char(CURRENT_DATE, 'YYYY-04'))
-                ELSE (to_char(CURRENT_DATE + interval '-1' year, 'YYYY-04'))
-                END as current_financial_year,
-                CASE WHEN EXTRACT('month' FROM export_wins.confirmation_created)::int >= 4
-                THEN (to_char(export_wins.confirmation_created, 'YYYY-04'))
-                ELSE (to_char(export_wins.confirmation_created + interval '-1' year, 'YYYY-04'))
-                END as export_win_financial_year,
                 export_wins.id AS "ID",
                 CONCAT(export_wins.user_name, ' <', export_wins.user_email, '>') AS "User",
                 export_wins.user_email AS "User email",
@@ -517,7 +509,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 export_wins.description AS "Summarise the support provided to help achieve this win",
                 export_wins.name_of_customer AS "Overseas customer",
                 export_wins.name_of_export AS "What are the goods or services?",
-                to_char(export_wins.date, 'DD/MM/YYYY') AS "Date business won",
+                to_char(export_wins.date, 'DD/MM/YYYY') AS "Date business won [MM/YY]",
                 export_wins.country AS "Country",
                 COALESCE(export_wins.total_expected_export_value, 0) AS "Total expected export value",
                 COALESCE(export_wins.total_expected_non_export_value, 0) AS "Total expected non export value",
@@ -576,7 +568,13 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 END AS "Customer response received",
                 to_char(export_wins.confirmation_created, 'DD/MM/YYYY') AS "Date response received",
                 export_wins.confirmation_name AS "Your name",
-                export_wins.confirmation_agree_with_win  AS "Please confirm these details are correct",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_agree_with_win
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_agree_with_win IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Please confirm these details are correct",
                 export_wins.confirmation_comments AS "Other comments or changes to the win details",
                 export_wins.confirmation_our_support AS "Securing the win overall?",
                 export_wins.confirmation_access_to_contacts AS "Gaining access to contacts?",
@@ -584,18 +582,72 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 export_wins.confirmation_improved_profile AS "Improving your profile or credibility in the country?",
                 export_wins.confirmation_gained_confidence AS "Having confidence to explore or expand in the country?",
                 export_wins.confirmation_developed_relationships AS "Developing or nurturing critical relationships?",
-                export_wins.confirmation_overcame_problem AS "Overcoming a problem in the country (eg legal, regulatory, commercial)?",
-                export_wins.confirmation_involved_state_enterprise AS "The win involved a foreign government or state-owned enterprise (eg as an intermediary or facilitator)",
-                COALESCE(export_wins.confirmation_interventions_were_prerequisite, 'False') AS "Our support was a prerequisite to generate this export value",
-                COALESCE(export_wins.confirmation_support_improved_speed, 'False') AS "Our support helped you achieve this win more quickly",
-                export_wins.confirmation_portion_without_help AS "What value do you estimate you would have achieved without our support?",
-                export_wins.confirmation_last_export AS "Apart from this win, when did your company last export goods or services?",
-                COALESCE(export_wins.confirmation_company_was_at_risk_of_not_exporting, 'False') AS "If you hadnt achieved this win, your company might have stopped exporting",
-                COALESCE(export_wins.confirmation_has_explicit_export_plans, 'False') AS "Apart from this win, you already have specific plans to export in the next 12 months",
-                COALESCE(export_wins.confirmation_has_enabled_expansion_into_new_market, 'False') AS "It enabled you to expand into a new market",
-                COALESCE(export_wins.confirmation_has_increased_exports_as_percent_of_turnover, 'False') AS "It enabled you to increase exports as a proportion of your turnover",
-                COALESCE(export_wins.confirmation_has_enabled_expansion_into_existing_market, 'False') AS "It enabled you to maintain or expand in an existing market",
-                COALESCE(export_wins.confirmation_case_study_willing, 'False') AS "Would you be willing for DIT/Exporting is GREAT to feature your success in marketing materials?",
+                export_wins.confirmation_overcame_problem AS "Overcoming a problem in the country (eg legal, regulatory)?",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_involved_state_enterprise
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_involved_state_enterprise IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "The win involved a foreign government or state-owned enterprise (eg as an intermediary or facilitator)",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_interventions_were_prerequisite
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_interventions_were_prerequisite IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Our support was a prerequisite to generate this export value",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_support_improved_speed
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_support_improved_speed IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Our support helped you achieve this win more quickly",
+                export_wins.confirmation_portion_without_help AS "Estimated value you would have achieved without our support?",
+                export_wins.confirmation_last_export AS "Apart from this win, when did your company last export?",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_company_was_at_risk_of_not_exporting
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_company_was_at_risk_of_not_exporting IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Without this win, your company might have stopped exporting",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_explicit_export_plans
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_explicit_export_plans IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Apart from this win, you already have specific plans to export in the next 12 months",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_new_market
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_new_market IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "It enabled you to expand into a new market",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_increased_exports_as_percent_of_turnover
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_increased_exports_as_percent_of_turnover IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "It enabled you to increase exports as a proportion of your turnover",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_existing_market
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_existing_market IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "It enabled you to maintain or expand in an existing market",
+                CASE
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_case_study_willing
+                    THEN 'Yes'
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_case_study_willing IS NULL
+                    THEN 'No'
+                    ELSE NULL
+                END AS "Would you be willing to be featured in marketing materials?",
                 export_wins.confirmation_marketing_source AS "How did you first hear about DIT (or its predecessor, UKTI)",
                 export_wins.confirmation_other_marketing_source AS "Other marketing source"
             FROM export_wins
