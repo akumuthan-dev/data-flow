@@ -398,9 +398,9 @@ class LITECaseChangesPipeline(BaseActivityStreamPipeline):
     index = "activities"
     field_mapping = [
         (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
-        (("object", "dit:from"), sa.Column("from", sa.JSON)),
-        (("object", "dit:to"), sa.Column("to", sa.JSON)),
-        (("object", "attributedTo"), sa.Column("to", sa.JSON)),
+        (("object", "dit:from"), sa.Column("case_from", sa.JSON)),
+        (("object", "dit:to"), sa.Column("case_to", sa.JSON)),
+        (("object", "attributedTo"), sa.Column("attributed_to", sa.JSON)),
         (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
     ]
 
