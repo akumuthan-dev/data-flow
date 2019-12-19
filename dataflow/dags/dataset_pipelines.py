@@ -155,11 +155,11 @@ class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('company_id', 'character varying(100)'),
-        ('country_of_interest', 'character varying(2)'),
-        ('source', 'character varying(50)'),
-        ('source_id', 'character varying(100)'),
-        ('timestamp', 'timestamp with time zone'),
+        ('companyId', 'company_id', 'character varying(100)'),
+        ('countryOfInterest', 'country_of_interest', 'character varying(2)'),
+        ('source', 'source', 'character varying(50)'),
+        ('sourceId', 'source_id', 'character varying(100)'),
+        ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
 
