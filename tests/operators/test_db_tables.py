@@ -16,6 +16,14 @@ def table():
     )
 
 
+@pytest.fixture
+def s3(mocker):
+    s3_mock = mock.MagicMock()
+    mocker.patch.object(db_tables, "S3Data", return_value=s3_mock, autospec=True)
+
+    return s3_mock
+
+
 def test_get_temp_table(table):
     assert db_tables._get_temp_table(table, "temp").name == "test_table_temp"
     assert table.name == "test_table"
@@ -32,18 +40,14 @@ def test_create_temp_tables(mocker):
     table.create.assert_called_once_with(mock.ANY, checkfirst=True)
 
 
-def test_insert_data_into_db(mocker, mock_db_conn):
+def test_insert_data_into_db(mocker, mock_db_conn, s3):
     table = mock.Mock()
     mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
 
-    redis = mock.Mock()
-    mocker.patch.object(
-        db_tables, "get_redis_client", return_value=redis, autospec=True
-    )
-    redis.lrange.return_value = ["page-var-1", "page-var-2"]
-
-    var = mocker.patch.object(db_tables, "Variable", autospec=True)
-    var.get.return_value = [{"id": 1, "extra": "ignored", "data": "text"}, {"id": 2}]
+    s3.iter_keys.return_value = [
+        ('1', [{"id": 1, "extra": "ignored", "data": "text"}]),
+        ('2', [{"id": 2}]),
+    ]
 
     db_tables.insert_data_into_db(
         "test-db",
@@ -52,7 +56,6 @@ def test_insert_data_into_db(mocker, mock_db_conn):
             ("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False)),
             ("data", sqlalchemy.Column("data", sqlalchemy.String())),
         ],
-        "task-1",
         ts_nodash="123",
     )
 
@@ -60,47 +63,25 @@ def test_insert_data_into_db(mocker, mock_db_conn):
         [
             mock.call(table.insert(), data="text", id=1),
             mock.call(table.insert(), data=None, id=2),
-            mock.call(table.insert(), data="text", id=1),
-            mock.call(table.insert(), data=None, id=2),
         ]
     )
 
-    redis.lrange.assert_called_once_with("task-1", 0, -1)
-    redis.delete.assert_called_once_with("task-1")
-
-    var.get.assert_has_calls(
-        [
-            mock.call("page-var-1", deserialize_json=True),
-            mock.call("page-var-2", deserialize_json=True),
-        ]
-    )
-    var.delete.assert_has_calls([mock.call("page-var-1"), mock.call("page-var-2")])
+    s3.iter_keys.assert_called_once_with()
 
 
-def test_insert_data_into_db_required_field_missing(mocker, mock_db_conn):
+def test_insert_data_into_db_required_field_missing(mocker, mock_db_conn, s3):
     table = mock.Mock()
     mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
 
-    redis = mock.Mock()
-    mocker.patch.object(
-        db_tables, "get_redis_client", return_value=redis, autospec=True
-    )
-    redis.lrange.return_value = ["page-var-1"]
-
-    var = mocker.patch.object(db_tables, "Variable", autospec=True)
-    var.get.return_value = [{"data": "text"}]
+    s3.iter_keys.return_value = [('1', [{"data": "text"}])]
 
     with pytest.raises(KeyError):
         db_tables.insert_data_into_db(
             "test-db",
             table,
             [("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False))],
-            "task-1",
             ts_nodash="123",
         )
-
-    assert not redis.delete.called
-    assert not var.delete.called
 
 
 def test_check_table(table):

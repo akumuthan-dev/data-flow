@@ -2,9 +2,8 @@ import logging
 
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import Variable
 
-from dataflow.utils import get_nested_key, get_redis_client, FieldMapping
+from dataflow.utils import get_nested_key, FieldMapping, S3Data
 
 
 class MissingDataError(ValueError):
@@ -54,11 +53,7 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
 
 
 def insert_data_into_db(
-    target_db: str,
-    table: sa.Table,
-    field_mapping: FieldMapping,
-    run_fetch_task_id: str,
-    **kwargs,
+    target_db: str, table: sa.Table, field_mapping: FieldMapping, **kwargs
 ):
     """Insert fetched response data into temporary DB tables.
 
@@ -71,40 +66,35 @@ def insert_data_into_db(
     path for a nested value.
 
     """
-    redis_client = get_redis_client()
+    s3 = S3Data(table.name, kwargs["ts_nodash"])
 
     engine = sa.create_engine(
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    table = _get_temp_table(table, kwargs["ts_nodash"])
+    temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
-    var_names = redis_client.lrange(run_fetch_task_id, 0, -1)
+    for page, records in s3.iter_keys():
+        logging.info(f'Processing page {page}')
 
-    for var_name in var_names:
-        logging.info(f'Processing page {var_name}')
-
-        record_subset = Variable.get(var_name, deserialize_json=True)
         with engine.begin() as conn:
-            for record in record_subset:
+            for record in records:
                 try:
                     record_data = {
                         db_column.name: get_nested_key(
                             record, field, not db_column.nullable
                         )
                         for field, db_column in field_mapping
+                        if field is not None
                     }
                 except KeyError:
                     logging.warning(
                         f"Failed to load item {record.get('id', '')}, required field is missing"
                     )
                     raise
-                conn.execute(table.insert(), **record_data)
+                conn.execute(temp_table.insert(), **record_data)
 
-        logging.info(f'Page {var_name} ingested successfully')
-        Variable.delete(var_name)
-
-    redis_client.delete(run_fetch_task_id)
+        logging.info(f'Page {page} ingested successfully')
 
 
 def _check_table(engine, conn, temp: sa.Table, target: sa.Table):

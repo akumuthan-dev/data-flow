@@ -34,7 +34,6 @@ class BaseActivityStreamPipeline:
         return self._table
 
     def get_dag(self):
-        run_fetch_task_id = f"fetch-{self.name}-data"
 
         with DAG(
             self.__class__.__name__,
@@ -53,10 +52,10 @@ class BaseActivityStreamPipeline:
             max_active_runs=1,
         ) as dag:
             _fetch = PythonOperator(
-                task_id=run_fetch_task_id,
+                task_id=f"fetch-{self.name}-data",
                 python_callable=fetch_from_activity_stream,
                 provide_context=True,
-                op_args=[self.index, self.query, run_fetch_task_id],
+                op_args=[self.table_name, self.index, self.query],
             )
 
             _create_tables = PythonOperator(
@@ -70,12 +69,7 @@ class BaseActivityStreamPipeline:
                 task_id="insert-into-temp-table",
                 python_callable=insert_data_into_db,
                 provide_context=True,
-                op_args=[
-                    self.target_db,
-                    self.table,
-                    self.field_mapping,
-                    run_fetch_task_id,
-                ],
+                op_args=[self.target_db, self.table, self.field_mapping],
             )
 
             _check_tables = PythonOperator(

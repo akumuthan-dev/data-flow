@@ -3,11 +3,10 @@ import logging
 
 import backoff
 import requests
-from airflow.models import Variable
 from mohawk import Sender
 
 from dataflow import config
-from .dataset import get_redis_client
+from dataflow.utils import S3Data
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
@@ -45,12 +44,9 @@ def _activity_stream_request(url: str, query: dict):
     return response_json
 
 
-def fetch_from_activity_stream(
-    index_name: str, query: dict, run_fetch_task_id: str, **kwargs
-):
-    redis_client = get_redis_client()
-    # Clear any leftover requests from previous task runs
-    redis_client.delete(run_fetch_task_id)
+def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **kwargs):
+
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
 
     query = {
         "query": query,
@@ -70,20 +66,18 @@ def fetch_from_activity_stream(
                     data['_shards']['failed'], data['_shards']['failures']
                 )
             )
-        key = f"{run_fetch_task_id}_{next_page}"
 
         if not data["hits"]["hits"]:
             next_page = 0
             continue
 
+        s3.write_key(
+            f"{next_page:010}.json", [item["_source"] for item in data["hits"]["hits"]]
+        )
+
         logging.info(
             f"Fetched {len(data['hits']['hits'])} of {data['hits']['total']} records"
         )
-
-        Variable.set(
-            key, [item["_source"] for item in data["hits"]["hits"]], serialize_json=True
-        )
-        redis_client.rpush(run_fetch_task_id, key)
 
         query = query.copy()
         query["search_after"] = data["hits"]["hits"][-1]["sort"]
