@@ -5,6 +5,7 @@ from dataflow.dags import (
     activity_stream_pipelines,
     canary,
     dataset_pipelines,
+    ons_pipelines,
     view_pipelines,
 )
 
@@ -14,7 +15,8 @@ def test_canary_dag():
 
 
 @pytest.mark.parametrize(
-    "module", [activity_stream_pipelines, dataset_pipelines, view_pipelines]
+    "module",
+    [activity_stream_pipelines, dataset_pipelines, ons_pipelines, view_pipelines],
 )
 def test_pipelines_dags(module):
     dag_vars = [value for name, value in vars(module).items() if name.endswith("__dag")]
