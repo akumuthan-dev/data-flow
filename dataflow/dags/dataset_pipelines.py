@@ -242,7 +242,6 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('address_2', 'address_2', 'character varying(255)'),
         ('address_town', 'address_town', 'character varying(255)'),
         ('address_postcode', 'address_postcode', 'character varying(255)'),
-        ('allow_blank_possible_uk_regions', 'possible_uk_regions', 'boolean'),
         ('anonymous_description', 'anonymous_description', 'text'),
         (
             'associated_non_fdi_r_and_d_project__id',
@@ -315,6 +314,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('total_investment', 'total_investment', 'decimal'),
         ('uk_company_id', 'uk_company_id', 'uuid'),
         ('uk_company_sector', 'uk_company_sector', 'character varying(255)'),
+        ('uk_region_location_names', 'possible_uk_regions', 'text []'),
     ]
 
 
