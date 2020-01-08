@@ -314,7 +314,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('total_investment', 'total_investment', 'decimal'),
         ('uk_company_id', 'uk_company_id', 'uuid'),
         ('uk_company_sector', 'uk_company_sector', 'character varying(255)'),
-        ('uk_region_location_names', 'possible_uk_regions', 'text []'),
+        ('uk_region_location_names', 'possible_uk_regions', 'text'),
     ]
 
 
