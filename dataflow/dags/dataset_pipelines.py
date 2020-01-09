@@ -138,11 +138,11 @@ class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipelin
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'character varying(100)'),
-        ('countryOfInterest', 'country_of_interest', 'character varying(2)'),
-        ('sectorOfInterest', 'sector_of_interest', 'character varying(50)'),
-        ('source', 'source', 'character varying(50)'),
-        ('sourceId', 'source_id', 'character varying(100)'),
+        ('companyId', 'company_id', 'text'),
+        ('countryOfInterest', 'country_of_interest', 'text'),
+        ('sectorOfInterest', 'sector_of_interest', 'text'),
+        ('source', 'source', 'text'),
+        ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
@@ -155,10 +155,10 @@ class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'character varying(100)'),
-        ('countryOfInterest', 'country_of_interest', 'character varying(2)'),
-        ('source', 'source', 'character varying(50)'),
-        ('sourceId', 'source_id', 'character varying(100)'),
+        ('companyId', 'company_id', 'text'),
+        ('countryOfInterest', 'country_of_interest', 'text'),
+        ('source', 'source', 'text'),
+        ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
@@ -171,10 +171,10 @@ class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'character varying(100)'),
-        ('exportCountry', 'export_country', 'character varying(2)'),
-        ('source', 'source', 'character varying(50)'),
-        ('sourceId', 'source_id', 'character varying(100)'),
+        ('companyId', 'company_id', 'text'),
+        ('exportCountry', 'export_country', 'text'),
+        ('source', 'source', 'text'),
+        ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
@@ -187,10 +187,10 @@ class CountriesOfInterestServiceSectorsOfInterest(BaseDatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'character varying(100)'),
-        ('sectorOfInterest', 'sector_of_interest', 'character varying(50)'),
-        ('source', 'source', 'character varying(50)'),
-        ('sourceId', 'source_id', 'character varying(100)'),
+        ('companyId', 'company_id', 'text'),
+        ('sectorOfInterest', 'sector_of_interest', 'text'),
+        ('source', 'source', 'text'),
+        ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
