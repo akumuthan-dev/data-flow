@@ -349,6 +349,9 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('service_delivery', 'service_delivery', 'character varying(255)'),
         ('subject', 'interaction_subject', 'text'),
         ('theme', 'theme', 'character varying(255)'),
+        ('policy_feedback_notes', 'policy_feedback_notes', 'text'),
+        ('policy_area_names', 'policy_areas', 'text []'),
+        ('policy_issue_type_names', 'policy_issue_types', 'text []'),
     ]
 
 
