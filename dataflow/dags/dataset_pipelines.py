@@ -132,7 +132,7 @@ class CompanyFutureInterestCountries(BaseDatasetPipeline):
 
 class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipeline):
 
-    table_name = 'countries_of_interest_service_countries_and_sectors_of_interest'
+    table_name = 'coi_countries_and_sectors_of_interest'
     source_url = (
         '{0}/api/v1/get-company-countries-and-sectors-of-interest'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
@@ -149,7 +149,7 @@ class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipelin
 
 class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
 
-    table_name = 'countries_of_interest_service_countries_of_interest'
+    table_name = 'coi_countries_of_interest'
     source_url = (
         '{0}/api/v1/get-company-countries-of-interest'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
@@ -165,7 +165,7 @@ class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
 
 class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
 
-    table_name = 'countries_of_interest_service_export_countries'
+    table_name = 'coi_export_countries'
     source_url = (
         '{0}/api/v1/get-company-export-countries'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
@@ -181,7 +181,7 @@ class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
 
 class CountriesOfInterestServiceSectorsOfInterest(BaseDatasetPipeline):
 
-    table_name = 'countries_of_interest_service_sectors_of_interest'
+    table_name = 'coi_sectors_of_interest'
     source_url = (
         '{0}/api/v1/get-company-sectors-of-interest'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
