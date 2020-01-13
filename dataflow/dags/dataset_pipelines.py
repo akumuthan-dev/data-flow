@@ -240,7 +240,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
     )
     field_mapping = [
         ('actual_land_date', 'actual_land_date', 'date'),
-        ('actual_uk_region_names', 'actual_uk_regions', 'text'),
+        ('actual_uk_region_names', 'actual_uk_regions', 'text []'),
         ('address_1', 'address_1', 'character varying(255)'),
         ('address_2', 'address_2', 'character varying(255)'),
         ('address_town', 'address_town', 'character varying(255)'),
@@ -252,13 +252,13 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
             'character varying(100)',
         ),
         ('average_salary__name', 'average_salary', 'text'),
-        ('business_activity_names', 'business_activities', 'text'),
+        ('business_activity_names', 'business_activities', 'text []'),
         ('client_relationship_manager_id', 'client_relationship_manager_id', 'uuid'),
         ('client_requirements', 'client_requirements', 'text'),
         ('competing_countries', 'competing_countries', 'text []'),
         ('created_by_id', 'created_by_id', 'uuid'),
         ('created_on', 'created_on', 'timestamp with time zone'),
-        ('delivery_partner_names', 'delivery_partners', 'text'),
+        ('delivery_partner_names', 'delivery_partners', 'text []'),
         ('description', 'description', 'text'),
         ('estimated_land_date', 'estimated_land_date', 'date'),
         ('export_revenue', 'export_revenue', 'boolean'),
@@ -312,12 +312,12 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('specific_programme__name', 'specific_programme', 'text'),
         ('stage__name', 'stage', 'text NOT NULL'),
         ('status', 'status', 'character varying(255)'),
-        ('strategic_driver_names', 'strategic_drivers', 'text'),
+        ('strategic_driver_names', 'strategic_drivers', 'text []'),
         ('team_member_ids', 'team_member_ids', 'text []'),
         ('total_investment', 'total_investment', 'decimal'),
         ('uk_company_id', 'uk_company_id', 'uuid'),
         ('uk_company_sector', 'uk_company_sector', 'character varying(255)'),
-        ('uk_region_location_names', 'possible_uk_regions', 'text'),
+        ('uk_region_location_names', 'possible_uk_regions', 'text []'),
     ]
 
 
