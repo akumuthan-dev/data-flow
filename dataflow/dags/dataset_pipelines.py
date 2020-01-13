@@ -140,6 +140,7 @@ class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipelin
     field_mapping = [
         ('companyId', 'company_id', 'text'),
         ('countryOfInterest', 'country_of_interest', 'text'),
+        ('standardisedCountry', 'standardised_country', 'text'),
         ('sectorOfInterest', 'sector_of_interest', 'text'),
         ('source', 'source', 'text'),
         ('sourceId', 'source_id', 'text'),
@@ -157,6 +158,7 @@ class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
     field_mapping = [
         ('companyId', 'company_id', 'text'),
         ('countryOfInterest', 'country_of_interest', 'text'),
+        ('standardisedCountry', 'standardised_country', 'text'),
         ('source', 'source', 'text'),
         ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
@@ -173,6 +175,7 @@ class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
     field_mapping = [
         ('companyId', 'company_id', 'text'),
         ('exportCountry', 'export_country', 'text'),
+        ('standardisedCountry', 'standardised_country', 'text'),
         ('source', 'source', 'text'),
         ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
