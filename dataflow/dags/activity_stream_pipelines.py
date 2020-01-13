@@ -114,6 +114,14 @@ class ERPPipeline(BaseActivityStreamPipeline):
         ("id", sa.Column("id", sa.String, primary_key=True)),
         ("url", sa.Column("url", sa.String, primary_key=True)),
         (
+            ("dit:directoryFormsApi:Submission:Data", "choice_change_type"),
+            sa.Column("choice_change_type", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "choice_change_comment"),
+            sa.Column("choice_change_comment", sa.Text),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "commodity", "commodity_code"),
             sa.Column("commodity_code", sa.ARRAY(sa.String)),
         ),
@@ -162,6 +170,10 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("equivalent_uk_goods", sa.Boolean),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "equivalent_uk_goods_details"),
+            sa.Column("equivalent_uk_goods_details", sa.Text),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "family_name"),
             sa.Column("family_name", sa.String),
         ),
@@ -190,6 +202,10 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("has_other_changes", sa.Boolean),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "has_other_changes_type"),
+            sa.Column("has_other_changes_type", sa.ARRAY(sa.String)),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "has_price_changed"),
             sa.Column("has_price_changed", sa.Boolean),
         ),
@@ -206,6 +222,14 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("income_bracket", sa.ARRAY(sa.String)),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "imported_good_sector"),
+            sa.Column("imported_good_sector", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "imported_good_sector_details"),
+            sa.Column("imported_good_sector_details", sa.Text),
+        ),
+        (
             (
                 "dit:directoryFormsApi:Submission:Data",
                 "imported_goods_makes_something_else",
@@ -213,12 +237,52 @@ class ERPPipeline(BaseActivityStreamPipeline):
             sa.Column("imported_goods_makes_something_else", sa.Boolean),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "market_price_change_comment"),
+            sa.Column("market_price_change_comment", sa.Text),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "market_price_changed_type"),
+            sa.Column("market_price_changed_type", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "market_size"),
+            sa.Column("market_size", sa.Integer),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "market_size_change_comment"),
+            sa.Column("market_size_change_comment", sa.Text),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "market_size_changed_type"),
+            sa.Column("market_size_changed_type", sa.ARRAY(sa.String)),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "market_size_known"),
             sa.Column("market_size_known", sa.Boolean),
         ),
         (
+            ("dit:directoryFormsApi:Submission:Data", "organisation_name"),
+            sa.Column("organisation_name", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "other_changes_comment"),
+            sa.Column("other_changes_comment", sa.Text),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "other_metric_name"),
+            sa.Column("other_metric_name", sa.String),
+        ),
+        (
             ("dit:directoryFormsApi:Submission:Data", "other_information"),
             sa.Column("other_information", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "price_changed_type"),
+            sa.Column("price_changed_type", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "price_change_comment"),
+            sa.Column("price_change_comment", sa.Text),
         ),
         (
             ("dit:directoryFormsApi:Submission:Data", "production_cost_percentage"),
@@ -284,6 +348,18 @@ class ERPPipeline(BaseActivityStreamPipeline):
         (
             ("dit:directoryFormsApi:Submission:Data", "turnover"),
             sa.Column("turnover", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "user_type"),
+            sa.Column("user_type", sa.String),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "volume_changed_type"),
+            sa.Column("volume_changed_type", sa.ARRAY(sa.String)),
+        ),
+        (
+            ("dit:directoryFormsApi:Submission:Data", "volumes_change_comment"),
+            sa.Column("volumes_change_comment", sa.Text),
         ),
     ]
 
