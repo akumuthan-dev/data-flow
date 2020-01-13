@@ -866,24 +866,24 @@ class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
                 fdi.referral_source_activity,
                 fdi.referral_source_activity_website,
                 fdi.referral_source_activity_marketing,
-                fdi.delivery_partners,
-                fdi.possible_uk_regions,
-                fdi.actual_uk_regions,
+                ARRAY_TO_STRING(fdi.delivery_partners, '; ') AS delivery_partners,
+                ARRAY_TO_STRING(fdi.possible_uk_regions, '; ') AS possible_uk_regions,
+                ARRAY_TO_STRING(fdi.actual_uk_regions, '; ') AS actual_uk_regions,
                 CASE
                   WHEN fdi.other_business_activity IS NULL
-                       AND fdi.business_activities IS NOT NULL
+                       AND ARRAY_TO_STRING(fdi.business_activities, '; ') IS NOT NULL
                     THEN fdi.business_activities
                   WHEN fdi.other_business_activity IS NOT NULL
                        AND fdi.business_activities IS NULL
                     THEN fdi.other_business_activity
                   WHEN fdi.other_business_activity IS NOT NULL
                        AND fdi.business_activities IS NOT NULL
-                    THEN fdi.other_business_activity || ', ' || fdi.business_activities
+                    THEN fdi.other_business_activity || '; ' || ARRAY_TO_STRING(fdi.business_activities, '; ')
                   ELSE NULL END AS business_activities,
                 fdi.project_arrived_in_triage_on,
                 fdi.proposal_deadline,
                 CASE WHEN fdi.export_revenue THEN 'yes' ELSE 'no' END AS export_revenue,
-                fdi.strategic_drivers,
+                ARRAY_TO_STRING(fdi.strategic_drivers, '; ') AS strategic_drivers,
                 fdi.gross_value_added,
                 fdi.gva_multiplier
             FROM investment_projects_dataset fdi
