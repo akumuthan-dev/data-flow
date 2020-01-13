@@ -233,6 +233,17 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
             FROM contacts_dataset
             JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
             ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+        ),
+        adviser_ids AS (
+            SELECT id AS interaction_id, UNNEST(adviser_ids)::uuid AS adviser_id
+            FROM interactions_dataset
+        ),
+        team_names AS (
+            SELECT adviser_ids.interaction_id as iid, STRING_AGG(teams_dataset.name, '; ') AS names
+            FROM advisers_dataset
+            JOIN adviser_ids ON advisers_dataset.id = adviser_ids.adviser_id
+            JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
+            GROUP BY 1
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
@@ -264,7 +275,7 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
             advisers_dataset.last_name AS "DIT Adviser Last Name",
             advisers_dataset.telephone_number AS "DIT Adviser Phone",
             advisers_dataset.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
+            team_names.names AS "DIT Team",
             companies_dataset.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
@@ -285,9 +296,9 @@ class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
         FROM interactions
         JOIN companies_dataset ON interactions.company_id = companies_dataset.id
         JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
+        LEFT JOIN team_names ON team_names.iid = interactions.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -309,13 +320,31 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
         ),
         contact_ids AS (
             SELECT id AS service_delivery_id, UNNEST(contact_ids)::uuid AS contact_id
-            FROM service_deliveries
+                FROM service_deliveries
         ),
         contacts AS (
-            SELECT DISTINCT ON (contact_ids.service_delivery_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.service_delivery_id, contacts_dataset.is_primary DESC NULLS LAST
+                SELECT DISTINCT ON (contact_ids.service_delivery_id) *
+                FROM contacts_dataset
+                JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
+                ORDER BY contact_ids.service_delivery_id, contacts_dataset.is_primary DESC NULLS LAST
+        ),
+        adviser_ids AS (
+            SELECT id AS service_delivery_id, UNNEST(adviser_ids)::uuid AS adviser_id
+            FROM service_deliveries
+        ),
+        team_names AS (
+            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(teams_dataset.name, '; ') AS names
+            FROM advisers_dataset
+            JOIN adviser_ids ON advisers_dataset.id = adviser_ids.adviser_id
+            JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
+            GROUP BY 1
+        ),
+        team_roles AS (
+            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(teams_dataset.role, '; ') AS roles
+            FROM advisers_dataset
+            JOIN adviser_ids ON advisers_dataset.id = adviser_ids.adviser_id
+            JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
+            GROUP BY 1
         )
         SELECT
             to_char(service_deliveries.interaction_date, 'DD/MM/YYYY') AS "Service Delivery Interaction",
@@ -325,6 +354,7 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
             companies_dataset.cdms_reference_code AS "CDMS Reference Code",
             companies_dataset.address_postcode AS "Company Postcode",
             companies_dataset.company_number AS "Companies HouseID",
+            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
             companies_dataset.address_1 AS "Company Address Line 1",
             companies_dataset.address_2 AS "Company Address Line 2",
             companies_dataset.address_town AS "Company Address Town",
@@ -343,7 +373,7 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
             contacts.address_2 AS "Contact Address Line 2",
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
-            teams_dataset.name AS "DIT Team",
+            team_names.names AS "DIT Team",
             companies_dataset.uk_region AS "Company UK Region",
             service_deliveries.service_delivery AS "Service Delivery",
             service_deliveries.interaction_subject AS "Subject",
@@ -358,14 +388,14 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
             events_dataset.address_country AS "Event Country",
             events_dataset.uk_region AS "Event UK Region",
             events_dataset.service_name AS "Event Service Name",
-            teams_dataset.role AS "Team Role",
+            team_roles.roles AS "Team Role",
             to_char(service_deliveries.created_on, 'DD/MM/YYYY') AS "Created On Date"
         FROM service_deliveries
         JOIN companies_dataset ON service_deliveries.company_id = companies_dataset.id
-        JOIN advisers_dataset ON service_deliveries.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON service_deliveries.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.service_delivery_id = service_deliveries.id
+        LEFT JOIN team_names ON team_names.sid = service_deliveries.id
+        LEFT JOIN team_roles ON team_roles.sid = service_deliveries.id
         ORDER BY service_deliveries.interaction_date
     '''
 
@@ -882,7 +912,7 @@ class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
                 AND LOWER(fdi.status) IN ('ongoing', 'won')
             )
             OR (
-                (fdi.modified_on BETWEEN (date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD')) - interval '1 year') and now())
+                (fdi.modified_on BETWEEN (date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD')) - interval '1 year') and date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD')))
                 AND LOWER(fdi.status) NOT IN ('ongoing', 'won')
             )
             ORDER BY fdi.actual_land_date, fdi.estimated_land_date ASC
