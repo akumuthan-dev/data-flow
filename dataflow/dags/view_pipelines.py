@@ -6,6 +6,7 @@ from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 
 from dataflow import config
+
 from dataflow.dags.dataset_pipelines import (
     OMISDatasetPipeline,
     InteractionsDatasetPipeline,

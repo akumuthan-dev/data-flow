@@ -97,7 +97,9 @@ def insert_data_into_db(
         logging.info(f'Page {page} ingested successfully')
 
 
-def _check_table(engine, conn, temp: sa.Table, target: sa.Table):
+def _check_table(
+    engine, conn, temp: sa.Table, target: sa.Table, check_empty_columns: bool = True
+):
     logging.info(f"Checking {temp.name}")
 
     if engine.dialect.has_table(conn, target.name):
@@ -115,20 +117,23 @@ def _check_table(engine, conn, temp: sa.Table, target: sa.Table):
             )
         )
 
-        if temp_count / target_count < 0.9:
+        if target_count > 0 and temp_count / target_count < 0.9:
             raise MissingDataError("New record count is less than 90% of current data")
 
-    logging.info("Checking for empty columns")
-    for col in temp.columns:
-        row = conn.execute(
-            sa.select([temp]).select_from(temp).where(col.isnot(None)).limit(1)
-        ).fetchone()
-        if row is None:
-            raise UnusedColumnError(f"Column {col} only contains NULL values")
-    logging.info("All columns are used")
+    if check_empty_columns:
+        logging.info("Checking for empty columns")
+        for col in temp.columns:
+            row = conn.execute(
+                sa.select([temp]).select_from(temp).where(col.isnot(None)).limit(1)
+            ).fetchone()
+            if row is None:
+                raise UnusedColumnError(f"Column {col} only contains NULL values")
+        logging.info("All columns are used")
 
 
-def check_table_data(target_db: str, *tables: sa.Table, **kwargs):
+def check_table_data(
+    target_db: str, *tables: sa.Table, check_empty_columns: bool = False, **kwargs
+):
     """Verify basic constraints on temp table data.
 
     """
@@ -141,7 +146,9 @@ def check_table_data(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             temp_table = _get_temp_table(table, kwargs["ts_nodash"])
-            _check_table(engine, conn, temp_table, table)
+            _check_table(
+                engine, conn, temp_table, table, check_empty_columns=check_empty_columns
+            )
 
 
 def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
