@@ -93,7 +93,6 @@ class BaseDatasetPipeline:
                 provide_context=True,
                 trigger_rule="all_done",
                 op_args=[self.target_db, self.table],
-                op_kwargs={'cascade': True},
             )
 
         (
