@@ -354,7 +354,6 @@ class DataHubExportClientSurveyViewPipeline(BaseViewPipeline):
             companies_dataset.cdms_reference_code AS "CDMS Reference Code",
             companies_dataset.address_postcode AS "Company Postcode",
             companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
             companies_dataset.address_1 AS "Company Address Line 1",
             companies_dataset.address_2 AS "Company Address Line 2",
             companies_dataset.address_town AS "Company Address Town",
