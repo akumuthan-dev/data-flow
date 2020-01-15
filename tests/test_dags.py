@@ -14,6 +14,13 @@ def test_canary_dag():
     assert isinstance(canary.dag, DAG)
 
 
+def test_canary_tweets():
+    assert (
+        canary.canary_tweet(task_name='test')
+        == 'Canary task test was processed successfully'
+    )
+
+
 @pytest.mark.parametrize(
     "module",
     [activity_stream_pipelines, dataset_pipelines, ons_pipelines, view_pipelines],

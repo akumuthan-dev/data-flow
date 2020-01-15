@@ -41,11 +41,6 @@ class S3Data:
         return json.loads(data) if jsonify else data
 
 
-def get_redis_client():
-    """Returns redis client from connection URL"""
-    return redis.from_url(url=config.REDIS_URL, decode_responses=True)
-
-
 def get_nested_key(data: dict, path: Union[Tuple, str], required: bool = False) -> Any:
     if isinstance(path, str):
         path = (path,)
@@ -58,7 +53,6 @@ def get_nested_key(data: dict, path: Union[Tuple, str], required: bool = False) 
                 raise
             else:
                 return None
-
     return data
 
 

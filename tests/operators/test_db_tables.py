@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import call
 
 import pytest
 import sqlalchemy
@@ -112,17 +113,34 @@ def test_check_table_data(mock_db_conn, mocker, table):
 
     db_tables.check_table_data("test-db", table, ts_nodash="123")
 
-    check_table.assert_called_once_with(mock.ANY, mock_db_conn, mock.ANY, table)
+    check_table.assert_called_once_with(
+        mock.ANY, mock_db_conn, mock.ANY, table, check_empty_columns=True
+    )
 
 
 def test_swap_dataset_table(mock_db_conn, table):
+    mock_db_conn.execute().fetchall.return_value = (('testuser',),)
     db_tables.swap_dataset_table("test-db", table, ts_nodash="123")
-
-    mock_db_conn.execute.assert_called_once_with(
-        """
+    mock_db_conn.execute.assert_has_calls(
+        [
+            call(
+                '''
+            SELECT grantee
+            FROM information_schema.role_table_grants
+            WHERE table_name='QUOTED<test_table>'
+            AND privilege_type = 'SELECT'
+            AND grantor != grantee
+            '''
+            ),
+            call().fetchall(),
+            call(
+                '''
             ALTER TABLE IF EXISTS QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
             ALTER TABLE QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
-            """
+            '''
+            ),
+            call('GRANT SELECT ON QUOTED<test_table> TO testuser'),
+        ]
     )
 
 
