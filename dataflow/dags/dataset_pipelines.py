@@ -8,7 +8,7 @@ from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow import config
-from dataflow.operators.dataset import fetch_from_api
+from dataflow.operators.dataset import fetch_from_api, run_view_pipelines
 from dataflow.operators.db_tables import (
     check_table_data,
     create_temp_tables,
@@ -88,6 +88,13 @@ class BaseDatasetPipeline:
                 op_args=[self.target_db, self.table],
             )
 
+            _run_view_pipelines = PythonOperator(
+                task_id="run-view-pipelines",
+                python_callable=run_view_pipelines,
+                provide_context=True,
+                op_args=[self.__class__.__name__],
+            )
+
             _drop_tables = PythonOperator(
                 task_id="drop-temp-tables",
                 python_callable=drop_temp_tables,
@@ -100,6 +107,7 @@ class BaseDatasetPipeline:
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
+            >> _run_view_pipelines
             >> _swap_dataset_table
             >> _drop_tables
         )
