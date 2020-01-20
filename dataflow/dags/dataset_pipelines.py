@@ -198,6 +198,21 @@ class CountriesOfInterestServiceSectorsOfInterest(BaseDatasetPipeline):
     ]
 
 
+class CountriesOfInterestServiceMentionedInInteractions(BaseDatasetPipeline):
+
+    table_name = 'coi_mentioned_in_interactions'
+    source_url = (
+        '{0}/api/v1/get-company-countries-mentioned-in-interactions'
+        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
+    )
+    field_mapping = [
+        ('companyId', 'company_id', 'text'),
+        ('countryOfInterest', 'country_of_interest', 'text'),
+        ('interactionId', 'interaction_id', 'text'),
+        ('timestamp', 'timestamp', 'timestamp with time zone'),
+    ]
+
+
 class OMISDatasetPipeline(BaseDatasetPipeline):
     """Pipeline meta object for OMISDataset."""
 
