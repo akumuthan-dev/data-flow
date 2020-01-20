@@ -3,11 +3,8 @@
 import json
 from typing import Any, List, Tuple, Union
 
-import redis
 import sqlalchemy
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
-from airflow.operators.postgres_operator import PostgresOperator
 
 from dataflow import config
 
@@ -54,15 +51,3 @@ def get_nested_key(data: dict, path: Union[Tuple, str], required: bool = False) 
             else:
                 return None
     return data
-
-
-class XCOMIntegratedPostgresOperator(PostgresOperator):
-    """Custom PostgresOperator which push query result into XCOM."""
-
-    def execute(self, context):
-        """Return execution result."""
-        self.log.info('Executing: %s', self.sql)
-        self.hook = PostgresHook(
-            postgres_conn_id=self.postgres_conn_id, schema=self.database
-        )
-        return self.hook.get_records(self.sql, parameters=self.parameters)

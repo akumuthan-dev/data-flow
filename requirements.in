@@ -1,4 +1,4 @@
-apache-airflow[postgres,crypto,celery,s3]==1.10.5
+apache-airflow[postgres,crypto,celery,s3,sentry]
 backoff
 mohawk
 redis

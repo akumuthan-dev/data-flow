@@ -36,3 +36,6 @@ ONS_SPARQL_URL = os.environ.get(
     "ONS_SPARQL_URL",
     "https://production-drafter-ons-alpha.publishmydata.com/v1/sparql/live",
 )
+
+DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
+DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME")
