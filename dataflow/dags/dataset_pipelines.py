@@ -107,8 +107,8 @@ class BaseDatasetPipeline:
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
-            >> _run_view_pipelines
             >> _swap_dataset_table
+            >> _run_view_pipelines
             >> _drop_tables
         )
 
