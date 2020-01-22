@@ -8,13 +8,10 @@ from dataflow.utils import S3Data
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
-def _ons_sparql_request(url: str, query: str, page: int = 1, per_page: int = 1000):
+def _ons_sparql_request(url: str, query: str, page: int = 1, per_page: int = 10000):
+    query += f" LIMIT {per_page} OFFSET {per_page * (page - 1)}"
     response = requests.request(
-        "POST",
-        url,
-        data={"query": query},
-        params={"page": page, "per_page": per_page},
-        headers={"Accept": "application/json"},
+        "POST", url, data={"query": query}, headers={"Accept": "application/json"}
     )
 
     try:
