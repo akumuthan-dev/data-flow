@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 import sqlalchemy as sa
 from airflow import DAG
@@ -19,6 +20,8 @@ class BaseONSPipeline:
     start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = "@daily"
+
+    index_query: Optional[str] = None
 
     @property
     def table(self):
@@ -53,7 +56,7 @@ class BaseONSPipeline:
                 task_id="fetch-from-ons-sparql",
                 python_callable=fetch_from_ons_sparql,
                 provide_context=True,
-                op_args=[self.table_name, self.query],
+                op_args=[self.table_name, self.query, self.index_query],
             )
 
             _create_tables = PythonOperator(

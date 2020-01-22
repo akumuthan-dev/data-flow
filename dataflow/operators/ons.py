@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import backoff
 import requests
@@ -27,14 +28,30 @@ def _ons_sparql_request(url: str, query: str, page: int = 1, per_page: int = 100
     return response_json
 
 
-def fetch_from_ons_sparql(table_name: str, query: str, **kwargs):
+def fetch_from_ons_sparql(
+    table_name: str, query: str, index_query: Optional[str], **kwargs
+):
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
+
+    if index_query is None:
+        _store_ons_sparql_pages(s3, query)
+    else:
+        index_values = _ons_sparql_request(config.ONS_SPARQL_URL, index_query)[
+            "results"
+        ]["bindings"]
+
+        for index in index_values:
+            _store_ons_sparql_pages(
+                s3, query.format(**index), index['label']['value'] + "-"
+            )
+
+
+def _store_ons_sparql_pages(s3: S3Data, query: str, prefix: str = ""):
     next_page = 1
     total_records = 0
 
-    s3 = S3Data(table_name, kwargs["ts_nodash"])
-
     while next_page:
-        logging.info(f"Fetching page {next_page}")
+        logging.info(f"Fetching page {prefix}{next_page}")
         data = _ons_sparql_request(config.ONS_SPARQL_URL, query, page=next_page)
 
         if not data["results"]["bindings"]:
@@ -42,7 +59,7 @@ def fetch_from_ons_sparql(table_name: str, query: str, **kwargs):
             continue
 
         total_records += len(data["results"]["bindings"])
-        s3.write_key(f"{next_page:010}.json", data["results"]["bindings"])
+        s3.write_key(f"{prefix}{next_page:010}.json", data["results"]["bindings"])
 
         logging.info(f"Fetched {total_records} records")
 
