@@ -142,6 +142,7 @@ class ONSUKSATradeInGoodsPipeline(BaseONSPipeline):
 
 class ONSUKTradeInGoodsPipeline(BaseONSPipeline):
     table_name = "ons_uk_trade_in_goods"
+    schedule_interval = "@weekly"
 
     field_mapping = [
         (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
@@ -153,26 +154,52 @@ class ONSUKTradeInGoodsPipeline(BaseONSPipeline):
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
+    index_query = """
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+    PREFIX qb: <http://purl.org/linked-data/cube#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX pmdqb: <http://publishmydata.com/def/qb/>
+
+    SELECT ?compvalue ?label WHERE {
+    BIND(<http://gss-data.org.uk/data/gss_data/trade/ons-trade-in-goods> AS ?dataset)
+    BIND(<http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> AS ?component)
+    ?dataset qb:structure/qb:component ?compspec .
+
+    ?compspec ?comp_type ?component ;
+                pmdqb:codesUsed / skos:member ?compvalue .
+
+    ?compvalue rdfs:label ?label .
+
+    } ORDER BY ?compvalue
+    """
+
     query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?period ?geography_name ?product_label ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    {% raw %}
+
+    SELECT ?period ?geography_name ?product ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {{
+
+        BIND(<{compvalue[value]}> AS ?period_s)
+
         ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-trade-in-goods> ;
+        <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s ;
+        <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
         <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
         <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
-        <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
-        <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
-        <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
+        <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total .
 
         ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
         ?direction_s <http://www.w3.org/2000/01/rdf-schema#label> ?direction .
         ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
         ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
         ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
-        ?product_s <http://www.w3.org/2000/01/rdf-schema#label> ?product_label .
-    } ORDER BY ?period_s ?geography_s ?product_s
+        ?product_s <http://www.w3.org/2000/01/rdf-schema#label> ?product .
+    }} ORDER BY ?geography_s ?product_s
+
+    {% endraw %}
     """
 
 
