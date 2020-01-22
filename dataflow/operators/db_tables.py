@@ -1,9 +1,9 @@
 import logging
-
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow.utils import get_nested_key, FieldMapping, S3Data
+from dataflow.operators.utils import CreateView, create_timestamped_view_name
 
 
 class MissingDataError(ValueError):
@@ -14,7 +14,7 @@ class UnusedColumnError(ValueError):
     pass
 
 
-def _get_temp_table(table, suffix):
+def _get_temp_table(table, suffix, schema='public'):
     """Get a Table object for the temporary dataset table.
 
     Given a dataset `table` instance creates a new table with
@@ -25,6 +25,7 @@ def _get_temp_table(table, suffix):
     return sa.Table(
         f"{table.name}_{suffix}".lower(),
         table.metadata,
+        schema=schema,
         *[column.copy() for column in table.columns],
     )
 
@@ -211,3 +212,32 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logging.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)
+
+
+def create_static_view_from_table(
+    target_db: str, from_table: sa.Table, to_schema: str, view_name: str, **kwargs
+):
+    """Create a static view based on a dataset pipeline table by...
+
+    1. Copying the dataset table and it's data to a new schema
+    2. Creating a new view in the public schema on the newly copied table
+    """
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+    with engine.begin() as conn:
+        to_table = _get_temp_table(from_table, kwargs['ts_nodash'], to_schema)
+        to_table.create(conn, checkfirst=True)
+        conn.execute(
+            to_table.insert().from_select(
+                names=from_table.columns, select=from_table.select()
+            )
+        )
+        conn.execute(
+            CreateView(
+                create_timestamped_view_name(view_name, kwargs['execution_date']),
+                to_table.select(),
+                materialized=True,
+            )
+        )
