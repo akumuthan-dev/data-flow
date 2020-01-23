@@ -356,6 +356,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('interaction_link', 'interaction_link', 'character varying(255)'),
         ('investment_project_id', 'investment_project_id', 'uuid'),
         ('kind', 'interaction_kind', 'character varying(255)'),
+        ('modified_on', 'modified_on', 'timestamp with time zone'),
         ('net_company_receipt', 'net_company_receipt', 'decimal'),
         ('notes', 'interaction_notes', 'text'),
         ('sector', 'sector', 'character varying(255)'),
