@@ -428,6 +428,12 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
             'export_experience',
             'character varying(255)',
         ),
+        ('global_headquarters_id', 'global_headquarters_id', 'uuid'),
+        (
+            'global_ultimate_duns_number',
+            'global_ultimate_duns_number',
+            'character varying(9)',
+        ),
         ('headquarter_type__name', 'headquarter_type', 'character varying(255)'),
         ('id', 'id', 'uuid primary key'),
         (
@@ -440,7 +446,7 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
         ('name', 'name', 'character varying(255)'),
         ('number_of_employees', 'number_of_employees', 'integer'),
         ('one_list_account_owner_id', 'one_list_account_owner_id', 'uuid'),
-        ('one_list_tier__name', 'classification', 'character varying(255)'),
+        ('one_list_tier__name', 'one_list_tier', 'character varying(255)'),
         ('reference_code', 'cdms_reference_code', 'character varying(255)'),
         ('registered_address_1', 'registered_address_1', 'character varying(255)'),
         ('registered_address_2', 'registered_address_2', 'character varying(255)'),
