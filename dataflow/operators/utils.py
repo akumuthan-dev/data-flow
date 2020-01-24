@@ -5,7 +5,7 @@ from sqlalchemy.sql.base import Executable
 
 
 class CreateView(Executable, ClauseElement):
-    def __init__(self, name, select, materialized):
+    def __init__(self, name, select, materialized=False):
         self.name = name
         self.select = select
         self.materialized = materialized

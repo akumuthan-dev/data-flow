@@ -1,6 +1,9 @@
 import logging
+from typing import List
+
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
+from sqlalchemy import text
 
 from dataflow.utils import get_nested_key, FieldMapping, S3Data
 from dataflow.operators.utils import CreateView, create_timestamped_view_name
@@ -241,3 +244,32 @@ def create_static_view_from_table(
                 materialized=True,
             )
         )
+
+
+def drop_views(dependent_view_pipelines: List['BaseViewPipeline'], **_):
+    """
+    Given a list of view pipelines drop all views created for each run of said pipeline
+    """
+    for view_pipeline in dependent_view_pipelines:
+        engine = sa.create_engine(
+            'postgresql+psycopg2://',
+            creator=PostgresHook(postgres_conn_id=view_pipeline.target_db).get_conn,
+        )
+        dag = view_pipeline().get_dag()
+        for execution_date in dag.get_run_dates(view_pipeline.start_date):
+            view_name = create_timestamped_view_name(view_pipeline.view_name, execution_date)
+            with engine.begin() as conn:
+                conn.execute(text(f'DROP VIEW IF EXISTS {view_name}'))
+
+
+def create_view(target_db: str, view_name: str, query: str, **kwargs):
+    """
+    Given a db, view name and a query create a view in the default schema.
+    """
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+    view_name = create_timestamped_view_name(view_name, kwargs['execution_date'])
+    with engine.begin() as conn:
+        conn.execute(CreateView(view_name, text(query)))
