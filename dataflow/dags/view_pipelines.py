@@ -805,7 +805,7 @@ class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
                 inv.name AS investor_company_name,
                 inv.company_number AS investor_company_comp_house_id,
                 inv.headquarter_type AS investor_company_headquarter_type,
-                inv.classification AS investor_company_company_tier,
+                inv.one_list_tier AS investor_company_company_tier,
                 inv.sector AS investor_company_sector,
                 inv.address_1 AS investor_company_address_1,
                 inv.address_2 AS investor_company_address_2,
