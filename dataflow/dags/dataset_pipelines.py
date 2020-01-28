@@ -130,85 +130,21 @@ class CompanyFutureInterestCountries(BaseDatasetPipeline):
     ]
 
 
-class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipeline):
-
-    table_name = 'coi_countries_and_sectors_of_interest'
+class CountriesOfInterestServicePipeline(BaseDatasetPipeline):
+    table_name = 'countries_of_interest_dataset'
     source_url = (
         '{0}/api/v1/get-company-countries-and-sectors-of-interest'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('countryOfInterest', 'country_of_interest', 'text'),
-        ('standardisedCountry', 'standardised_country', 'text'),
-        ('sectorOfInterest', 'sector_of_interest', 'text'),
+        ('serviceCompanyId', 'service_company_id', 'text'),
+        ('companyMatchId', 'company_match_id', 'text'),
+        ('country', 'country', 'text'),
+        ('sector', 'sector', 'text'),
+        ('service', 'service', 'text'),
+        ('type', 'type', 'text'),
         ('source', 'source', 'text'),
         ('sourceId', 'source_id', 'text'),
-        ('timestamp', 'timestamp', 'timestamp with time zone'),
-    ]
-
-
-class CountriesOfInterestServiceCountriesOfInterest(BaseDatasetPipeline):
-
-    table_name = 'coi_countries_of_interest'
-    source_url = (
-        '{0}/api/v1/get-company-countries-of-interest'
-        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
-    )
-    field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('countryOfInterest', 'country_of_interest', 'text'),
-        ('standardisedCountry', 'standardised_country', 'text'),
-        ('source', 'source', 'text'),
-        ('sourceId', 'source_id', 'text'),
-        ('timestamp', 'timestamp', 'timestamp with time zone'),
-    ]
-
-
-class CountriesOfInterestServiceExportCountries(BaseDatasetPipeline):
-
-    table_name = 'coi_export_countries'
-    source_url = (
-        '{0}/api/v1/get-company-export-countries'
-        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
-    )
-    field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('exportCountry', 'export_country', 'text'),
-        ('standardisedCountry', 'standardised_country', 'text'),
-        ('source', 'source', 'text'),
-        ('sourceId', 'source_id', 'text'),
-        ('timestamp', 'timestamp', 'timestamp with time zone'),
-    ]
-
-
-class CountriesOfInterestServiceSectorsOfInterest(BaseDatasetPipeline):
-
-    table_name = 'coi_sectors_of_interest'
-    source_url = (
-        '{0}/api/v1/get-company-sectors-of-interest'
-        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
-    )
-    field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('sectorOfInterest', 'sector_of_interest', 'text'),
-        ('source', 'source', 'text'),
-        ('sourceId', 'source_id', 'text'),
-        ('timestamp', 'timestamp', 'timestamp with time zone'),
-    ]
-
-
-class CountriesOfInterestServiceMentionedInInteractions(BaseDatasetPipeline):
-
-    table_name = 'coi_mentioned_in_interactions'
-    source_url = (
-        '{0}/api/v1/get-company-countries-mentioned-in-interactions'
-        '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
-    )
-    field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('countryOfInterest', 'country_of_interest', 'text'),
-        ('interactionId', 'interaction_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
     ]
 
