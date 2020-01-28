@@ -211,10 +211,10 @@ class CountriesOfInterestServiceMentionedInInteractions(BaseDatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('countryOfInterest', 'country_of_interest', 'text'),
-        ('interactionId', 'interaction_id', 'text'),
-        ('timestamp', 'timestamp', 'timestamp with time zone'),
+        ('companyId', sa.Column('company_id', sa.Text)),
+        ('countryOfInterest', sa.Column('country_of_interest', sa.Text)),
+        ('interactionId', sa.Column('interaction_id', sa.Text)),
+        ('timestamp', sa.Column('timestamp', sa.DateTime)),
     ]
 
 
