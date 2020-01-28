@@ -130,18 +130,19 @@ class CompanyFutureInterestCountries(BaseDatasetPipeline):
     ]
 
 
-class CountriesOfInterestServiceCountriesAndSectorsOfInterest(BaseDatasetPipeline):
-
-    table_name = 'coi_countries_and_sectors_of_interest'
+class CountriesOfInterestServicePipeline(BaseDatasetPipeline):
+    table_name = 'countries_of_interest_dataset'
     source_url = (
         '{0}/api/v1/get-company-countries-and-sectors-of-interest'
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     field_mapping = [
-        ('companyId', 'company_id', 'text'),
-        ('countryOfInterest', 'country_of_interest', 'text'),
-        ('standardisedCountry', 'standardised_country', 'text'),
-        ('sectorOfInterest', 'sector_of_interest', 'text'),
+        ('serviceCompanyId', 'service_company_id', 'text'),
+        ('companyMatchId', 'company_match_id', 'text'),
+        ('country', 'country', 'text'),
+        ('sector', 'sector', 'text'),
+        ('service', 'service', 'text'),
+        ('type', 'type', 'text'),
         ('source', 'source', 'text'),
         ('sourceId', 'source_id', 'text'),
         ('timestamp', 'timestamp', 'timestamp with time zone'),
