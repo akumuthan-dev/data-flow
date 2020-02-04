@@ -870,15 +870,15 @@ class FDIMonthlyStaticViewPipeline(BaseViewPipeline):
                 ARRAY_TO_STRING(fdi.actual_uk_regions, '; ') AS actual_uk_regions,
                 CASE
                   WHEN fdi.other_business_activity IS NULL
-                       AND ARRAY_TO_STRING(fdi.business_activities, '; ') IS NOT NULL
-                    THEN fdi.business_activities
+                       AND fdi.business_activities IS NOT NULL
+                    THEN ARRAY_TO_STRING(fdi.business_activities, '; ')
                   WHEN fdi.other_business_activity IS NOT NULL
                        AND fdi.business_activities IS NULL
                     THEN fdi.other_business_activity
                   WHEN fdi.other_business_activity IS NOT NULL
                        AND fdi.business_activities IS NOT NULL
                     THEN fdi.other_business_activity || '; ' || ARRAY_TO_STRING(fdi.business_activities, '; ')
-                  ELSE NULL END AS business_activities,
+                  END AS business_activities,
                 fdi.project_arrived_in_triage_on,
                 fdi.proposal_deadline,
                 CASE WHEN fdi.export_revenue THEN 'yes' ELSE 'no' END AS export_revenue,
