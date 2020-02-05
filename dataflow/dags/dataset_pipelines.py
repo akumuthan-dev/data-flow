@@ -7,13 +7,6 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
-from dataflow.dags.view_pipelines import (
-    CompletedOMISOrderViewPipeline,
-    CancelledOMISOrderViewPipeline,
-    OMISAllOrdersViewPipeline,
-    DataHubServiceDeliveryInteractionsViewPipeline,
-    ExportWinsYearlyViewPipeline,
-)
 from dataflow import config
 from dataflow.operators.dataset import fetch_from_api
 from dataflow.operators.db_tables import (
@@ -32,7 +25,6 @@ class BaseDatasetPipeline:
     start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
-    dependent_view_pipelines = []
 
     @property
     def table(self):
@@ -91,37 +83,12 @@ class BaseDatasetPipeline:
                 op_args=[self.target_db, self.table],
             )
 
-            _drop_related_views = PythonOperator(
-                task_id="drop-related-views",
-                python_callable=drop_views,
-                provide_context=True,
-                op_args=[self.dependent_view_pipelines],
-            )
-
             _swap_dataset_table = PythonOperator(
                 task_id="swap-dataset-table",
                 python_callable=swap_dataset_table,
                 provide_context=True,
                 op_args=[self.target_db, self.table],
             )
-
-            view_pipeline_group = []
-            for view_pipeline in self.dependent_view_pipelines:
-                view_dag = view_pipeline().get_dag()
-                for execution_date in view_dag.get_run_dates(view_pipeline.start_date):
-                    view_pipeline_group.append(
-                        PythonOperator(
-                            task_id=f'{view_pipeline.__name__}-{execution_date.strftime("%Y-%m-%d")}',
-                            python_callable=create_view,
-                            provide_context=True,
-                            op_args=[
-                                self.target_db,
-                                view_pipeline.view_name,
-                                view_pipeline.query,
-                            ],
-                            op_kwargs={'execution_date': execution_date}
-                        )
-                    )
 
             _drop_tables = PythonOperator(
                 task_id="drop-temp-tables",
@@ -136,12 +103,7 @@ class BaseDatasetPipeline:
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
-            >> _drop_related_views
             >> _swap_dataset_table
-            >> (
-                view_pipeline_group if view_pipeline_group
-                else DummyOperator(task_id='skip-dependent-views')
-            )
             >> _drop_tables
         )
 
@@ -249,11 +211,6 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'omis_dataset'
     source_url = '{0}/v4/dataset/omis-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        CompletedOMISOrderViewPipeline,
-        CancelledOMISOrderViewPipeline,
-        OMISAllOrdersViewPipeline,
-    )
     field_mapping = [
         ('cancellation_reason__name', sa.Column('cancellation_reason', sa.Text)),
         ('cancelled_on', sa.Column('cancelled_date', sa.DateTime)),
@@ -385,9 +342,6 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
 class InteractionsDatasetPipeline(BaseDatasetPipeline):
     table_name = 'interactions_dataset'
     source_url = '{}/v4/dataset/interactions-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        DataHubServiceDeliveryInteractionsViewPipeline,
-    )
     field_mapping = [
         ('adviser_ids', sa.Column('adviser_ids', sa.ARRAY(sa.Text))),
         ('communication_channel__name', sa.Column('communication_channel', sa.String)),
@@ -428,9 +382,6 @@ class ContactsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'contacts_dataset'
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        DataHubServiceDeliveryInteractionsViewPipeline,
-    )
     field_mapping = [
         (
             'accepts_dit_email_marketing',
@@ -465,11 +416,6 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'companies_dataset'
     source_url = '{0}/v4/dataset/companies-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        CompletedOMISOrderViewPipeline,
-        CancelledOMISOrderViewPipeline,
-        OMISAllOrdersViewPipeline,
-    )
     field_mapping = [
         ('address_1', sa.Column('address_1', sa.String)),
         ('address_2', sa.Column('address_2', sa.String)),
@@ -527,9 +473,6 @@ class AdvisersDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        DataHubServiceDeliveryInteractionsViewPipeline,
-    )
     field_mapping = [
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('date_joined', sa.Column('date_joined', sa.Date)),
@@ -547,12 +490,6 @@ class TeamsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'teams_dataset'
     source_url = '{0}/v4/dataset/teams-dataset'.format(config.DATAHUB_BASE_URL)
-    dependent_view_pipelines = (
-        CompletedOMISOrderViewPipeline,
-        CancelledOMISOrderViewPipeline,
-        OMISAllOrdersViewPipeline,
-        DataHubServiceDeliveryInteractionsViewPipeline,
-    )
     field_mapping = [
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('name', sa.Column('name', sa.String)),
@@ -595,9 +532,6 @@ class ExportWinsAdvisersDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'export_wins_advisers_dataset'
     source_url = '{0}/datasets/advisors'.format(config.EXPORT_WINS_BASE_URL)
-    dependent_view_pipelines = (
-        ExportWinsYearlyViewPipeline,
-    )
     field_mapping = [
         ('hq_team_display', sa.Column('hq_team', sa.String)),
         ('id', sa.Column('id', UUID, primary_key=True)),
@@ -613,9 +547,6 @@ class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'export_wins_breakdowns_dataset'
     source_url = '{0}/datasets/breakdowns'.format(config.EXPORT_WINS_BASE_URL)
-    dependent_view_pipelines = (
-        ExportWinsYearlyViewPipeline,
-    )
     field_mapping = [
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('win__id', sa.Column('win_id', UUID)),
@@ -630,9 +561,6 @@ class ExportWinsHVCDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'export_wins_hvc_dataset'
     source_url = '{0}/datasets/hvc'.format(config.EXPORT_WINS_BASE_URL)
-    dependent_view_pipelines = (
-        ExportWinsYearlyViewPipeline,
-    )
     field_mapping = [
         ('id', sa.Column('id', sa.Integer, primary_key=True)),
         ('campaign_id', sa.Column('campaign_id', sa.String)),
@@ -646,9 +574,6 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'export_wins_wins_dataset'
     source_url = '{0}/datasets/wins'.format(config.EXPORT_WINS_BASE_URL)
-    dependent_view_pipelines = (
-        ExportWinsYearlyViewPipeline,
-    )
     field_mapping = [
         (
             'associated_programme_1_display',

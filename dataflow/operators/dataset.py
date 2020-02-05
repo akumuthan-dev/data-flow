@@ -1,7 +1,6 @@
 import logging
 
 import backoff
-from airflow import DAG
 from mohawk import Sender
 from mohawk.exc import HawkFail
 import requests
@@ -65,13 +64,3 @@ def fetch_from_api(table_name: str, source_url: str, **kwargs):
         page += 1
 
     logging.info('Fetching from source completed')
-
-
-def run_view_pipelines(dataset_pipeline_class_name: str, **_):
-    from dataflow.dags import view_pipelines
-    pipelines = [
-        p.get_dag() for p in view_pipelines.BaseViewPipeline.__subclasses__()
-        if dataset_pipeline_class_name == p.dataset_pipeline.__name__
-    ]
-    DAG.clear_dags(pipelines)
-    logging.info(f'Cleared and rescheduled tasks for {len(pipelines)} dags')
