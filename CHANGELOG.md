@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Two new ONS datasets for UK trade in services.
+- ONS Postcode (data-store-service) pipeline
+
 
 ## 2020-02-04
 
