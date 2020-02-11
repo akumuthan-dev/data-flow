@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 import sqlalchemy as sa
 from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -15,13 +14,11 @@ from dataflow.operators.db_tables import (
     insert_data_into_db,
     swap_dataset_table,
     drop_temp_tables,
-    drop_views,
-    create_view,
 )
 
 
 class BaseDatasetPipeline:
-    target_db = 'datasets_db'
+    target_db = config.DATASETS_DB_NAME
     start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'

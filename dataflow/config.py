@@ -32,3 +32,6 @@ COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
 S3_IMPORT_DATA_BUCKET = os.environ.get("S3_IMPORT_DATA_BUCKET")
 
 ONS_SPARQL_URL = "http://gss-data.org.uk/sparql"
+
+DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
+DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME")

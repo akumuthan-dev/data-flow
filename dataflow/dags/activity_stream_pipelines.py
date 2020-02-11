@@ -5,6 +5,7 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
+from dataflow import config
 from dataflow.operators.db_tables import (
     check_table_data,
     create_temp_tables,
@@ -16,7 +17,7 @@ from dataflow.operators.activity_stream import fetch_from_activity_stream
 
 
 class BaseActivityStreamPipeline:
-    target_db = "datasets_db"
+    target_db = config.DATASETS_DB_NAME
     start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = "@daily"

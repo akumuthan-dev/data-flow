@@ -1,258 +1,20 @@
-"""A module that defines Airflow DAGS for view pipelines."""
+from datetime import datetime
 
-from datetime import datetime, timedelta
-
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-
-from dataflow.operators.db_tables import create_view
+from dataflow.dags.csv_pipeline import BaseCSVPipeline
 
 
-class BaseViewPipeline:
-    target_db = 'datasets_db'
-    start_date = datetime(2019, 10, 1)
-    end_date = None
-    catchup = True
+class BaseYearlyCSVPipeline(BaseCSVPipeline):
+    """
+    Base DAG to allow subclasses to be picked up by airflow
+    """
 
-    schedule_interval = '0 5 1 * *'
-
-    def get_dag(self):
-        with DAG(
-            self.__class__.__name__,
-            catchup=True,
-            default_args={
-                'owner': 'airflow',
-                'depends_on_past': False,
-                'email_on_failure': False,
-                'email_on_retry': False,
-                'retries': 1,
-                'retry_delay': timedelta(minutes=5),
-                'catchup': True,
-                'start_date': datetime(2019, 1, 1),
-            },
-            start_date=self.start_date,
-            end_date=self.end_date,
-            schedule_interval=self.schedule_interval,
-        ) as dag:
-            PythonOperator(
-                task_id='create-view',
-                python_callable=create_view,
-                provide_context=True,
-                op_args=[
-                    self.target_db,
-                    self.view_name,
-                    self.query,
-                ],
-                dag=dag,
-            )
-        return dag
+    schedule_interval = '@yearly'
 
 
-class CompletedOMISOrderViewPipeline(BaseViewPipeline):
-    """Pipeline meta object for Completed OMIS Order View."""
-
-    view_name = 'completed_omis_orders'
-    query = '''
-        SELECT
-            omis_dataset.omis_order_reference AS "OMIS Order Reference",
-            companies_dataset.name AS "Company name",
-            teams_dataset.name AS "DIT Team",
-            ROUND(omis_dataset.subtotal::numeric/100::numeric,2) AS "Net price",
-            omis_dataset.uk_region AS "UK Region",
-            omis_dataset.market AS "Market",
-            omis_dataset.sector AS "Sector",
-            omis_dataset.services AS "Services",
-            to_char(omis_dataset.delivery_date, 'DD/MM/YYYY') AS "Delivery date",
-            to_char(omis_dataset.payment_received_date, 'DD/MM/YYYY') AS "Payment received date",
-            to_char(omis_dataset.completion_date, 'DD/MM/YYYY') AS "Completion Date",
-            to_char(omis_dataset.created_date, 'DD/MM/YYYY') AS "Created date",
-            to_char(omis_dataset.cancelled_date, 'DD/MM/YYYY') AS "Cancelled date",
-            omis_dataset.cancellation_reason AS "Cancellation reason",
-            to_char(omis_dataset.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
-            (omis_dataset.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
-            (omis_dataset.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
-            (omis_dataset.total_cost/100)::numeric(15, 2) AS "Gross Amount",
-            to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
-        FROM omis_dataset
-        LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
-        LEFT JOIN teams_dataset ON omis_dataset.dit_team_id=teams_dataset.id
-        WHERE omis_dataset.order_status = 'complete'
-        AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
-        ORDER BY omis_dataset.completion_date
-    '''
-
-
-class CancelledOMISOrderViewPipeline(BaseViewPipeline):
-    """Pipeline meta object for Cancelled OMIS Order View."""
-
-    view_name = 'cancelled_omis_orders'
-    query = '''
-        WITH omis AS (
-            SELECT
-                CASE WHEN EXTRACT('month' FROM cancelled_date)::int >= 4
-                    THEN (to_char(omis_dataset.cancelled_date, 'YYYY')::int)
-                    ELSE (to_char(omis_dataset.cancelled_date + interval '-1' year, 'YYYY')::int)
-                END as cancelled_date_financial_year,
-                CASE WHEN EXTRACT('month' FROM CURRENT_DATE)::int >= 4
-                    THEN (to_char(CURRENT_DATE, 'YYYY')::int)
-                    ELSE (to_char(CURRENT_DATE + interval '-1' year, 'YYYY')::int)
-                END as current_financial_year,
-                *
-            FROM omis_dataset
-        )
-        SELECT
-            omis.omis_order_reference AS "OMIS Order Reference",
-            companies_dataset.name AS "Company Name",
-            ROUND(omis.subtotal::numeric/100::numeric,2) AS "Net price",
-            teams_dataset.name AS "DIT Team",
-            omis.market AS "Market",
-            to_char(omis.created_date, 'DD/MM/YYYY') AS "Created Date",
-            to_char(omis.cancelled_date, 'DD/MM/YYYY') AS "Cancelled Date",
-            omis.cancellation_reason AS "Cancellation reason",
-            to_char(omis.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
-            (omis.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
-            (omis.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
-            (omis.total_cost/100)::numeric(15, 2) AS "Gross Amount",
-            to_char(omis.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
-        FROM omis
-        LEFT JOIN companies_dataset ON omis.company_id=companies_dataset.id
-        LEFT JOIN teams_dataset ON omis.dit_team_id=teams_dataset.id
-        WHERE omis.order_status = 'cancelled'
-        AND omis.cancelled_date_financial_year = omis.current_financial_year
-    '''
-
-
-class OMISAllOrdersViewPipeline(BaseViewPipeline):
-    """View pipeline for all OMIS orders created up to the end
-     of the last calendar month"""
-
-    view_name = 'all_omis_orders'
-    start_date = datetime(2019, 12, 1)
-    query = '''
-        SELECT
-            omis_dataset.omis_order_reference AS "Order ID",
-            omis_dataset.order_status AS "Order status",
-            companies_dataset.name AS "Company",
-            teams_dataset.name AS "Creator team",
-            omis_dataset.uk_region AS "UK region",
-            omis_dataset.market AS "Primary market",
-            omis_dataset.sector AS "Sector",
-            companies_dataset.sector AS "Company sector",
-            omis_dataset.net_price AS "Net price",
-            omis_dataset.services AS "Services",
-            TO_CHAR(omis_dataset.created_date, 'YYYY-MM-DD')::DATE AS "Order created",
-            TO_CHAR(omis_dataset.quote_created_on, 'YYYY-MM-DD')::DATE AS "Quote created",
-            TO_CHAR(omis_dataset.quote_accepted_on, 'YYYY-MM-DD')::DATE AS "Quote accepted",
-            TO_CHAR(omis_dataset.delivery_date, 'YYYY-MM-DD')::DATE AS "Planned delivery date",
-            omis_dataset.vat_cost AS "VAT",
-            TO_CHAR(omis_dataset.payment_received_date, 'YYYY-MM-DD')::DATE AS "Payment received date",
-            TO_CHAR(omis_dataset.completion_date, 'YYYY-MM-DD')::DATE AS "Completion date",
-            TO_CHAR(omis_dataset.cancelled_date, 'YYYY-MM-DD')::DATE AS "Cancellation date",
-            omis_dataset.refund_created AS "Refund date",
-            omis_dataset.refund_total_amount AS "Refund amount"
-        FROM omis_dataset
-        JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
-        JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
-        WHERE omis_dataset.created_date < date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD')) + INTERVAL '1 MONTH'
-    '''
-
-
-class DataHubServiceDeliveryInteractionsViewPipeline(BaseViewPipeline):
-    """Pipeline meta object for the data hub service deliveries and interactions report."""
-
-    view_name = 'datahub_service_interactions'
-    start_date = datetime(2019, 11, 15)
-    schedule_interval = '0 5 15 * *'
-    query = '''
-        WITH interactions AS (
-            SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', to_date('{{ ds }}', 'YYYY-MM-DD'))
-        ),
-        contact_ids AS (
-            SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
-            FROM interactions
-        ),
-        contacts AS (
-            SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
-        ),
-        adviser_ids AS (
-            SELECT id AS interaction_id, UNNEST(adviser_ids)::uuid AS adviser_id
-            FROM interactions_dataset
-        ),
-        team_names AS (
-            SELECT adviser_ids.interaction_id as iid, STRING_AGG(teams_dataset.name, '; ') AS names
-            FROM advisers_dataset
-            JOIN adviser_ids ON advisers_dataset.id = adviser_ids.adviser_id
-            JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-            GROUP BY 1
-        )
-        SELECT
-            to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
-            interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
-            contacts.contact_name AS "Contact Name",
-            contacts.phone AS "Contact Phone",
-            contacts.email AS "Contact Email",
-            contacts.address_postcode AS "Contact Postcode",
-            contacts.address_1 AS "Contact Address Line 1",
-            contacts.address_2 AS "Contact Address Line 2",
-            contacts.address_town AS "Contact Address Town",
-            contacts.address_country AS "Contact Address Country",
-            advisers_dataset.first_name AS "DIT Adviser First Name",
-            advisers_dataset.last_name AS "DIT Adviser Last Name",
-            advisers_dataset.telephone_number AS "DIT Adviser Phone",
-            advisers_dataset.contact_email AS "DIT Adviser Email",
-            team_names.names AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
-            interactions.service_delivery AS "Service Delivery",
-            interactions.interaction_subject AS "Subject",
-            interactions.interaction_notes AS "Notes",
-            interactions.net_company_receipt AS "Net Company Receipt",
-            interactions.grant_amount_offered AS "Grant Amount Offered",
-            interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
-            to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
-            interactions.communication_channel AS "Communication Channel",
-            interactions.interaction_link AS "Interaction Link"
-        FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
-        JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
-        LEFT JOIN contacts ON contacts.interaction_id = interactions.id
-        LEFT JOIN team_names ON team_names.iid = interactions.id
-        ORDER BY interactions.interaction_date
-    '''
-
-
-class ExportWinsYearlyViewPipeline(BaseViewPipeline):
+class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
     """Pipeline meta object for the yearly export wins report."""
 
-    view_name = 'export_wins_yearly'
+    base_file_name = 'export_wins_yearly'
     start_date = datetime(2018, 1, 1)
     schedule_interval = '@yearly'
     query = '''
@@ -349,7 +111,7 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
                 SELECT *
                 FROM export_wins_wins_dataset
                 WHERE export_wins_wins_dataset.customer_email_date IS NOT NULL
-                AND date_trunc('year', export_wins_wins_dataset.confirmation_created) =  date_trunc('year', to_date('{{ ds }}', 'YYYY-MM-DD'))
+                AND date_trunc('year', export_wins_wins_dataset.confirmation_created) =  date_trunc('year', :run_date)
             ), export_breakdowns AS (
                 SELECT win_id, year, value
                 FROM export_wins_breakdowns_dataset
@@ -599,5 +361,5 @@ class ExportWinsYearlyViewPipeline(BaseViewPipeline):
     '''
 
 
-for pipeline in BaseViewPipeline.__subclasses__():
+for pipeline in BaseYearlyCSVPipeline.__subclasses__():
     globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()
