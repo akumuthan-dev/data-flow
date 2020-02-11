@@ -212,3 +212,4 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logging.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)
+
