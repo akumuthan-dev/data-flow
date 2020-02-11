@@ -28,6 +28,9 @@ REDIS_URL = os.environ.get('AIRFLOW__CELERY__BROKER_URL')
 COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
     'COUNTRIES_OF_INTEREST_BASE_URL', 'localhost:5000'
 )
+DATA_STORE_SERVICE_BASE_URL = os.environ.get(
+    'DATA_STORE_SERVICE_BASE_URL', 'localhost:5050'
+)
 
 S3_IMPORT_DATA_BUCKET = os.environ.get("S3_IMPORT_DATA_BUCKET")
 

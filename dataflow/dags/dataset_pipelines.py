@@ -699,5 +699,66 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
+class ONSPostcodePipeline(BaseDatasetPipeline):
+    """Pipeline meta object for ONS Postcode data."""
+
+    table_name = 'ons_postcodes'
+    source_url = '{0}/api/v1/get-ons-postcodes/?orientation=records'.format(
+        config.DATA_STORE_SERVICE_BASE_URL
+    )
+    field_mapping = [
+        ('pcd', ' pcd', 'character varying(255)'),
+        ('pcd2', 'pcd2', 'character varying(255)'),
+        ('pcds', 'pcds', 'character varying(255)'),
+        ('dointr', 'dointr', 'date'),
+        ('doterm', 'doterm', 'date'),
+        ('oscty', 'oscty', 'character varying(255)'),
+        ('ced', 'ced', 'character varying(255)'),
+        ('oslaua' 'oslaua', 'character varying(255)'),
+        ('osward', 'osward', 'character varying(255)'),
+        ('parish', 'parish', 'character varying(255)'),
+        ('usertype', 'usertype', 'character varying(255)'),
+        ('oseast1m', 'oseast1m', 'character varying(255)'),
+        ('osnrth1m', 'osnrth1m', 'character varying(255)'),
+        ('osgrdind', 'osgrdind', 'character varying(255)'),
+        ('oshlthau', 'oshlthau', 'character varying(255)'),
+        ('nhser', 'nhser', 'character varying(255)'),
+        ('ctry', 'ctry', 'character varying(255)'),
+        ('rgn', 'rgn', 'character varying(255)'),
+        ('streg', 'streg', 'character varying(255)'),
+        ('pcon', 'pcon', 'character varying(255)'),
+        ('eer', 'eer', 'character varying(255)'),
+        ('teclec', 'teclec', 'character varying(255)'),
+        ('ttwa', 'ttwa', 'character varying(255)'),
+        ('pct', 'pct', 'character varying(255)'),
+        ('nuts', 'nuts', 'character varying(255)'),
+        ('statsward', 'statsward', 'character varying(255)'),
+        ('oa01', 'oa01', 'character varying(255)'),
+        ('casward', 'casward', 'character varying(255)'),
+        ('park', 'park', 'character varying(255)'),
+        ('lsoa01', 'lsoa01', 'character varying(255)'),
+        ('msoa01', 'msoa01', 'character varying(255)'),
+        ('ur01ind', 'ur01ind', 'character varying(255)'),
+        ('oac01', 'oac01', 'character varying(255)'),
+        ('oa11', 'oa11', 'character varying(255)'),
+        ('lsoa11', 'lsoa11', 'character varying(255)'),
+        ('msoa11', 'msoa11', 'character varying(255)'),
+        ('wz11', 'wz11', 'character varying(255)'),
+        ('ccg', 'ccg', 'character varying(255)'),
+        ('bua11', 'bua11', 'character varying(255)'),
+        ('buasd11', 'buasd11', 'character varying(255)'),
+        ('ru11ind', 'ru11ind', 'character varying(255)'),
+        ('oac11', 'oac11', 'character varying(255)'),
+        ('lat', 'lat', 'character varying(255)'),
+        ('long', 'long', 'character varying(255)'),
+        ('lep1', 'lep1', 'character varying(255)'),
+        ('lep2', 'lep2', 'character varying(255)'),
+        ('pfa', 'pfa', 'character varying(255)'),
+        ('imd', 'imd', 'character varying(255)'),
+        ('calncv', 'calncv', 'character varying(255)'),
+        ('stp', 'stp', 'character varying(255)'),
+    ]
+
+
 for pipeline in BaseDatasetPipeline.__subclasses__():
     globals()[pipeline.__name__ + '__dag'] = pipeline.get_dag()
