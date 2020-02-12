@@ -714,7 +714,7 @@ class ONSPostcodePipeline(BaseDatasetPipeline):
         ('doterm', 'doterm', 'date'),
         ('oscty', 'oscty', 'character varying(255)'),
         ('ced', 'ced', 'character varying(255)'),
-        ('oslaua' 'oslaua', 'character varying(255)'),
+        ('oslaua', 'oslaua', 'character varying(255)'),
         ('osward', 'osward', 'character varying(255)'),
         ('parish', 'parish', 'character varying(255)'),
         ('usertype', 'usertype', 'character varying(255)'),
