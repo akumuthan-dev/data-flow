@@ -22,6 +22,7 @@ class BaseDatasetPipeline:
     start_date = datetime(2019, 11, 5)
     end_date = None
     schedule_interval = '@daily'
+    catchup = False
 
     @property
     def table(self):
@@ -37,7 +38,7 @@ class BaseDatasetPipeline:
     def get_dag(self):
         with DAG(
             self.__class__.__name__,
-            catchup=False,
+            catchup=self.catchup,
             default_args={
                 'owner': 'airflow',
                 'depends_on_past': False,
@@ -45,6 +46,7 @@ class BaseDatasetPipeline:
                 'email_on_retry': False,
                 'retries': 0,
                 'retry_delay': timedelta(minutes=5),
+                'catchup': self.catchup,
             },
             start_date=self.start_date,
             end_date=self.end_date,
