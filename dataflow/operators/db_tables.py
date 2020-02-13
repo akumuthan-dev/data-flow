@@ -175,6 +175,17 @@ def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
 
     logging.info(f"Moving {temp_table.name} to {table.name}")
     with engine.begin() as conn:
+        grantees = conn.execute(
+            """
+            SELECT grantee
+            FROM information_schema.role_table_grants
+            WHERE table_name='{table_name}'
+            AND privilege_type = 'SELECT'
+            AND grantor != grantee
+            """.format(
+                table_name=engine.dialect.identifier_preparer.quote(table.name)
+            )
+        ).fetchall()
         conn.execute(
             """
             ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
@@ -187,6 +198,13 @@ def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
                 temp_table=engine.dialect.identifier_preparer.quote(temp_table.name),
             )
         )
+        for grantee in grantees:
+            conn.execute(
+                'GRANT SELECT ON {table_name} TO {grantee}'.format(
+                    table_name=engine.dialect.identifier_preparer.quote(table.name),
+                    grantee=grantee[0],
+                )
+            )
 
 
 def drop_temp_tables(target_db: str, *tables, **kwargs):
