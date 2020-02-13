@@ -531,7 +531,7 @@ class ExportWinsAdvisersDatasetPipeline(BaseDatasetPipeline):
     source_url = '{0}/datasets/advisors'.format(config.EXPORT_WINS_BASE_URL)
     field_mapping = [
         ('hq_team_display', sa.Column('hq_team', sa.String)),
-        ('id', sa.Column('id', UUID, primary_key=True)),
+        ('id', sa.Column('id', sa.Integer, primary_key=True)),
         ('location', sa.Column('location', sa.String)),
         ('name', sa.Column('name', sa.String)),
         ('team_type_display', sa.Column('team_type', sa.String)),
@@ -545,11 +545,11 @@ class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
     table_name = 'export_wins_breakdowns_dataset'
     source_url = '{0}/datasets/breakdowns'.format(config.EXPORT_WINS_BASE_URL)
     field_mapping = [
-        ('id', sa.Column('id', UUID, primary_key=True)),
-        ('win__id', sa.Column('win_id', UUID)),
         ('breakdown_type', sa.Column('type', sa.String)),
-        ('year', sa.Column('year', sa.Integer)),
+        ('id', sa.Column('id', sa.Integer, primary_key=True)),
         ('value', sa.Column('value', sa.BigInteger)),
+        ('win__id', sa.Column('win_id', UUID)),
+        ('year', sa.Column('year', sa.Integer)),
     ]
 
 
@@ -559,9 +559,9 @@ class ExportWinsHVCDatasetPipeline(BaseDatasetPipeline):
     table_name = 'export_wins_hvc_dataset'
     source_url = '{0}/datasets/hvc'.format(config.EXPORT_WINS_BASE_URL)
     field_mapping = [
-        ('id', sa.Column('id', sa.Integer, primary_key=True)),
         ('campaign_id', sa.Column('campaign_id', sa.String)),
         ('financial_year', sa.Column('financial_year', sa.Integer)),
+        ('id', sa.Column('id', sa.Integer, primary_key=True)),
         ('name', sa.Column('name', sa.String)),
     ]
 
