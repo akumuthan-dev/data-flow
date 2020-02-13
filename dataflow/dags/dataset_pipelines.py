@@ -37,7 +37,7 @@ class BaseDatasetPipeline:
     def get_dag(self):
         with DAG(
             self.__class__.__name__,
-            catchup=True,
+            catchup=False,
             default_args={
                 'owner': 'airflow',
                 'depends_on_past': False,
