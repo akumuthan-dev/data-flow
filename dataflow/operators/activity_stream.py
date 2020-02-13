@@ -1,47 +1,8 @@
-import json
 import logging
 
-import backoff
-import requests
-from mohawk import Sender
-
 from dataflow import config
+from dataflow.operators.api import _hawk_api_request
 from dataflow.utils import S3Data
-
-
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
-def _activity_stream_request(url: str, query: dict):
-    body = json.dumps(query)
-    header = Sender(
-        {
-            "id": config.ACTIVITY_STREAM_ID,
-            "key": config.ACTIVITY_STREAM_SECRET,
-            "algorithm": config.HAWK_ALGORITHM,
-        },
-        url,
-        "get",
-        content_type="application/json",
-        content=body,
-    ).request_header
-
-    response = requests.request(
-        "GET",
-        url,
-        data=body,
-        headers={"Authorization": header, "Content-Type": "application/json"},
-    )
-
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError:
-        logging.error(f"Request failed: {response.text}")
-        raise
-
-    response_json = response.json()
-    if "hits" not in response_json:
-        raise ValueError("Unexpected response structure")
-
-    return response_json
 
 
 def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **kwargs):
@@ -59,7 +20,17 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
 
     while next_page:
         logging.info(f"Fetching page {next_page} of {source_url}")
-        data = _activity_stream_request(source_url, query)
+        data = _hawk_api_request(
+            source_url,
+            "GET",
+            query,
+            {
+                "id": config.ACTIVITY_STREAM_ID,
+                "key": config.ACTIVITY_STREAM_SECRET,
+                "algorithm": config.HAWK_ALGORITHM,
+            },
+            'hits',
+        )
         if "failures" in data["_shards"]:
             logging.warning(
                 "Request failed on {} shards: {}".format(
