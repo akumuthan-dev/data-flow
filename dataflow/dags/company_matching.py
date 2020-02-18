@@ -19,11 +19,17 @@ from dataflow.operators.db_tables import (
     check_table_data,
     swap_dataset_table,
     drop_temp_tables,
+    insert_data_into_db,
 )
 
 
 class BaseCompanyMatchingPipeline:
     timeout = 7200
+    field_mapping = [
+        ("id", sa.Column("id", sa.Text, primary_key=True)),
+        ("match_id", sa.Column("match_id", sa.Integer)),
+        ("similarity", sa.Column("similarity", sa.Text)),
+    ]
 
     @classmethod
     def get_dag(pipeline):
@@ -31,10 +37,9 @@ class BaseCompanyMatchingPipeline:
         target_table = sa.Table(
             f'{pipeline.controller_pipeline.table_name}_match_ids',
             sa.MetaData(),
-            sa.Column("id", sa.Text, primary_key=True),
-            sa.Column("match_id", sa.Integer),
-            sa.Column("similarity", sa.Text),
+            *[column.copy() for _, column in pipeline.field_mapping],
         )
+        target_table_name = target_table.name
 
         with DAG(
             dag_id=pipeline.__name__,
@@ -53,6 +58,18 @@ class BaseCompanyMatchingPipeline:
             schedule_interval=pipeline.controller_pipeline.schedule_interval,
         ) as target_dag:
 
+            _match = PythonOperator(
+                task_id=f'{pipeline.controller_pipeline.__name__.lower()}-match-task',
+                python_callable=fetch_from_company_matching,
+                provide_context=True,
+                op_args=[
+                    target_db,
+                    target_table_name,
+                    pipeline.company_match_query,
+                    config.MATCHING_SERVICE_BATCH_SIZE,
+                ],
+            )
+
             _create_tables = PythonOperator(
                 task_id="create-temp-tables",
                 python_callable=create_temp_tables,
@@ -60,16 +77,11 @@ class BaseCompanyMatchingPipeline:
                 op_args=[target_db, target_table],
             )
 
-            _fetch = PythonOperator(
-                task_id=f'{pipeline.controller_pipeline.__name__.lower()}-matching-task',
-                python_callable=fetch_from_company_matching,
+            _insert_into_temp_table = PythonOperator(
+                task_id="insert-into-temp-table",
+                python_callable=insert_data_into_db,
                 provide_context=True,
-                op_kwargs={
-                    'target_db': pipeline.controller_pipeline.target_db,
-                    'table': target_table,
-                    'company_match_query': pipeline.company_match_query,
-                    'batch_size': config.MATCHING_SERVICE_BATCH_SIZE,
-                },
+                op_args=[target_db, target_table, pipeline.field_mapping],
             )
 
             _check_tables = PythonOperator(
@@ -106,8 +118,9 @@ class BaseCompanyMatchingPipeline:
 
         (
             _sensors
+            >> _match
             >> _create_tables
-            >> _fetch
+            >> _insert_into_temp_table
             >> _check_tables
             >> _swap_dataset_table
             >> _drop_tables
@@ -119,7 +132,7 @@ class DataHubMatchingPipeline(BaseCompanyMatchingPipeline):
     controller_pipeline = CompaniesDatasetPipeline
     dependencies = [ContactsDatasetPipeline]
     company_match_query = f"""
-        SELECT distinct
+        SELECT distinct on (companies.id)
             companies.id as id,
             companies.name as company_name,
             contacts.email as contact_email,
@@ -131,6 +144,7 @@ class DataHubMatchingPipeline(BaseCompanyMatchingPipeline):
         FROM {CompaniesDatasetPipeline.table_name} companies
         LEFT JOIN {ContactsDatasetPipeline.table_name} contacts
         ON contacts.company_id = companies.id
+        ORDER BY companies.id asc, companies.modified_on desc
     """
 
 
@@ -138,7 +152,7 @@ class ExportWinsMatchingPipeline(BaseCompanyMatchingPipeline):
     controller_pipeline = ExportWinsWinsDatasetPipeline
     dependencies: List[BaseDatasetPipeline] = []
     company_match_query = f"""
-        SELECT distinct
+        SELECT distinct on (id)
             id as id,
             company_name as company_name,
             customer_email_address as contact_email,
@@ -148,6 +162,7 @@ class ExportWinsMatchingPipeline(BaseCompanyMatchingPipeline):
             'dit.export-wins' as source,
             created::timestamp as datetime
         FROM {ExportWinsWinsDatasetPipeline.table_name}
+        ORDER BY id asc, created::timestamp desc
     """
 
 

@@ -1,13 +1,11 @@
-import json
 import logging
 import re
 
-import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
 from dataflow.operators.api import _hawk_api_request
-from dataflow.operators.db_tables import _get_temp_table
+from dataflow.utils import S3Data
 
 credentials = {
     'id': config.MATCHING_SERVICE_HAWK_ID,
@@ -18,23 +16,21 @@ valid_email = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 
 def fetch_from_company_matching(
-    target_db: str, table: sa.Table, company_match_query: str, batch_size=str, **kwargs
+    target_db: str, table_name: str, company_match_query: str, batch_size=str, **kwargs
 ):
+    logging.info(f"starting company matching")
+
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
+    next_batch = 1
     try:
-        logging.info(f"starting company matching")
 
         # create connection with named cursor to fetch data in batches
-        fetch_connection = PostgresHook(postgres_conn_id=target_db).get_conn()
-        fetch_cursor = fetch_connection.cursor(name='fetch_companies')
-        fetch_cursor.execute(company_match_query)
-
-        # create connection with cursor to insert responses
         connection = PostgresHook(postgres_conn_id=target_db).get_conn()
-        insert_cursor = connection.cursor()
+        cursor = connection.cursor(name='fetch_companies')
+        cursor.execute(company_match_query)
 
-        temp_table_name = _get_temp_table(table, kwargs["ts_nodash"]).name
         for request in _build_request(
-            fetch_cursor, batch_size, config.MATCHING_SERVICE_UPDATE
+            cursor, batch_size, config.MATCHING_SERVICE_UPDATE
         ):
             match_type = 'update' if config.MATCHING_SERVICE_UPDATE else 'match'
             data = _hawk_api_request(
@@ -42,33 +38,14 @@ def fetch_from_company_matching(
                 method='POST',
                 query=request,
                 credentials=credentials,
+                expected_response_structure='matches',
             )
-            stmt = f"""
-                INSERT INTO {temp_table_name} (
-                    id,
-                    match_id,
-                    similarity
-                )
-                SELECT distinct on (id)
-                    id,
-                    match_id,
-                    similarity
-                FROM json_populate_recordset(null::{temp_table_name}, %s)
-                ON CONFLICT (id) DO NOTHING;
-            """
-            insert_cursor.execute(stmt, (json.dumps(data['matches']),))
-        connection.commit()
-    except Exception as e:
-        logging.error(f'Exception: {e}')
-        connection.rollback()
-        raise
+            s3.write_key(f"{next_batch:010}.json", data['matches'])
+            next_batch += 1
     finally:
         if connection:
-            insert_cursor.close()
+            cursor.close()
             connection.close()
-        if fetch_connection:
-            fetch_cursor.close()
-            fetch_connection.close()
 
 
 def _build_request(cursor, batch_size, update):
