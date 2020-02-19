@@ -47,5 +47,5 @@ MATCHING_SERVICE_HAWK_ALGORITHM = os.environ.get(
 )
 
 DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
-DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME")
+DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME", "datasets_db")
 
