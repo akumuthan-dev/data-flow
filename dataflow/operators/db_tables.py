@@ -3,6 +3,7 @@ import logging
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
+from dataflow import config
 from dataflow.utils import get_nested_key, FieldMapping, S3Data
 
 
@@ -229,3 +230,25 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logging.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)
+
+
+def create_aggregate_table(target_db: str, table_name: str, query: str, **_):
+    """
+    Create table `table_name` from query `query` (dropping table if it already exists).
+    """
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+        echo=config.DEBUG,
+    )
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                'DROP TABLE IF EXISTS {table_name};'
+                'CREATE TABLE {table_name} AS {query}'.format(
+                    table_name=engine.dialect.identifier_preparer.quote(table_name),
+                    query=query
+                )
+            ),
+            table_name=table_name
+        )
