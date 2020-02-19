@@ -38,3 +38,12 @@ ONS_SPARQL_URL = os.environ.get(
     "ONS_SPARQL_URL",
     "https://production-drafter-ons-alpha.publishmydata.com/v1/sparql/live",
 )
+
+MATCHING_SERVICE_BASE_URL = os.environ.get('MATCHING_SERVICE_BASE_URL')
+MATCHING_SERVICE_BATCH_SIZE = int(os.environ.get('MATCHING_SERVICE_BATCH_SIZE', 100000))
+MATCHING_SERVICE_UPDATE = os.environ.get('MATCHING_SERVICE_UPDATE') == 'True'
+MATCHING_SERVICE_HAWK_ID = os.environ.get('MATCHING_SERVICE_HAWK_ID')
+MATCHING_SERVICE_HAWK_KEY = os.environ.get('MATCHING_SERVICE_HAWK_KEY')
+MATCHING_SERVICE_HAWK_ALGORITHM = os.environ.get(
+    'MATCHING_SERVICE_HAWK_ALGORITHM', 'sha256'
+)

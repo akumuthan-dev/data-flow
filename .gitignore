@@ -85,3 +85,6 @@ ssl.crt
 airflow/
 
 .mypy_cache/
+
+# pyenv
+.python-version
