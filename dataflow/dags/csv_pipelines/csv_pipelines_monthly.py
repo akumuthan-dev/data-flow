@@ -83,6 +83,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(BaseMonthlyCSVPipeline):
         LEFT JOIN teams_dataset ON omis.dit_team_id=teams_dataset.id
         WHERE omis.order_status = 'cancelled'
         AND omis.cancelled_date_financial_year = omis.current_financial_year
+        ORDER BY omis_dataset.cancelled_date
     '''
 
 
