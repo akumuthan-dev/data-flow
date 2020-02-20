@@ -79,10 +79,7 @@ def _build_request(cursor, batch_size, update):
                 and not len(companies_house_id or '') == 8
             ):
                 continue
-            description = {
-                'id': str(id),
-                'source': source,
-            }
+            description = {'id': str(id), 'source': source}
             if company_name:
                 description['company_name'] = company_name
             if contact_email and valid_email.match(contact_email):

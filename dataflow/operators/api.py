@@ -16,7 +16,7 @@ def _hawk_api_request(
 ):
     body = json.dumps(query)
     header = Sender(
-        credentials, url, method.lower(), content_type="application/json", content=body,
+        credentials, url, method.lower(), content_type="application/json", content=body
     ).request_header
 
     response = requests.request(
