@@ -108,14 +108,19 @@ def test_check_table_raises_for_empty_columns(table):
         db_tables._check_table(mock.Mock(), conn, table, table)
 
 
+def test_check_table_disable_empty_column_check(mocker, table):
+    mocker.patch.object(db_tables.config, 'ALLOW_NULL_DATASET_COLUMNS', True)
+    conn = mock.Mock()
+    conn.execute().fetchone.side_effect = [[10], [10], 1, None]
+    db_tables._check_table(mock.Mock(), conn, table, table)
+
+
 def test_check_table_data(mock_db_conn, mocker, table):
     check_table = mocker.patch.object(db_tables, '_check_table')
 
     db_tables.check_table_data("test-db", table, ts_nodash="123")
 
-    check_table.assert_called_once_with(
-        mock.ANY, mock_db_conn, mock.ANY, table, check_empty_columns=True
-    )
+    check_table.assert_called_once_with(mock.ANY, mock_db_conn, mock.ANY, table)
 
 
 def test_swap_dataset_table(mock_db_conn, table):

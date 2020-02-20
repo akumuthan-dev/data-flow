@@ -80,7 +80,6 @@ class BaseDatasetPipeline:
                 python_callable=check_table_data,
                 provide_context=True,
                 op_args=[self.target_db, self.table],
-                op_kwargs={'check_empty_columns': False},
             )
 
             _swap_dataset_table = PythonOperator(
