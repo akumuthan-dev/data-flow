@@ -6,7 +6,12 @@ from dataflow.dags import (
     canary,
     dataset_pipelines,
     ons_pipelines,
-    view_pipelines,
+)
+from dataflow.dags.csv_pipelines import (
+    csv_pipelines_daily,
+    csv_pipelines_monthly,
+    csv_pipelines_yearly,
+    csv_refresh_pipeline,
 )
 
 
@@ -14,9 +19,24 @@ def test_canary_dag():
     assert isinstance(canary.dag, DAG)
 
 
+def test_canary_tweets():
+    assert (
+        canary.canary_tweet(task_name='test')
+        == 'Canary task test was processed successfully'
+    )
+
+
 @pytest.mark.parametrize(
     "module",
-    [activity_stream_pipelines, dataset_pipelines, ons_pipelines, view_pipelines],
+    [
+        activity_stream_pipelines,
+        csv_pipelines_daily,
+        csv_pipelines_monthly,
+        csv_pipelines_yearly,
+        csv_refresh_pipeline,
+        dataset_pipelines,
+        ons_pipelines,
+    ],
 )
 def test_pipelines_dags(module):
     dag_vars = [value for name, value in vars(module).items() if name.endswith("__dag")]

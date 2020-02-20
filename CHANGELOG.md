@@ -10,6 +10,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Pipeline for matching datasets using the CompanyMatching service
 
+## 2020-02-18
+
+### Added
+
+- CSV pipelines added to replace view pipelines
+    - Reports are output directly to s3 to be made downloadable via data workspace
+    - Split pipelines out into daily, monthly, yearly config files
+    - Adds a new daily pipeline that recreates all historic non-static csv files
+
+
+### Changed
+
+- Dataset pipelines configuration brought inline with new pipeline setup
+    - Use sqlalchemy to configure tables
+    - Single 'insert to db' process
+    - Fetched pages stored in s3 to be picked up by insert task
+    - Users are granted to access to newly created tables before they are removed 
+
+    
+### Removed
+
+- As part of the above changes all view pipelines have been removed
+
+
 ## 2020-02-11
 
 ### Added
