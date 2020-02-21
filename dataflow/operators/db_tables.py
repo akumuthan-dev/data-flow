@@ -98,7 +98,9 @@ def insert_data_into_db(
         logging.info(f'Page {page} ingested successfully')
 
 
-def _check_table(engine, conn, temp: sa.Table, target: sa.Table):
+def _check_table(
+    engine, conn, temp: sa.Table, target: sa.Table, allow_null_columns: bool
+):
     logging.info(f"Checking {temp.name}")
 
     if engine.dialect.has_table(conn, target.name):
@@ -126,14 +128,16 @@ def _check_table(engine, conn, temp: sa.Table, target: sa.Table):
         ).fetchone()
         if row is None:
             error = f"Column {col} only contains NULL values"
-            if config.ALLOW_NULL_DATASET_COLUMNS:
-                logging.error(error)
+            if allow_null_columns or config.ALLOW_NULL_DATASET_COLUMNS:
+                logging.warning(error)
             else:
                 raise UnusedColumnError(error)
     logging.info("All columns are used")
 
 
-def check_table_data(target_db: str, *tables: sa.Table, **kwargs):
+def check_table_data(
+    target_db: str, *tables: sa.Table, allow_null_columns: bool = False, **kwargs
+):
     """Verify basic constraints on temp table data.
 
     """
@@ -146,7 +150,7 @@ def check_table_data(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             temp_table = _get_temp_table(table, kwargs["ts_nodash"])
-            _check_table(engine, conn, temp_table, table)
+            _check_table(engine, conn, temp_table, table, allow_null_columns)
 
 
 def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):

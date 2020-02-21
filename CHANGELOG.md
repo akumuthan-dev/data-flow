@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Make column validation configurable per pipeline
+
+
+## 2020-02-20
+
+### Changed
+
 - Order cancelled omis orders by cancelled date
 - Include all fdi records up to current actual run time in daily report
 

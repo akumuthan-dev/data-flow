@@ -23,6 +23,7 @@ class BaseDatasetPipeline:
     end_date = None
     schedule_interval = '@daily'
     catchup = False
+    allow_null_columns = False
 
     @property
     def table(self):
@@ -80,6 +81,7 @@ class BaseDatasetPipeline:
                 python_callable=check_table_data,
                 provide_context=True,
                 op_args=[self.target_db, self.table],
+                op_kwargs={'allow_null_columns': self.allow_null_columns},
             )
 
             _swap_dataset_table = PythonOperator(
@@ -196,6 +198,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
     source_url = '{0}/v4/dataset/investment-projects-dataset'.format(
         config.DATAHUB_BASE_URL
     )
+    allow_null_columns = True
     field_mapping = [
         ('actual_land_date', sa.Column('actual_land_date', sa.Date)),
         ('actual_uk_region_names', sa.Column('actual_uk_regions', sa.ARRAY(sa.Text))),
@@ -536,6 +539,7 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
 
     table_name = 'export_wins_wins_dataset'
     source_url = '{0}/datasets/wins'.format(config.EXPORT_WINS_BASE_URL)
+    allow_null_columns = True
     field_mapping = [
         (
             'associated_programme_1_display',
