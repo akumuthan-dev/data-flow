@@ -23,7 +23,7 @@ class BaseDatasetPipeline:
     end_date = None
     schedule_interval = '@daily'
     catchup = False
-    allow_null_columns = True
+    allow_null_columns = False
 
     @property
     def table(self):
