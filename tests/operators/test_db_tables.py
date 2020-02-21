@@ -89,7 +89,7 @@ def test_check_table(table):
     conn = mock.Mock()
     conn.execute().fetchone.return_value = [10]
 
-    db_tables._check_table(mock.Mock(), conn, table, table)
+    db_tables._check_table(mock.Mock(), conn, table, table, False)
 
 
 def test_check_table_raises_if_new_table_size_is_smaller(table):
@@ -97,7 +97,7 @@ def test_check_table_raises_if_new_table_size_is_smaller(table):
     conn.execute().fetchone.side_effect = [[8], [10]]
 
     with pytest.raises(db_tables.MissingDataError):
-        db_tables._check_table(mock.Mock(), conn, table, table)
+        db_tables._check_table(mock.Mock(), conn, table, table, False)
 
 
 def test_check_table_raises_for_empty_columns(table):
@@ -105,14 +105,21 @@ def test_check_table_raises_for_empty_columns(table):
     conn.execute().fetchone.side_effect = [[10], [10], 1, None]
 
     with pytest.raises(db_tables.UnusedColumnError):
-        db_tables._check_table(mock.Mock(), conn, table, table)
+        db_tables._check_table(mock.Mock(), conn, table, table, False)
 
 
-def test_check_table_disable_empty_column_check(mocker, table):
+def test_check_table_disable_env_empty_column_check(mocker, table):
     mocker.patch.object(db_tables.config, 'ALLOW_NULL_DATASET_COLUMNS', True)
     conn = mock.Mock()
     conn.execute().fetchone.side_effect = [[10], [10], 1, None]
-    db_tables._check_table(mock.Mock(), conn, table, table)
+    db_tables._check_table(mock.Mock(), conn, table, table, False)
+
+
+def test_check_table_disable_empty_column_check(mocker, table):
+    mocker.patch.object(db_tables.config, 'ALLOW_NULL_DATASET_COLUMNS', False)
+    conn = mock.Mock()
+    conn.execute().fetchone.side_effect = [[10], [10], 1, None]
+    db_tables._check_table(mock.Mock(), conn, table, table, True)
 
 
 def test_check_table_data(mock_db_conn, mocker, table):
@@ -120,7 +127,7 @@ def test_check_table_data(mock_db_conn, mocker, table):
 
     db_tables.check_table_data("test-db", table, ts_nodash="123")
 
-    check_table.assert_called_once_with(mock.ANY, mock_db_conn, mock.ANY, table)
+    check_table.assert_called_once_with(mock.ANY, mock_db_conn, mock.ANY, table, False)
 
 
 def test_swap_dataset_table(mock_db_conn, table):
