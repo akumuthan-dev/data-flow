@@ -111,7 +111,7 @@ class BaseCompanyMatchingPipeline:
                 sensor = ExternalTaskSensor(
                     task_id=f'wait_for_{_pipeline.__name__.lower()}',
                     external_dag_id=_pipeline.__name__,
-                    external_task_id='insert-from-temporary-table',
+                    external_task_id='drop-temp-tables',
                     timeout=pipeline.timeout,
                 )
                 _sensors.append(sensor)
