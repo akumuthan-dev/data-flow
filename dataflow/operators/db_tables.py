@@ -151,10 +151,10 @@ def check_table_data(
             _check_table(engine, conn, temp_table, table, allow_null_columns)
 
 
-def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
-    """Rename temporary table to replace current dataset one.
+def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
+    """Rename temporary tables to replace current dataset one.
 
-    Given a dataset table `table` this finds the temporary table created
+    Given a one or more dataset tables `tables` this finds the temporary table created
     for the current DAG run and replaces existing dataset one with it.
 
     If a dataset table didn't exist the new table gets renamed, otherwise
@@ -170,40 +170,46 @@ def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+    for table in tables:
+        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
-    logger.info(f"Moving {temp_table.name} to {table.name}")
-    with engine.begin() as conn:
-        grantees = conn.execute(
-            """
-            SELECT grantee
-            FROM information_schema.role_table_grants
-            WHERE table_name='{table_name}'
-            AND privilege_type = 'SELECT'
-            AND grantor != grantee
-            """.format(
-                table_name=engine.dialect.identifier_preparer.quote(table.name)
-            )
-        ).fetchall()
-        conn.execute(
-            """
-            ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
-            ALTER TABLE {temp_table} RENAME TO {target_temp_table};
-            """.format(
-                target_temp_table=engine.dialect.identifier_preparer.quote(table.name),
-                swap_table_name=engine.dialect.identifier_preparer.quote(
-                    temp_table.name + "_swap"
-                ),
-                temp_table=engine.dialect.identifier_preparer.quote(temp_table.name),
-            )
-        )
-        for grantee in grantees:
+        logger.info(f"Moving {temp_table.name} to {table.name}")
+        with engine.begin() as conn:
+            grantees = conn.execute(
+                """
+                SELECT grantee
+                FROM information_schema.role_table_grants
+                WHERE table_name='{table_name}'
+                AND privilege_type = 'SELECT'
+                AND grantor != grantee
+                """.format(
+                    table_name=engine.dialect.identifier_preparer.quote(table.name)
+                )
+            ).fetchall()
+
             conn.execute(
-                'GRANT SELECT ON {table_name} TO {grantee}'.format(
-                    table_name=engine.dialect.identifier_preparer.quote(table.name),
-                    grantee=grantee[0],
+                """
+                ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
+                ALTER TABLE {temp_table} RENAME TO {target_temp_table};
+                """.format(
+                    target_temp_table=engine.dialect.identifier_preparer.quote(
+                        table.name
+                    ),
+                    swap_table_name=engine.dialect.identifier_preparer.quote(
+                        temp_table.name + "_swap"
+                    ),
+                    temp_table=engine.dialect.identifier_preparer.quote(
+                        temp_table.name
+                    ),
                 )
             )
+            for grantee in grantees:
+                conn.execute(
+                    'GRANT SELECT ON {table_name} TO {grantee}'.format(
+                        table_name=engine.dialect.identifier_preparer.quote(table.name),
+                        grantee=grantee[0],
+                    )
+                )
 
 
 def drop_temp_tables(target_db: str, *tables, **kwargs):

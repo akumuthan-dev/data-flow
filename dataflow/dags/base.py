@@ -14,7 +14,7 @@ from dataflow.operators.db_tables import (
     create_temp_tables,
     drop_temp_tables,
     insert_data_into_db,
-    swap_dataset_table,
+    swap_dataset_tables,
 )
 from dataflow.utils import FieldMapping
 
@@ -125,9 +125,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs={'allow_null_columns': self.allow_null_columns},
         )
 
-        _swap_dataset_table = PythonOperator(
+        _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
-            python_callable=swap_dataset_table,
+            python_callable=swap_dataset_tables,
             provide_context=True,
             op_args=[self.target_db, self.table],
         )
@@ -144,7 +144,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
-            >> _swap_dataset_table
+            >> _swap_dataset_tables
             >> _drop_tables
         )
 
