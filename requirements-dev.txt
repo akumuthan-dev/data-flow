@@ -4,7 +4,7 @@ black==19.10b0
 flake8==3.7.9
 flake8-bugbear==20.1.4
 mypy==0.761
-pip-tools==4.4.1
+pip-tools==4.5.0
 pytest==5.3.5
 pytest-cov==2.8.1
 pytest-mock==2.0.0
