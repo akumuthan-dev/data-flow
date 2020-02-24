@@ -351,6 +351,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
 
     base_file_name = 'data_hub_fdi_monthly_static'
     start_date = datetime(2020, 1, 1)
+    static = True
     query = '''
         WITH fdi_report AS (
             WITH companies_last_version AS (
