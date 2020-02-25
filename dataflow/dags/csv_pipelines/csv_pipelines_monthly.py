@@ -503,7 +503,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
                 AND LOWER(fdi.status) IN ('ongoing', 'won')
             )
             OR (
-                (fdi.modified_on BETWEEN (date_trunc('month', :run_date) - interval '1 year') and date_trunc('month', :run_date))
+                (fdi.modified_on BETWEEN (date_trunc('month', :run_date) - interval '1 year') and date_trunc('month', :run_date) + interval '1 month')
                 AND LOWER(fdi.status) NOT IN ('ongoing', 'won')
             )
             ORDER BY fdi.actual_land_date, fdi.estimated_land_date ASC
