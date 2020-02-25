@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-03-11
+
+### Added
+
+- `TableConfig` as the canonical way to specify how data is pulled into SQL tables. This includes the ability to handle nested (and deeply nested) related resources.
+- A pipeline for Data Hub Service Performance Indicator (SPI) Investment Reports.
 
 ## 2020-03-12
 

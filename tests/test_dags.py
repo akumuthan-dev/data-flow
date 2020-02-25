@@ -7,6 +7,7 @@ from dataflow.dags import (
     company_matching,
     dataset_pipelines,
     ons_pipelines,
+    spi_pipeline,
 )
 from dataflow.dags.csv_pipelines import (
     csv_pipelines_daily,
@@ -38,6 +39,7 @@ def test_canary_tweets():
         csv_refresh_pipeline,
         dataset_pipelines,
         ons_pipelines,
+        spi_pipeline,
     ],
 )
 def test_pipelines_dags(module):

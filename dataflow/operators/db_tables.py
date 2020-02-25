@@ -1,8 +1,18 @@
+import warnings
+from typing import Tuple, Dict, Optional
+
+import sqlalchemy
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
-from dataflow.utils import get_nested_key, FieldMapping, logger, S3Data
+from dataflow.utils import (
+    get_nested_key,
+    S3Data,
+    TableConfig,
+    SingleTableFieldMapping,
+    logger,
+)
 
 
 class MissingDataError(ValueError):
@@ -51,8 +61,54 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
             table.create(conn, checkfirst=True)
 
 
+def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
+    try:
+        record_data = {
+            db_column.name: get_nested_key(record, field, not db_column.nullable)
+            for field, db_column in field_mapping
+            if field is not None
+        }
+    except KeyError:
+        logger.warning(
+            f"Failed to load item {record.get('id', str(record))}, required field is missing"
+        )
+        raise
+
+    return record_data
+
+
+def _insert_related_records(
+    conn: sqlalchemy.engine.Connection,
+    table_config: TableConfig,
+    contexts: Tuple[Dict, ...],
+):
+    for key, related_table in table_config.related_table_configs:
+        related_records = get_nested_key(contexts[-1], key) or []
+
+        for related_record in related_records:
+            for transform in related_table.transforms:
+                related_record = transform(
+                    related_record, related_table.field_mapping, contexts
+                )
+
+            conn.execute(
+                related_table.temp_table.insert(),
+                **_get_data_to_insert(related_table.columns, related_record),
+            )
+
+            if related_table.related_table_configs:
+                _insert_related_records(
+                    conn, related_table, contexts + (related_record,)
+                )
+
+
 def insert_data_into_db(
-    target_db: str, table: sa.Table, field_mapping: FieldMapping, **kwargs
+    target_db: str,
+    table: Optional[sa.Table] = None,
+    field_mapping: Optional[SingleTableFieldMapping] = None,
+    table_config: Optional[TableConfig] = None,
+    contexts: Tuple = tuple(),
+    **kwargs,
 ):
     """Insert fetched response data into temporary DB tables.
 
@@ -65,33 +121,62 @@ def insert_data_into_db(
     path for a nested value.
 
     """
-    s3 = S3Data(table.name, kwargs["ts_nodash"])
+    if table_config:
+        if table or field_mapping:
+            raise RuntimeError(
+                "You must exclusively provide either (table_config) or (table && field_mapping), not bits of both."
+            )
+
+        table_config.configure(**kwargs)
+        s3 = S3Data(table_config.table_name, kwargs["ts_nodash"])
+
+    elif table is not None and field_mapping is not None:
+        warnings.warn(
+            (
+                "`table` and `field_mapping` parameters are deprecated. "
+                "This pipeline should be migrated to use `table_config`/`TableConfig`."
+            ),
+            DeprecationWarning,
+        )
+
+        s3 = S3Data(table.name, kwargs["ts_nodash"])
+        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+
+    else:
+        raise RuntimeError(
+            f"No complete table/field mapping configuration provided: {table}, {field_mapping}"
+        )
 
     engine = sa.create_engine(
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
     for page, records in s3.iter_keys():
         logger.info(f'Processing page {page}')
 
         with engine.begin() as conn:
-            for record in records:
-                try:
-                    record_data = {
-                        db_column.name: get_nested_key(
-                            record, field, not db_column.nullable
-                        )
-                        for field, db_column in field_mapping
-                        if field is not None
-                    }
-                except KeyError:
-                    logger.warning(
-                        f"Failed to load item {record.get('id', '')}, required field is missing"
+            if table_config:
+                for record in records:
+                    for transform in table_config.transforms:
+                        record = transform(record, table_config, contexts)
+
+                    conn.execute(
+                        table_config.temp_table.insert(),
+                        **_get_data_to_insert(table_config.columns, record),
                     )
-                    raise
-                conn.execute(temp_table.insert(), **record_data)
+
+                    if table_config.related_table_configs:
+                        _insert_related_records(
+                            conn, table_config, contexts + (record,)
+                        )
+
+            elif table is not None and field_mapping:
+                for record in records:
+                    conn.execute(
+                        temp_table.insert(),
+                        **_get_data_to_insert(field_mapping, record),
+                    )
 
         logger.info(f'Page {page} ingested successfully')
 

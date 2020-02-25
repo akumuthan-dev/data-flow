@@ -5,6 +5,7 @@ import pytest
 import sqlalchemy
 
 from dataflow.operators import db_tables
+from dataflow.utils import TableConfig
 
 
 @pytest.fixture
@@ -64,6 +65,37 @@ def test_insert_data_into_db(mocker, mock_db_conn, s3):
         [
             mock.call(table.insert(), data="text", id=1),
             mock.call(table.insert(), data=None, id=2),
+        ]
+    )
+
+    s3.iter_keys.assert_called_once_with()
+
+
+def test_insert_data_into_db_using_db_config(mocker, mock_db_conn, s3):
+    s3.iter_keys.return_value = [
+        ('1', [{"id": 1, "extra": "ignored", "data": "text"}]),
+        ('2', [{"id": 2}]),
+    ]
+
+    table_config = TableConfig(
+        table_name="my-table",
+        field_mapping=(
+            ("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False)),
+            ("data", sqlalchemy.Column("data", sqlalchemy.String())),
+        ),
+    )
+    mock_table = mock.Mock()
+    mocker.patch.object(table_config, '_table', mock_table)
+    mocker.patch.object(table_config, '_temp_table', mock_table)
+
+    db_tables.insert_data_into_db(
+        target_db="test-db", table_config=table_config, ts_nodash="123",
+    )
+
+    mock_db_conn.execute.assert_has_calls(
+        [
+            mock.call(mock_table.insert(), data="text", id=1),
+            mock.call(mock_table.insert(), data=None, id=2),
         ]
     )
 
