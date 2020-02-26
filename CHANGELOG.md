@@ -12,6 +12,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add created by id to interactions dataset
 
 
+## 2020-02-26
+
+### Changed
+
+- Update monthly static FDI report query
+  - Join string arrays with semicolons
+  - Do not include empty string for `other_business_activities` field 
+
+
 ## 2020-02-25
 
 ### Changed

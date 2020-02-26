@@ -442,7 +442,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
                 fdi.status,
                 fdi.anonymous_description,
                 fdi.associated_non_fdi_r_and_d_project_id,
-                array_to_string(fdi.competing_countries, '; ') as competing_countries,
+                ARRAY_TO_STRING(fdi.competing_countries, '; ') as competing_countries,
                 (
                     SELECT STRING_AGG(CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name, ')'), '; ')
                     FROM advisers_dataset
@@ -460,21 +460,21 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
                 fdi.referral_source_activity,
                 fdi.referral_source_activity_website,
                 fdi.referral_source_activity_marketing,
-                fdi.delivery_partners,
-                fdi.possible_uk_regions,
-                fdi.actual_uk_regions,
+                ARRAY_TO_STRING(fdi.delivery_partners, '; ') AS delivery_partners,
+                ARRAY_TO_STRING(fdi.possible_uk_regions, '; ') AS possible_uk_regions,
+                ARRAY_TO_STRING(fdi.actual_uk_regions, '; ') AS actual_uk_regions,
                 CASE
-                  WHEN fdi.other_business_activity IS NULL AND fdi.business_activities IS NOT NULL
+                  WHEN fdi.other_business_activity IN (NULL, '') AND fdi.business_activities IS NOT NULL
                     THEN ARRAY_TO_STRING(fdi.business_activities, '; ')
-                  WHEN fdi.other_business_activity IS NOT NULL AND fdi.business_activities IS NULL
+                  WHEN fdi.other_business_activity NOT IN (NULL, '') AND fdi.business_activities IS NULL
                     THEN fdi.other_business_activity
-                  WHEN fdi.other_business_activity IS NOT NULL AND fdi.business_activities IS NOT NULL
+                  WHEN fdi.other_business_activity NOT IN (NULL, '') AND fdi.business_activities IS NOT NULL
                     THEN fdi.other_business_activity || '; ' || ARRAY_TO_STRING(fdi.business_activities, '; ')
                 END AS business_activities,
                 fdi.project_arrived_in_triage_on,
                 fdi.proposal_deadline,
                 CASE WHEN fdi.export_revenue THEN 'yes' ELSE 'no' END AS export_revenue,
-                fdi.strategic_drivers,
+                ARRAY_TO_STRING(fdi.strategic_drivers, '; ') as strategic_drivers,
                 fdi.gross_value_added,
                 fdi.gva_multiplier
             FROM investment_projects_dataset fdi
