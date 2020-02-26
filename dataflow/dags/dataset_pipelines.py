@@ -781,5 +781,25 @@ class ONSPostcodePipeline(BaseDatasetPipeline):
     ]
 
 
+class WorldBankTariffPipeline(BaseDatasetPipeline):
+    """Pipeline meta object for World bank tariff data."""
+
+    table_name = 'world_bank_tariffs'
+    source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
+    field_mapping = [
+        ('appRate', sa.Column('app_rate', sa.Numeric)),
+        ('assumedTariff', sa.Column('assumed_tariff', sa.Numeric)),
+        ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
+        ('countryAverage', sa.Column('country_average', sa.Numeric)),
+        ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
+        ('partner', sa.Column('partner', sa.Integer)),
+        ('prfRate', sa.Column('prf_rate', sa.Numeric)),
+        ('product', sa.Column('product', sa.Integer)),
+        ('reporter', sa.Column('reporter', sa.Integer)),
+        ('worldAverage', sa.Column('world_average', sa.Numeric)),
+        ('year', sa.Column('year', sa.Integer)),
+    ]
+
+
 for pipeline in BaseDatasetPipeline.__subclasses__():
     globals()[pipeline.__name__ + "__dag"] = pipeline().get_dag()
