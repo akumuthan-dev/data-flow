@@ -49,9 +49,18 @@ class _PipelineDAG(metaclass=PipelineMeta):
     schedule_interval: str = "@daily"
     catchup: bool = False
 
+    # Name of the DB table that will be created for the dataset
     table_name: str
+
+    # Disables the null columns check that makes sure all DB columns
+    # have at least one non-null value
     allow_null_columns: bool = False
 
+    # A list of (field/path, Column) pairs, defining which source data
+    # keys end up in which DB columns. Each field/path can be one of:
+    # * None (indicating an autopopulated field like an auto-increment primary key))
+    # * A string for a top-level key access
+    # * A tuple of strings or integers for a nested key access
     field_mapping: FieldMapping
 
     def get_fetch_operator(self) -> PythonOperator:
@@ -149,10 +158,16 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
     schedule_interval: str = "@daily"
     catchup: bool = True
 
+    # Static pipeliens are not refreshed daily, so generated files won't be updated
     static: bool = False
+
+    # S3 file name prefix
+    base_file_name: str
+
+    # Controls whether the current timestamp is appended to the base_file_name in S3 path
     timestamp_output: bool = True
 
-    base_file_name: str
+    # DB query to generate data for the CSV file
     query: str
 
     def get_dag(self) -> DAG:
