@@ -5,20 +5,20 @@ from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 from dataflow.dags.csv_pipelines.csv_pipelines_daily import (  # noqa: F401
-    BaseDailyCSVPipeline,
+    _DailyCSVPipeline,
 )
 from dataflow.dags.csv_pipelines.csv_pipelines_monthly import (  # noqa: F401
-    BaseMonthlyCSVPipeline,
+    _MonthlyCSVPipeline,
 )
 from dataflow.dags.csv_pipelines.csv_pipelines_yearly import (  # noqa: F401
-    BaseYearlyCSVPipeline,
+    _YearlyCSVPipeline,
 )
 from dataflow.operators.csv_outputs import create_csv
 
 
-class DailyCSVRefreshPipeline(BaseCSVPipeline):
+class DailyCSVRefreshPipeline(_CSVPipelineDAG):
     """
     Dag to rerun all previous runs of non-static csv outputs.
     Runs daily to recreate all csvs after the nightly table syncs have run
@@ -64,7 +64,7 @@ class DailyCSVRefreshPipeline(BaseCSVPipeline):
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
         ) as dag:
-            for base_pipeline in BaseCSVPipeline.__subclasses__():
+            for base_pipeline in _CSVPipelineDAG.__subclasses__():
                 pipelines = [
                     pipeline
                     for pipeline in base_pipeline.__subclasses__()
@@ -92,6 +92,3 @@ class DailyCSVRefreshPipeline(BaseCSVPipeline):
                         )
                     task_group.set_downstream(tasks)
         return dag
-
-
-globals()['DailyCSVRefreshPipeline__dag'] = DailyCSVRefreshPipeline().get_dag()

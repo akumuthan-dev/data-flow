@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 
 
-class BaseDailyCSVPipeline(BaseCSVPipeline):
+class _DailyCSVPipeline(_CSVPipelineDAG):
     """
     Base DAG to allow subclasses to be picked up by airflow
     """
@@ -14,7 +14,7 @@ class BaseDailyCSVPipeline(BaseCSVPipeline):
     static = True
 
 
-class DataHubFDIDailyCSVPipeline(BaseDailyCSVPipeline):
+class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
 
     base_file_name = 'fdi_daily'
@@ -201,7 +201,3 @@ class DataHubFDIDailyCSVPipeline(BaseDailyCSVPipeline):
             proposal_deadline, export_revenue, strategic_drivers, gross_value_added, gva_multiplier
         FROM fdi_report f
     '''
-
-
-for pipeline in BaseDailyCSVPipeline.__subclasses__():
-    globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()
