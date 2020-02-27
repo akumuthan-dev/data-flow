@@ -306,6 +306,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('communication_channel__name', sa.Column('communication_channel', sa.String)),
         ('company_id', sa.Column('company_id', UUID)),
         ('contact_ids', sa.Column('contact_ids', sa.ARRAY(sa.Text))),
+        ('created_by_id', sa.Column('created_by_id', UUID)),
         ('created_on', sa.Column('created_on', sa.DateTime)),
         ('date', sa.Column('interaction_date', sa.Date)),
         ('event_id', sa.Column('event_id', UUID)),
