@@ -51,7 +51,6 @@ class _PipelineDAG(metaclass=PipelineMeta):
 
     table_name: str
     allow_null_columns: bool = False
-    cascade_drop_tables: bool = False
 
     field_mapping: FieldMapping
 
@@ -130,7 +129,6 @@ class _PipelineDAG(metaclass=PipelineMeta):
             provide_context=True,
             trigger_rule="all_done",
             op_args=[self.target_db, self.table],
-            op_kwargs={'cascade': self.cascade_drop_tables},
         )
 
         (
@@ -153,7 +151,6 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
 
     static: bool = False
     timestamp_output: bool = True
-    refresh_daily: bool = True
 
     base_file_name: str
     query: str
