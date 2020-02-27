@@ -4,6 +4,7 @@ from airflow.models import DAG
 from dataflow.dags import (
     activity_stream_pipelines,
     canary,
+    company_matching,
     dataset_pipelines,
     ons_pipelines,
 )
@@ -30,6 +31,7 @@ def test_canary_tweets():
     "module",
     [
         activity_stream_pipelines,
+        company_matching,
         csv_pipelines_daily,
         csv_pipelines_monthly,
         csv_pipelines_yearly,
