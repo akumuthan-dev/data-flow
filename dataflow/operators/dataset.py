@@ -5,18 +5,14 @@ from mohawk import Sender
 from mohawk.exc import HawkFail
 import requests
 
-from dataflow import config
 from dataflow.utils import S3Data
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
-def _hawk_api_request(url: str):
+def _hawk_api_request(url: str, hawk_id: str, hawk_key: str, hawk_algorithm: str):
+
     sender = Sender(
-        {
-            'id': config.HAWK_ID,
-            'key': config.HAWK_KEY,
-            'algorithm': config.HAWK_ALGORITHM,
-        },
+        {'id': hawk_id, 'key': hawk_key, 'algorithm': hawk_algorithm},
         url,
         'get',
         content='',
@@ -51,13 +47,20 @@ def _hawk_api_request(url: str):
     return response_json
 
 
-def fetch_from_api(table_name: str, source_url: str, **kwargs):
+def fetch_from_api(
+    table_name: str,
+    source_url: str,
+    hawk_id: str,
+    hawk_key: str,
+    hawk_algorithm: str,
+    **kwargs,
+):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     total_records = 0
     page = 1
 
     while True:
-        data = _hawk_api_request(source_url)
+        data = _hawk_api_request(source_url, hawk_id, hawk_key, hawk_algorithm)
         total_records += len(data["results"])
         s3.write_key(f"{page:010}.json", data["results"])
         logging.info(f"Fetched {total_records} records")

@@ -23,7 +23,7 @@ def test_hawk_api_request_fail(mocker, requests_mock):
         json={'next': None, 'results': []},
     )
     with pytest.raises(HawkFail):
-        dataset._hawk_api_request('http://test')
+        dataset._hawk_api_request('http://test', 'hawkid', 'hawkkey', 'hawkalgo')
 
 
 def test_hawk_api_request(mock_sender, requests_mock):
@@ -32,7 +32,7 @@ def test_hawk_api_request(mock_sender, requests_mock):
         headers={'Server-Authorization': 'dummy', 'Content-Type': ''},
         json={'next': None, 'results': []},
     )
-    dataset._hawk_api_request('http://test')
+    dataset._hawk_api_request('http://test', 'hawkid', 'hawkkey', 'hawkalgo')
 
 
 def test_fetch_raises_error_invalid_response(mock_sender, requests_mock):
@@ -43,7 +43,7 @@ def test_fetch_raises_error_invalid_response(mock_sender, requests_mock):
     )
 
     with pytest.raises(ValueError):
-        dataset._hawk_api_request('http://test')
+        dataset._hawk_api_request('http://test', 'hawkid', 'hawkkey', 'hawkalgo')
 
 
 def test_fetch_raises_for_non_2xx_status(mocker, mock_sender, requests_mock):
@@ -54,7 +54,7 @@ def test_fetch_raises_for_non_2xx_status(mocker, mock_sender, requests_mock):
         status_code=404,
     )
     with pytest.raises(HTTPError):
-        dataset._hawk_api_request('http://test')
+        dataset._hawk_api_request('http://test', 'hawkid', 'hawkkey', 'hawkalgo')
 
 
 def test_fetch(mocker):
@@ -74,8 +74,10 @@ def test_fetch(mocker):
     s3_mock = mock.MagicMock()
     mocker.patch.object(dataset, "S3Data", return_value=s3_mock, autospec=True)
 
-    dataset.fetch_from_api('table', 'http://test', ts_nodash='task-1')
-    req.assert_has_calls([mock.call('http://test')])
+    dataset.fetch_from_api(
+        'table', 'http://test', 'hawkid', 'hawkkey', 'hawkalgo', ts_nodash='task-1'
+    )
+    req.assert_has_calls([mock.call('http://test', 'hawkid', 'hawkkey', 'hawkalgo')])
 
     s3_mock.write_key.assert_has_calls(
         [

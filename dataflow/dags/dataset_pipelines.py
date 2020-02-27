@@ -24,6 +24,9 @@ class BaseDatasetPipeline:
     schedule_interval = '@daily'
     catchup = False
     allow_null_columns = False
+    hawk_id = config.HAWK_ID
+    hawk_key = config.HAWK_KEY
+    hawk_algorithm = config.HAWK_ALGORITHM
 
     @property
     def table(self):
@@ -59,7 +62,13 @@ class BaseDatasetPipeline:
                 task_id='run-fetch',
                 python_callable=fetch_from_api,
                 provide_context=True,
-                op_args=[self.table_name, self.source_url],
+                op_args=[
+                    self.table_name,
+                    self.source_url,
+                    self.hawk_id,
+                    self.hawk_key,
+                    self.hawk_algorithm,
+                ],
             )
 
             _create_tables = PythonOperator(
@@ -779,6 +788,18 @@ class ONSPostcodePipeline(BaseDatasetPipeline):
         ('calncv', sa.Column('calncv', sa.Text)),
         ('stp', sa.Column('stp', sa.Text)),
     ]
+
+
+class MarketAccessBarrier(BaseDatasetPipeline):
+    """Pipeline meta object for market access barrier data."""
+
+    table_name = 'market_access_barriers'
+    # TODO: confirm this is the correct barrier list endpoint
+    source_url = '{0}/list-barriers'.format(config.MARKET_ACCESS_BASE_URL)
+    hawk_id = config.MARKET_ACCESS_HAWK_ID
+    hawk_key = config.MARKET_ACCESS_HAWK_KEY
+    # TODO: Waiting for confirmation of market access api response details
+    field_mapping = [('barrier_id', sa.Column('id', UUID, primary_key=True))]
 
 
 for pipeline in BaseDatasetPipeline.__subclasses__():
