@@ -118,7 +118,7 @@ class DataHubOMISAllOrdersCSVPipeline(BaseMonthlyCSVPipeline):
         FROM omis_dataset
         JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
-        WHERE omis_dataset.created_date < date_trunc('month', :run_date)
+        WHERE omis_dataset.created_date < date_trunc('month', :run_date)  + interval '1 month'
     '''
 
 
