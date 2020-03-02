@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 
 
-class BaseYearlyCSVPipeline(BaseCSVPipeline):
+class _YearlyCSVPipeline(_CSVPipelineDAG):
     """
     Base DAG to allow subclasses to be picked up by airflow
     """
@@ -11,12 +11,12 @@ class BaseYearlyCSVPipeline(BaseCSVPipeline):
     schedule_interval = '@yearly'
 
 
-class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
+class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
     """Pipeline meta object for the yearly export wins report."""
 
     base_file_name = 'export_wins_yearly'
     start_date = datetime(2018, 1, 1)
-    schedule_interval = '@yearly'
+
     query = '''
         SELECT
             "ID",
@@ -349,7 +349,3 @@ class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
     '''
-
-
-for pipeline in BaseYearlyCSVPipeline.__subclasses__():
-    globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()

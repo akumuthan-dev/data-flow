@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 
 
-class BaseMonthlyCSVPipeline(BaseCSVPipeline):
+class _MonthlyCSVPipeline(_CSVPipelineDAG):
     """
     Base DAG to allow subclasses to be picked up by airflow
     """
@@ -12,7 +12,7 @@ class BaseMonthlyCSVPipeline(BaseCSVPipeline):
     start_date = datetime(2019, 10, 1)
 
 
-class DataHubOMISCompletedOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
 
     base_file_name = 'completed_omis_orders'
@@ -46,7 +46,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(BaseMonthlyCSVPipeline):
         '''
 
 
-class DataHubOMISCancelledOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Cancelled OMIS Order CSV."""
 
     base_file_name = 'cancelled_omis_orders'
@@ -87,7 +87,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubOMISAllOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
      of the last calendar month"""
 
@@ -122,7 +122,7 @@ class DataHubOMISAllOrdersCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubOMISClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for monthly OMIS Client Survey report."""
 
     base_file_name = 'omis_client_survey_static'
@@ -159,7 +159,7 @@ class DataHubOMISClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubServiceDeliveryInteractionsCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
     base_file_name = 'datahub_service_interactions'
@@ -251,7 +251,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubExportClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub export client survey report."""
 
     base_file_name = 'datahub_export_client_survey'
@@ -346,7 +346,7 @@ class DataHubExportClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Static monthly view of the FDI (investment projects) report"""
 
     base_file_name = 'data_hub_fdi_monthly_static'
@@ -537,7 +537,3 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
             proposal_deadline, export_revenue, strategic_drivers, gross_value_added, gva_multiplier
         FROM fdi_report f
     '''
-
-
-for pipeline in BaseMonthlyCSVPipeline.__subclasses__():
-    globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()
