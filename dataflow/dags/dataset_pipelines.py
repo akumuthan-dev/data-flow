@@ -1,117 +1,29 @@
 """A module that defines Airflow DAGS for dataset pipelines."""
-from datetime import datetime, timedelta
 
 import sqlalchemy as sa
-from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow import config
+from dataflow.dags import _PipelineDAG
 from dataflow.operators.dataset import fetch_from_api
-from dataflow.operators.db_tables import (
-    check_table_data,
-    create_temp_tables,
-    insert_data_into_db,
-    swap_dataset_table,
-    drop_temp_tables,
-)
 
 
-class BaseDatasetPipeline:
-    target_db = config.DATASETS_DB_NAME
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = '@daily'
-    catchup = False
-    allow_null_columns = False
+class _DatasetPipeline(_PipelineDAG):
+    cascade_drop_tables = True
 
-    @property
-    def table(self):
-        if not hasattr(self, "_table"):
-            meta = sa.MetaData()
-            self._table = sa.Table(
-                self.table_name,
-                meta,
-                *[column.copy() for _, column in self.field_mapping],
-            )
-        return self._table
+    source_url: str
 
-    def get_dag(self):
-        with DAG(
-            self.__class__.__name__,
-            catchup=self.catchup,
-            default_args={
-                'owner': 'airflow',
-                'depends_on_past': False,
-                'email_on_failure': False,
-                'email_on_retry': False,
-                'retries': 0,
-                'retry_delay': timedelta(minutes=5),
-                'catchup': self.catchup,
-            },
-            start_date=self.start_date,
-            end_date=self.end_date,
-            schedule_interval=self.schedule_interval,
-            max_active_runs=1,
-        ) as dag:
-
-            _fetch = PythonOperator(
-                task_id='run-fetch',
-                python_callable=fetch_from_api,
-                provide_context=True,
-                op_args=[self.table_name, self.source_url],
-            )
-
-            _create_tables = PythonOperator(
-                task_id='create-temp-tables',
-                python_callable=create_temp_tables,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-            )
-
-            _insert_into_temp_table = PythonOperator(
-                task_id="insert-into-temp-table",
-                python_callable=insert_data_into_db,
-                provide_context=True,
-                op_args=[self.target_db, self.table, self.field_mapping],
-            )
-
-            _check_tables = PythonOperator(
-                task_id="check-temp-table-data",
-                python_callable=check_table_data,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-                op_kwargs={'allow_null_columns': self.allow_null_columns},
-            )
-
-            _swap_dataset_table = PythonOperator(
-                task_id="swap-dataset-table",
-                python_callable=swap_dataset_table,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-            )
-
-            _drop_tables = PythonOperator(
-                task_id="drop-temp-tables",
-                python_callable=drop_temp_tables,
-                provide_context=True,
-                trigger_rule="all_done",
-                op_args=[self.target_db, self.table],
-                op_kwargs={'cascade': True},
-            )
-
-        (
-            [_fetch, _create_tables]
-            >> _insert_into_temp_table
-            >> _check_tables
-            >> _swap_dataset_table
-            >> _drop_tables
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='run-fetch',
+            python_callable=fetch_from_api,
+            provide_context=True,
+            op_args=[self.table_name, self.source_url],
         )
 
-        return dag
 
-
-class CompanyExportToCountries(BaseDatasetPipeline):
+class CompanyExportToCountries(_DatasetPipeline):
 
     table_name = 'company_export_to_countries_dataset'
     source_url = '{0}/v4/dataset/company-export-to-countries-dataset'.format(
@@ -125,7 +37,7 @@ class CompanyExportToCountries(BaseDatasetPipeline):
     ]
 
 
-class CompanyFutureInterestCountries(BaseDatasetPipeline):
+class CompanyFutureInterestCountries(_DatasetPipeline):
 
     table_name = 'company_future_interest_countries_dataset'
     source_url = '{0}/v4/dataset/company-future-interest-countries-dataset'.format(
@@ -139,7 +51,7 @@ class CompanyFutureInterestCountries(BaseDatasetPipeline):
     ]
 
 
-class CountriesOfInterestServicePipeline(BaseDatasetPipeline):
+class CountriesOfInterestServicePipeline(_DatasetPipeline):
     table_name = 'countries_of_interest_dataset'
     source_url = (
         '{0}/api/v1/get-company-countries-and-sectors-of-interest'
@@ -158,7 +70,7 @@ class CountriesOfInterestServicePipeline(BaseDatasetPipeline):
     ]
 
 
-class OMISDatasetPipeline(BaseDatasetPipeline):
+class OMISDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for OMISDataset."""
 
     table_name = 'omis_dataset'
@@ -191,7 +103,7 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
+class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for InvestmentProjectsDataset."""
 
     table_name = 'investment_projects_dataset'
@@ -292,7 +204,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class InteractionsDatasetPipeline(BaseDatasetPipeline):
+class InteractionsDatasetPipeline(_DatasetPipeline):
     table_name = 'interactions_dataset'
     source_url = '{}/v4/dataset/interactions-dataset'.format(config.DATAHUB_BASE_URL)
     field_mapping = [
@@ -300,6 +212,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('communication_channel__name', sa.Column('communication_channel', sa.String)),
         ('company_id', sa.Column('company_id', UUID)),
         ('contact_ids', sa.Column('contact_ids', sa.ARRAY(sa.Text))),
+        ('created_by_id', sa.Column('created_by_id', UUID)),
         ('created_on', sa.Column('created_on', sa.DateTime)),
         ('date', sa.Column('interaction_date', sa.Date)),
         ('event_id', sa.Column('event_id', UUID)),
@@ -325,7 +238,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ContactsDatasetPipeline(BaseDatasetPipeline):
+class ContactsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
     table_name = 'contacts_dataset'
@@ -359,7 +272,7 @@ class ContactsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class CompaniesDatasetPipeline(BaseDatasetPipeline):
+class CompaniesDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for CompaniesDataset."""
 
     table_name = 'companies_dataset'
@@ -421,7 +334,7 @@ class CompaniesDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class AdvisersDatasetPipeline(BaseDatasetPipeline):
+class AdvisersDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for AdvisersDataset."""
 
     table_name = 'advisers_dataset'
@@ -438,7 +351,7 @@ class AdvisersDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class TeamsDatasetPipeline(BaseDatasetPipeline):
+class TeamsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for TeamsDataset."""
 
     table_name = 'teams_dataset'
@@ -452,7 +365,7 @@ class TeamsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class EventsDatasetPipeline(BaseDatasetPipeline):
+class EventsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for EventsDataset."""
 
     table_name = 'events_dataset'
@@ -480,7 +393,7 @@ class EventsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ExportWinsAdvisersDatasetPipeline(BaseDatasetPipeline):
+class ExportWinsAdvisersDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for Export wins advisers."""
 
     table_name = 'export_wins_advisers_dataset'
@@ -495,7 +408,7 @@ class ExportWinsAdvisersDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
+class ExportWinsBreakdownsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for Export wins yearly export/non-export value."""
 
     table_name = 'export_wins_breakdowns_dataset'
@@ -509,7 +422,7 @@ class ExportWinsBreakdownsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ExportWinsHVCDatasetPipeline(BaseDatasetPipeline):
+class ExportWinsHVCDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for Export wins HVC data."""
 
     table_name = 'export_wins_hvc_dataset'
@@ -522,7 +435,7 @@ class ExportWinsHVCDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
+class ExportWinsWinsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for Export wins wins."""
 
     table_name = 'export_wins_wins_dataset'
@@ -708,7 +621,7 @@ class ExportWinsWinsDatasetPipeline(BaseDatasetPipeline):
     ]
 
 
-class ONSPostcodePipeline(BaseDatasetPipeline):
+class ONSPostcodePipeline(_DatasetPipeline):
     """Pipeline meta object for ONS Postcode data."""
 
     table_name = 'ons_postcodes'

@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 
 
-class BaseMonthlyCSVPipeline(BaseCSVPipeline):
+class _MonthlyCSVPipeline(_CSVPipelineDAG):
     """
     Base DAG to allow subclasses to be picked up by airflow
     """
@@ -12,7 +12,7 @@ class BaseMonthlyCSVPipeline(BaseCSVPipeline):
     start_date = datetime(2019, 10, 1)
 
 
-class DataHubOMISCompletedOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
 
     base_file_name = 'completed_omis_orders'
@@ -46,7 +46,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(BaseMonthlyCSVPipeline):
         '''
 
 
-class DataHubOMISCancelledOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Cancelled OMIS Order CSV."""
 
     base_file_name = 'cancelled_omis_orders'
@@ -87,7 +87,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubOMISAllOrdersCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
      of the last calendar month"""
 
@@ -118,11 +118,11 @@ class DataHubOMISAllOrdersCSVPipeline(BaseMonthlyCSVPipeline):
         FROM omis_dataset
         JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
-        WHERE omis_dataset.created_date < date_trunc('month', :run_date)
+        WHERE omis_dataset.created_date < date_trunc('month', :run_date)  + interval '1 month'
     '''
 
 
-class DataHubOMISClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for monthly OMIS Client Survey report."""
 
     base_file_name = 'omis_client_survey_static'
@@ -159,7 +159,7 @@ class DataHubOMISClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubServiceDeliveryInteractionsCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
     base_file_name = 'datahub_service_interactions'
@@ -251,7 +251,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubExportClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub export client survey report."""
 
     base_file_name = 'datahub_export_client_survey'
@@ -346,7 +346,7 @@ class DataHubExportClientSurveyStaticCSVPipeline(BaseMonthlyCSVPipeline):
     '''
 
 
-class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
+class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Static monthly view of the FDI (investment projects) report"""
 
     base_file_name = 'data_hub_fdi_monthly_static'
@@ -442,7 +442,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
                 fdi.status,
                 fdi.anonymous_description,
                 fdi.associated_non_fdi_r_and_d_project_id,
-                array_to_string(fdi.competing_countries, '; ') as competing_countries,
+                ARRAY_TO_STRING(fdi.competing_countries, '; ') as competing_countries,
                 (
                     SELECT STRING_AGG(CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name, ')'), '; ')
                     FROM advisers_dataset
@@ -460,21 +460,21 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
                 fdi.referral_source_activity,
                 fdi.referral_source_activity_website,
                 fdi.referral_source_activity_marketing,
-                fdi.delivery_partners,
-                fdi.possible_uk_regions,
-                fdi.actual_uk_regions,
+                ARRAY_TO_STRING(fdi.delivery_partners, '; ') AS delivery_partners,
+                ARRAY_TO_STRING(fdi.possible_uk_regions, '; ') AS possible_uk_regions,
+                ARRAY_TO_STRING(fdi.actual_uk_regions, '; ') AS actual_uk_regions,
                 CASE
-                  WHEN fdi.other_business_activity IS NULL AND fdi.business_activities IS NOT NULL
+                  WHEN fdi.other_business_activity IN (NULL, '') AND fdi.business_activities IS NOT NULL
                     THEN ARRAY_TO_STRING(fdi.business_activities, '; ')
-                  WHEN fdi.other_business_activity IS NOT NULL AND fdi.business_activities IS NULL
+                  WHEN fdi.other_business_activity NOT IN (NULL, '') AND fdi.business_activities IS NULL
                     THEN fdi.other_business_activity
-                  WHEN fdi.other_business_activity IS NOT NULL AND fdi.business_activities IS NOT NULL
+                  WHEN fdi.other_business_activity NOT IN (NULL, '') AND fdi.business_activities IS NOT NULL
                     THEN fdi.other_business_activity || '; ' || ARRAY_TO_STRING(fdi.business_activities, '; ')
                 END AS business_activities,
                 fdi.project_arrived_in_triage_on,
                 fdi.proposal_deadline,
                 CASE WHEN fdi.export_revenue THEN 'yes' ELSE 'no' END AS export_revenue,
-                fdi.strategic_drivers,
+                ARRAY_TO_STRING(fdi.strategic_drivers, '; ') as strategic_drivers,
                 fdi.gross_value_added,
                 fdi.gva_multiplier
             FROM investment_projects_dataset fdi
@@ -537,7 +537,3 @@ class DataHubFDIMonthlyStaticCSVPipeline(BaseMonthlyCSVPipeline):
             proposal_deadline, export_revenue, strategic_drivers, gross_value_added, gva_multiplier
         FROM fdi_report f
     '''
-
-
-for pipeline in BaseMonthlyCSVPipeline.__subclasses__():
-    globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()

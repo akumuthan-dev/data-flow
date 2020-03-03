@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from dataflow.dags.csv_pipeline import BaseCSVPipeline
+from dataflow.dags import _CSVPipelineDAG
 
 
-class BaseYearlyCSVPipeline(BaseCSVPipeline):
+class _YearlyCSVPipeline(_CSVPipelineDAG):
     """
     Base DAG to allow subclasses to be picked up by airflow
     """
@@ -11,12 +11,12 @@ class BaseYearlyCSVPipeline(BaseCSVPipeline):
     schedule_interval = '@yearly'
 
 
-class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
+class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
     """Pipeline meta object for the yearly export wins report."""
 
     base_file_name = 'export_wins_yearly'
     start_date = datetime(2018, 1, 1)
-    schedule_interval = '@yearly'
+
     query = '''
         SELECT
             "ID",
@@ -213,7 +213,6 @@ class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
                     THEN 'Yes'
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_agree_with_win IS NULL
                     THEN 'No'
-                    ELSE NULL
                 END AS "Please confirm these details are correct",
                 export_wins.confirmation_comments AS "Other comments or changes to the win details",
                 export_wins.confirmation_our_support AS "Securing the win overall?",
@@ -226,67 +225,58 @@ class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_involved_state_enterprise
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_involved_state_enterprise IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_involved_state_enterprise IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "The win involved a foreign government or state-owned enterprise (eg as an intermediary or facilitator)",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_interventions_were_prerequisite
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_interventions_were_prerequisite IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_interventions_were_prerequisite IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "Our support was a prerequisite to generate this export value",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_support_improved_speed
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_support_improved_speed IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_support_improved_speed IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "Our support helped you achieve this win more quickly",
                 export_wins.confirmation_portion_without_help AS "Estimated value you would have achieved without our support?",
                 export_wins.confirmation_last_export AS "Apart from this win, when did your company last export?",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_company_was_at_risk_of_not_exporting
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_company_was_at_risk_of_not_exporting IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_company_was_at_risk_of_not_exporting IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "Without this win, your company might have stopped exporting",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_explicit_export_plans
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_explicit_export_plans IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_explicit_export_plans IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "Apart from this win, you already have specific plans to export in the next 12 months",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_new_market
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_new_market IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_new_market IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "It enabled you to expand into a new market",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_increased_exports_as_percent_of_turnover
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_increased_exports_as_percent_of_turnover IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_increased_exports_as_percent_of_turnover IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "It enabled you to increase exports as a proportion of your turnover",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_existing_market
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_existing_market IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_has_enabled_expansion_into_existing_market IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "It enabled you to maintain or expand in an existing market",
                 CASE
                     WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_case_study_willing
                     THEN 'Yes'
-                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_case_study_willing IS NULL
+                    WHEN export_wins.confirmation_created IS NOT NULL AND export_wins.confirmation_case_study_willing IN (FALSE, NULL)
                     THEN 'No'
-                    ELSE NULL
                 END AS "Would you be willing to be featured in marketing materials?",
                 export_wins.confirmation_marketing_source AS "How did you first hear about DIT (or its predecessor, UKTI)",
                 export_wins.confirmation_other_marketing_source AS "Other marketing source"
@@ -359,7 +349,3 @@ class ExportWinsYearlyCSVPipeline(BaseYearlyCSVPipeline):
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
     '''
-
-
-for pipeline in BaseYearlyCSVPipeline.__subclasses__():
-    globals()[pipeline.__name__ + '__dag'] = pipeline().get_dag()
