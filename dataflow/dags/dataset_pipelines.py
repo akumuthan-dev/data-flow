@@ -682,7 +682,7 @@ class ONSPostcodePipeline(_DatasetPipeline):
     ]
 
 
-class WorldBankTariffPipeline(BaseDatasetPipeline):
+class WorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for World bank tariff data."""
 
     table_name = 'world_bank_tariffs'
@@ -700,7 +700,3 @@ class WorldBankTariffPipeline(BaseDatasetPipeline):
         ('worldAverage', sa.Column('world_average', sa.Numeric)),
         ('year', sa.Column('year', sa.Integer)),
     ]
-
-
-for pipeline in BaseDatasetPipeline.__subclasses__():
-    globals()[pipeline.__name__ + "__dag"] = pipeline().get_dag()
