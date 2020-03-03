@@ -184,7 +184,7 @@ class OMISDatasetPipeline(BaseDatasetPipeline):
         ('sector_name', sa.Column('sector', sa.String)),
         ('services', sa.Column('services', sa.Text)),
         ('status', sa.Column('order_status', sa.String)),
-        ('subtotal_cost', sa.Column('net_price', sa.Numeric(asdecimal=True))),
+        ('subtotal_cost', sa.Column('net_price', sa.Numeric)),
         ('total_cost', sa.Column('total_cost', sa.Integer)),
         ('uk_region__name', sa.Column('uk_region', sa.Text)),
         ('vat_cost', sa.Column('vat_cost', sa.Integer)),
@@ -232,16 +232,16 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('fdi_value__name', sa.Column('fdi_value', sa.Text)),
         (
             'foreign_equity_investment',
-            sa.Column('foreign_equity_investment', sa.Numeric(asdecimal=True)),
+            sa.Column('foreign_equity_investment', sa.Numeric),
         ),
         ('government_assistance', sa.Column('government_assistance', sa.Boolean)),
         (
             'gross_value_added',
-            sa.Column('gross_value_added', sa.Numeric(asdecimal=True)),
+            sa.Column('gross_value_added', sa.Numeric),
         ),
         (
             'gva_multiplier__multiplier',
-            sa.Column('gva_multiplier', sa.Numeric(asdecimal=True)),
+            sa.Column('gva_multiplier', sa.Numeric),
         ),
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('investment_type__name', sa.Column('investment_type', sa.Text)),
@@ -288,7 +288,7 @@ class InvestmentProjectsDatasetPipeline(BaseDatasetPipeline):
         ('status', sa.Column('status', sa.String)),
         ('strategic_driver_names', sa.Column('strategic_drivers', sa.ARRAY(sa.Text))),
         ('team_member_ids', sa.Column('team_member_ids', sa.ARRAY(sa.Text))),
-        ('total_investment', sa.Column('total_investment', sa.Numeric(asdecimal=True))),
+        ('total_investment', sa.Column('total_investment', sa.Numeric)),
         ('uk_company_id', sa.Column('uk_company_id', UUID)),
         ('uk_company_sector', sa.Column('uk_company_sector', sa.String)),
         (
@@ -311,7 +311,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('event_id', sa.Column('event_id', UUID)),
         (
             'grant_amount_offered',
-            sa.Column('grant_amount_offered', sa.Numeric(asdecimal=True)),
+            sa.Column('grant_amount_offered', sa.Numeric),
         ),
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('interaction_link', sa.Column('interaction_link', sa.String)),
@@ -320,7 +320,7 @@ class InteractionsDatasetPipeline(BaseDatasetPipeline):
         ('modified_on', sa.Column('modified_on', sa.DateTime)),
         (
             'net_company_receipt',
-            sa.Column('net_company_receipt', sa.Numeric(asdecimal=True)),
+            sa.Column('net_company_receipt', sa.Numeric),
         ),
         ('notes', sa.Column('interaction_notes', sa.Text)),
         ('sector', sa.Column('sector', sa.String)),
