@@ -153,6 +153,41 @@ def check_table_data(
             _check_table(engine, conn, temp_table, table, allow_null_columns)
 
 
+def query_database(
+    query: str, target_db: str, table_name, batch_size: int = 100000, **kwargs
+):
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
+    total_records = 0
+    next_batch = 1
+
+    logging.info(f'query_database.query: \n{query}')
+
+    try:
+        # create connection with named cursor to fetch data in batches
+        connection = PostgresHook(postgres_conn_id=target_db).get_conn()
+        cursor = connection.cursor(name='query_database')
+        cursor.execute(query)
+
+        rows = cursor.fetchmany(batch_size)
+        fields = [d[0] for d in cursor.description]
+        while len(rows):
+            records = []
+            for row in rows:
+                record = {fields[col]: rows[col] for col in range(len(row))}
+                records.append(record)
+            s3.write_key(f'{next_batch:010}.json', records)
+            next_batch += 1
+            total_records += len(records)
+            logging.info(f'Fetched {total_records} records')
+            rows = cursor.fetchmany(batch_size)
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+    logging.info('Query completed')
+
+
 def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
     """Rename temporary table to replace current dataset one.
 
