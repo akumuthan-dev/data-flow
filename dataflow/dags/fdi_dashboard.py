@@ -73,13 +73,21 @@ class FDIDashboardPipeline:
      and investment_projects_dataset.investment_type = 'FDI'
      and investment_projects_dataset.status = 'ongoing'
     '''
+    start_date = datetime.datetime(2020, 3, 3)
     table_name = "fdi_dashboard_data"
     timeout = 7200
 
     @classmethod
     def get_dag(pipeline):
-        start_date = pipeline.controller_pipeline.start_date
-        with airflow.DAG(pipeline.__name__, start_date=start_date) as dag:
+        # start_date = pipeline.controller_pipeline.start_date
+        print('start_date:', start_date)
+        print('type(start_date:', type(start_date))
+        with airflow.DAG(
+                pipeline.__name__,
+                catchup=False,
+                max_active_runs=1,
+                start_date=pipeline.start_date
+        ) as dag:
 
             target_db = pipeline.controller_pipeline.target_db
             target_table = sa.Table(
