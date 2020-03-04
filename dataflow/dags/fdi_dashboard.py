@@ -1,3 +1,5 @@
+import datetime
+
 import airflow
 import sqlalchemy as sa
 from airflow.operators.sensors import ExternalTaskSensor
@@ -80,13 +82,11 @@ class FDIDashboardPipeline:
     @classmethod
     def get_dag(pipeline):
         # start_date = pipeline.controller_pipeline.start_date
-        print('start_date:', start_date)
-        print('type(start_date:', type(start_date))
         with airflow.DAG(
-                pipeline.__name__,
-                catchup=False,
-                max_active_runs=1,
-                start_date=pipeline.start_date
+            pipeline.__name__,
+            catchup=False,
+            max_active_runs=1,
+            start_date=pipeline.start_date,
         ) as dag:
 
             target_db = pipeline.controller_pipeline.target_db
