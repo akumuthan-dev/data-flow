@@ -28,7 +28,7 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
         (("period", "value"), sa.Column("period", sa.String)),
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -64,7 +64,7 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("product", "value"), sa.Column("product", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -125,7 +125,7 @@ class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
         (("period", "value"), sa.Column("period", sa.String)),
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
         (("sic_label", "value"), sa.Column("sector", sa.String)),
         (("product_label", "value"), sa.Column("product", sa.String)),
@@ -167,7 +167,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         (("product_label", "value"), sa.Column("product", sa.String)),
         (("period", "value"), sa.Column("period", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -200,7 +200,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("period", "value"), sa.Column("period", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 

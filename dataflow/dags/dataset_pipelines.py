@@ -96,7 +96,7 @@ class OMISDatasetPipeline(_DatasetPipeline):
         ('sector_name', sa.Column('sector', sa.String)),
         ('services', sa.Column('services', sa.Text)),
         ('status', sa.Column('order_status', sa.String)),
-        ('subtotal_cost', sa.Column('net_price', sa.Numeric(asdecimal=True))),
+        ('subtotal_cost', sa.Column('net_price', sa.Numeric)),
         ('total_cost', sa.Column('total_cost', sa.Integer)),
         ('uk_region__name', sa.Column('uk_region', sa.Text)),
         ('vat_cost', sa.Column('vat_cost', sa.Integer)),
@@ -144,17 +144,11 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
         ('fdi_value__name', sa.Column('fdi_value', sa.Text)),
         (
             'foreign_equity_investment',
-            sa.Column('foreign_equity_investment', sa.Numeric(asdecimal=True)),
+            sa.Column('foreign_equity_investment', sa.Numeric),
         ),
         ('government_assistance', sa.Column('government_assistance', sa.Boolean)),
-        (
-            'gross_value_added',
-            sa.Column('gross_value_added', sa.Numeric(asdecimal=True)),
-        ),
-        (
-            'gva_multiplier__multiplier',
-            sa.Column('gva_multiplier', sa.Numeric(asdecimal=True)),
-        ),
+        ('gross_value_added', sa.Column('gross_value_added', sa.Numeric),),
+        ('gva_multiplier__multiplier', sa.Column('gva_multiplier', sa.Numeric),),
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('investment_type__name', sa.Column('investment_type', sa.Text)),
         ('investor_company_id', sa.Column('investor_company_id', UUID)),
@@ -200,7 +194,7 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
         ('status', sa.Column('status', sa.String)),
         ('strategic_driver_names', sa.Column('strategic_drivers', sa.ARRAY(sa.Text))),
         ('team_member_ids', sa.Column('team_member_ids', sa.ARRAY(sa.Text))),
-        ('total_investment', sa.Column('total_investment', sa.Numeric(asdecimal=True))),
+        ('total_investment', sa.Column('total_investment', sa.Numeric)),
         ('uk_company_id', sa.Column('uk_company_id', UUID)),
         ('uk_company_sector', sa.Column('uk_company_sector', sa.String)),
         (
@@ -222,19 +216,13 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
         ('created_on', sa.Column('created_on', sa.DateTime)),
         ('date', sa.Column('interaction_date', sa.Date)),
         ('event_id', sa.Column('event_id', UUID)),
-        (
-            'grant_amount_offered',
-            sa.Column('grant_amount_offered', sa.Numeric(asdecimal=True)),
-        ),
+        ('grant_amount_offered', sa.Column('grant_amount_offered', sa.Numeric),),
         ('id', sa.Column('id', UUID, primary_key=True)),
         ('interaction_link', sa.Column('interaction_link', sa.String)),
         ('investment_project_id', sa.Column('investment_project_id', UUID)),
         ('kind', sa.Column('interaction_kind', sa.String)),
         ('modified_on', sa.Column('modified_on', sa.DateTime)),
-        (
-            'net_company_receipt',
-            sa.Column('net_company_receipt', sa.Numeric(asdecimal=True)),
-        ),
+        ('net_company_receipt', sa.Column('net_company_receipt', sa.Numeric),),
         ('notes', sa.Column('interaction_notes', sa.Text)),
         ('sector', sa.Column('sector', sa.String)),
         (
@@ -691,4 +679,24 @@ class ONSPostcodePipeline(_DatasetPipeline):
         ('imd', sa.Column('imd', sa.Text)),
         ('calncv', sa.Column('calncv', sa.Text)),
         ('stp', sa.Column('stp', sa.Text)),
+    ]
+
+
+class WorldBankTariffPipeline(_DatasetPipeline):
+    """Pipeline meta object for World bank tariff data."""
+
+    table_name = 'world_bank_tariffs'
+    source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
+    field_mapping = [
+        ('appRate', sa.Column('app_rate', sa.Numeric)),
+        ('assumedTariff', sa.Column('assumed_tariff', sa.Numeric)),
+        ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
+        ('countryAverage', sa.Column('country_average', sa.Numeric)),
+        ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
+        ('partner', sa.Column('partner', sa.Integer)),
+        ('prfRate', sa.Column('prf_rate', sa.Numeric)),
+        ('product', sa.Column('product', sa.Integer)),
+        ('reporter', sa.Column('reporter', sa.Integer)),
+        ('worldAverage', sa.Column('world_average', sa.Numeric)),
+        ('year', sa.Column('year', sa.Integer)),
     ]
