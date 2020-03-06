@@ -173,7 +173,7 @@ def query_database(
         while len(rows):
             records = []
             for row in rows:
-                record = {fields[col]: rows[col] for col in range(len(row))}
+                record = {fields[col]: row[col] for col in range(len(row))}
                 records.append(record)
             s3.write_key(f'{next_batch:010}.json', records)
             next_batch += 1

@@ -41,7 +41,7 @@ class FDIDashboardPipeline:
         ("status", sa.Column("status", sa.Text)),
         (
             "foreign_equity_investment",
-            sa.Column("foreign_equity_investment", sa.Numeric),
+            sa.Column("foreign_equity_investment", sa.Float),
         ),
         ("address_postcode", sa.Column("address_postcode", sa.String)),
         ("investor_company_id", sa.Column("investor_company_id", UUID)),
@@ -81,7 +81,6 @@ class FDIDashboardPipeline:
 
     @classmethod
     def get_dag(pipeline):
-        # start_date = pipeline.controller_pipeline.start_date
         with airflow.DAG(
             pipeline.__name__,
             catchup=False,
