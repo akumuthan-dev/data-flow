@@ -1,113 +1,26 @@
-from datetime import datetime, timedelta
 from typing import Optional
 
 import sqlalchemy as sa
-from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
-from dataflow import config
-from dataflow.operators.db_tables import (
-    check_table_data,
-    create_temp_tables,
-    drop_temp_tables,
-    insert_data_into_db,
-    swap_dataset_table,
-)
+from dataflow.dags import _PipelineDAG
 from dataflow.operators.ons import fetch_from_ons_sparql
 
 
-class BaseONSPipeline:
-    target_db = config.DATASETS_DB_NAME
-    start_date = datetime(2019, 11, 5)
-    end_date = None
-    schedule_interval = "@daily"
-
+class _ONSPipeline(_PipelineDAG):
+    query: str
     index_query: Optional[str] = None
 
-    @property
-    def table(self):
-        if not hasattr(self, "_table"):
-            meta = sa.MetaData()
-            self._table = sa.Table(
-                self.table_name,
-                meta,
-                *[column.copy() for _, column in self.field_mapping],
-            )
-
-        return self._table
-
-    def get_dag(self):
-        with DAG(
-            self.__class__.__name__,
-            catchup=False,
-            default_args={
-                "owner": "airflow",
-                "depends_on_past": False,
-                "email_on_failure": False,
-                "email_on_retry": False,
-                "retries": 0,
-                "retry_delay": timedelta(minutes=5),
-            },
-            start_date=self.start_date,
-            end_date=self.end_date,
-            schedule_interval=self.schedule_interval,
-            max_active_runs=1,
-        ) as dag:
-            _fetch = PythonOperator(
-                task_id="fetch-from-ons-sparql",
-                python_callable=fetch_from_ons_sparql,
-                provide_context=True,
-                op_args=[self.table_name, self.query, self.index_query],
-            )
-
-            _create_tables = PythonOperator(
-                task_id="create-temp-tables",
-                python_callable=create_temp_tables,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-            )
-
-            _insert_into_temp_table = PythonOperator(
-                task_id="insert-into-temp-table",
-                python_callable=insert_data_into_db,
-                provide_context=True,
-                op_args=[self.target_db, self.table, self.field_mapping],
-            )
-
-            _check_tables = PythonOperator(
-                task_id="check-temp-table-data",
-                python_callable=check_table_data,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-            )
-
-            _swap_dataset_table = PythonOperator(
-                task_id="swap-dataset-table",
-                python_callable=swap_dataset_table,
-                provide_context=True,
-                op_args=[self.target_db, self.table],
-            )
-
-            _drop_tables = PythonOperator(
-                task_id="drop-temp-tables",
-                python_callable=drop_temp_tables,
-                provide_context=True,
-                trigger_rule="all_done",
-                op_args=[self.target_db, self.table],
-            )
-
-        (
-            [_fetch, _create_tables]
-            >> _insert_into_temp_table
-            >> _check_tables
-            >> _swap_dataset_table
-            >> _drop_tables
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id="fetch-from-ons-sparql",
+            python_callable=fetch_from_ons_sparql,
+            provide_context=True,
+            op_args=[self.table_name, self.query, self.index_query],
         )
 
-        return dag
 
-
-class ONSUKSATradeInGoodsPipeline(BaseONSPipeline):
+class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     table_name = "ons_uk_sa_trade_in_goods"
 
     field_mapping = [
@@ -115,7 +28,7 @@ class ONSUKSATradeInGoodsPipeline(BaseONSPipeline):
         (("period", "value"), sa.Column("period", sa.String)),
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -141,7 +54,7 @@ class ONSUKSATradeInGoodsPipeline(BaseONSPipeline):
     """
 
 
-class ONSUKTradeInGoodsPipeline(BaseONSPipeline):
+class ONSUKTradeInGoodsPipeline(_ONSPipeline):
     table_name = "ons_uk_trade_in_goods"
     schedule_interval = "@weekly"
 
@@ -151,7 +64,7 @@ class ONSUKTradeInGoodsPipeline(BaseONSPipeline):
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("product", "value"), sa.Column("product", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -204,7 +117,7 @@ class ONSUKTradeInGoodsPipeline(BaseONSPipeline):
     """
 
 
-class ONSUKTradeInGoodsByCommodityPipeline(BaseONSPipeline):
+class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
     table_name = "ons_uk_trade_in_goods_by_commodity"
 
     field_mapping = [
@@ -212,7 +125,7 @@ class ONSUKTradeInGoodsByCommodityPipeline(BaseONSPipeline):
         (("period", "value"), sa.Column("period", sa.String)),
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
         (("sic_label", "value"), sa.Column("sector", sa.String)),
         (("product_label", "value"), sa.Column("product", sa.String)),
@@ -245,7 +158,7 @@ class ONSUKTradeInGoodsByCommodityPipeline(BaseONSPipeline):
     """
 
 
-class ONSUKTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
+class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     table_name = "ons_uk_trade_in_services_by_country"
 
     field_mapping = [
@@ -254,7 +167,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
         (("product_label", "value"), sa.Column("product", sa.String)),
         (("period", "value"), sa.Column("period", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -279,7 +192,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
     """
 
 
-class ONSUKTotalTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
+class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     table_name = "ons_uk_total_trade_in_services_by_country"
 
     field_mapping = [
@@ -287,7 +200,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
         (("geography_name", "value"), sa.Column("geography_name", sa.String)),
         (("period", "value"), sa.Column("period", sa.String)),
         (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric(asdecimal=True))),
+        (("total", "value"), sa.Column("total", sa.Numeric)),
         (("unit", "value"), sa.Column("unit", sa.String)),
     ]
 
@@ -310,7 +223,3 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(BaseONSPipeline):
     ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
     } ORDER BY ?geography_name ?period
     """
-
-
-for pipeline in BaseONSPipeline.__subclasses__():
-    globals()[pipeline.__name__ + "__dag"] = pipeline().get_dag()

@@ -9,7 +9,9 @@ from airflow.hooks.S3_hook import S3Hook
 from dataflow import config
 
 
-FieldMapping = List[Tuple[Union[str, Tuple], sqlalchemy.Column]]
+FieldMapping = List[
+    Tuple[Union[str, Tuple[Union[str, int], ...], None], sqlalchemy.Column]
+]
 
 
 class S3Data:
