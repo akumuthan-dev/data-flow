@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-03-03
 
+### Changed
+
+- Updated World bank tariff pipeline
+    - removed prf_rate
+    - added indexes to partner, reporter, product and year columns
+
+
+## 2020-03-03
+
 ### Added
 
 - World bank tariff (data-store-service) pipeline

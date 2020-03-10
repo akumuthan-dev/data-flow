@@ -687,16 +687,16 @@ class WorldBankTariffPipeline(_DatasetPipeline):
 
     table_name = 'world_bank_tariffs'
     source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
+    allow_null_columns = True
     field_mapping = [
         ('appRate', sa.Column('app_rate', sa.Numeric)),
         ('assumedTariff', sa.Column('assumed_tariff', sa.Numeric)),
         ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
         ('countryAverage', sa.Column('country_average', sa.Numeric)),
         ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
-        ('partner', sa.Column('partner', sa.Integer)),
-        ('prfRate', sa.Column('prf_rate', sa.Numeric)),
-        ('product', sa.Column('product', sa.Integer)),
-        ('reporter', sa.Column('reporter', sa.Integer)),
+        ('partner', sa.Column('partner', sa.Integer, index=True)),
+        ('product', sa.Column('product', sa.Integer, index=True)),
+        ('reporter', sa.Column('reporter', sa.Integer, index=True)),
         ('worldAverage', sa.Column('world_average', sa.Numeric)),
-        ('year', sa.Column('year', sa.Integer)),
+        ('year', sa.Column('year', sa.Integer, index=True)),
     ]
