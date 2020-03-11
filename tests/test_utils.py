@@ -147,7 +147,7 @@ class TestTableConfig:
                             foo_col,
                             (
                                 "bar",
-                                TableConfig(table_name="bar", field_mapping=[bar_col,]),
+                                TableConfig(table_name="bar", field_mapping=[bar_col]),
                             ),
                         ],
                     ),

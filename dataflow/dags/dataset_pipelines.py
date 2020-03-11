@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow import config
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.dataset import fetch_from_api
+from dataflow.utils import TableConfig
 
 
 class _DatasetPipeline(_PipelineDAG):
@@ -337,18 +338,23 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
 class AdvisersDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for AdvisersDataset."""
 
-    table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
-    field_mapping = [
-        ('id', sa.Column('id', UUID, primary_key=True)),
-        ('date_joined', sa.Column('date_joined', sa.Date)),
-        ('first_name', sa.Column('first_name', sa.String)),
-        ('last_name', sa.Column('last_name', sa.String)),
-        ('telephone_number', sa.Column('telephone_number', sa.String)),
-        ('contact_email', sa.Column('contact_email', sa.String)),
-        ('dit_team_id', sa.Column('team_id', UUID)),
-        ('is_active', sa.Column('is_active', sa.Boolean)),
-    ]
+    table_config = TableConfig(
+        table_name='advisers_dataset',
+        field_mapping=[
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('date_joined', sa.Column('date_joined', sa.Date)),
+            ('first_name', sa.Column('first_name', sa.String)),
+            ('last_name', sa.Column('last_name', sa.String)),
+            ('telephone_number', sa.Column('telephone_number', sa.String)),
+            ('contact_email', sa.Column('contact_email', sa.String)),
+            ('dit_team_id', sa.Column('team_id', UUID)),
+            ('is_active', sa.Column('is_active', sa.Boolean)),
+        ],
+    )
+    table_name = (
+        table_config.table_name
+    )  # TODO: Remove me when all `_DatasetPipeline` sub-classes use table_config.
 
 
 class TeamsDatasetPipeline(_DatasetPipeline):
