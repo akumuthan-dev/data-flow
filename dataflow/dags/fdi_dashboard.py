@@ -1,19 +1,13 @@
 import datetime
 
-import airflow
 import sqlalchemy as sa
+from airflow import DAG
 from airflow.operators.sensors import ExternalTaskSensor
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
-from dataflow.operators.db_tables import (
-    create_temp_tables,
-    check_table_data,
-    swap_dataset_table,
-    drop_temp_tables,
-    insert_data_into_db,
-    query_database,
-)
+from dataflow.dags import _PipelineDAG
+from dataflow.operators.db_tables import query_database
 
 from dataflow.dags.dataset_pipelines import (
     CompaniesDatasetPipeline,
@@ -21,9 +15,8 @@ from dataflow.dags.dataset_pipelines import (
 )
 
 
-class FDIDashboardPipeline:
-    controller_pipeline = CompaniesDatasetPipeline
-    dependencies = [InvestmentProjectsDatasetPipeline]
+class FDIDashboardPipeline(_PipelineDAG):
+    dependencies = [CompaniesDatasetPipeline, InvestmentProjectsDatasetPipeline]
     field_mapping = [
         ("actual_land_data", sa.Column("actual_land_date", sa.Date)),
         ("actual_uk_regions", sa.Column("actual_uk_regions", sa.ARRAY(sa.Text))),
@@ -75,92 +68,35 @@ class FDIDashboardPipeline:
      and investment_projects_dataset.investment_type = 'FDI'
      and investment_projects_dataset.status = 'ongoing'
     '''
+
+    schedule_interval = '@daily'
     start_date = datetime.datetime(2020, 3, 3)
     table_name = "fdi_dashboard_data"
     timeout = 7200
 
-    @classmethod
-    def get_dag(pipeline):
-        with airflow.DAG(
-            pipeline.__name__,
-            catchup=False,
-            max_active_runs=1,
-            start_date=pipeline.start_date,
-        ) as dag:
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_name],
+        )
+        return op
 
-            target_db = pipeline.controller_pipeline.target_db
-            target_table = sa.Table(
-                f'{pipeline.table_name}',
-                sa.MetaData(),
-                *[column.copy() for _, column in pipeline.field_mapping],
+    def get_dag(self) -> DAG:
+
+        dag = super().get_dag()
+        # get fetch task for dag
+
+        sensors = []
+        for pipeline in self.dependencies:
+            sensor = ExternalTaskSensor(
+                task_id=f'wait_for_{pipeline.__name__.lower()}',
+                external_dag_id=pipeline.__name__,
+                external_task_id='drop-temp-tables',
+                timeout=self.timeout,
+                dag=dag,
             )
-            target_table_name = target_table.name
-
-            _query = PythonOperator(
-                task_id='query-database',
-                provide_context=True,
-                python_callable=query_database,
-                op_args=[pipeline.query, target_db, target_table_name],
-            )
-
-            _create_tables = PythonOperator(
-                task_id="create-temp-tables",
-                python_callable=create_temp_tables,
-                provide_context=True,
-                op_args=[target_db, target_table],
-            )
-
-            _insert_into_temp_table = PythonOperator(
-                task_id="insert-into-temp-table",
-                python_callable=insert_data_into_db,
-                provide_context=True,
-                op_args=[target_db, target_table, pipeline.field_mapping],
-            )
-
-            _check_tables = PythonOperator(
-                task_id="check-temp-table-data",
-                python_callable=check_table_data,
-                provide_context=True,
-                op_args=[target_db, target_table],
-            )
-
-            _swap_dataset_table = PythonOperator(
-                task_id="swap-dataset-table",
-                python_callable=swap_dataset_table,
-                provide_context=True,
-                op_args=[target_db, target_table],
-            )
-
-            _drop_tables = PythonOperator(
-                task_id="drop-temp-tables",
-                python_callable=drop_temp_tables,
-                provide_context=True,
-                trigger_rule="all_done",
-                op_args=[target_db, target_table],
-            )
-
-            _sensors = []
-            for _pipeline in [pipeline.controller_pipeline] + pipeline.dependencies:
-                sensor = ExternalTaskSensor(
-                    task_id=f'wait_for_{_pipeline.__name__.lower()}',
-                    external_dag_id=_pipeline.__name__,
-                    external_task_id='drop-temp-tables',
-                    timeout=pipeline.timeout,
-                )
-                _sensors.append(sensor)
-
-            (
-                _sensors
-                >> _query
-                >> _create_tables
-                >> _insert_into_temp_table
-                >> _check_tables
-                >> _swap_dataset_table
-                >> _drop_tables
-            )
-
+            sensors.append(sensor)
+        sensors >> dag.tasks[0]
         return dag
-
-
-pipeline = FDIDashboardPipeline
-globals()[pipeline.__name__ + "__fdi_dashboard_dag"] = pipeline.get_dag()
