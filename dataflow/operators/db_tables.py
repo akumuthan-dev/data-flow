@@ -1,10 +1,8 @@
-import logging
-
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
-from dataflow.utils import get_nested_key, FieldMapping, S3Data
+from dataflow.utils import get_nested_key, FieldMapping, logger, S3Data
 
 
 class MissingDataError(ValueError):
@@ -49,7 +47,7 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             table = _get_temp_table(table, kwargs["ts_nodash"])
-            logging.info(f"Creating {table.name}")
+            logger.info(f"Creating {table.name}")
             table.create(conn, checkfirst=True)
 
 
@@ -76,7 +74,7 @@ def insert_data_into_db(
     temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
     for page, records in s3.iter_keys():
-        logging.info(f'Processing page {page}')
+        logger.info(f'Processing page {page}')
 
         with engine.begin() as conn:
             for record in records:
@@ -89,22 +87,22 @@ def insert_data_into_db(
                         if field is not None
                     }
                 except KeyError:
-                    logging.warning(
+                    logger.warning(
                         f"Failed to load item {record.get('id', '')}, required field is missing"
                     )
                     raise
                 conn.execute(temp_table.insert(), **record_data)
 
-        logging.info(f'Page {page} ingested successfully')
+        logger.info(f'Page {page} ingested successfully')
 
 
 def _check_table(
     engine, conn, temp: sa.Table, target: sa.Table, allow_null_columns: bool
 ):
-    logging.info(f"Checking {temp.name}")
+    logger.info(f"Checking {temp.name}")
 
     if engine.dialect.has_table(conn, target.name):
-        logging.info("Checking record counts")
+        logger.info("Checking record counts")
         temp_count = conn.execute(
             sa.select([sa.func.count()]).select_from(temp)
         ).fetchone()[0]
@@ -112,7 +110,7 @@ def _check_table(
             sa.select([sa.func.count()]).select_from(target)
         ).fetchone()[0]
 
-        logging.info(
+        logger.info(
             "Current records count {}, new import count {}".format(
                 target_count, temp_count
             )
@@ -121,7 +119,7 @@ def _check_table(
         if target_count > 0 and temp_count / target_count < 0.9:
             raise MissingDataError("New record count is less than 90% of current data")
 
-    logging.info("Checking for empty columns")
+    logger.info("Checking for empty columns")
     for col in temp.columns:
         row = conn.execute(
             sa.select([temp]).select_from(temp).where(col.isnot(None)).limit(1)
@@ -129,10 +127,10 @@ def _check_table(
         if row is None:
             error = f"Column {col} only contains NULL values"
             if allow_null_columns or config.ALLOW_NULL_DATASET_COLUMNS:
-                logging.warning(error)
+                logger.warning(error)
             else:
                 raise UnusedColumnError(error)
-    logging.info("All columns are used")
+    logger.info("All columns are used")
 
 
 def check_table_data(
@@ -174,7 +172,7 @@ def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
     )
     temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
-    logging.info(f"Moving {temp_table.name} to {table.name}")
+    logger.info(f"Moving {temp_table.name} to {table.name}")
     with engine.begin() as conn:
         grantees = conn.execute(
             """
@@ -225,9 +223,9 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             temp_table = _get_temp_table(table, kwargs["ts_nodash"])
-            logging.info(f"Removing {temp_table.name}")
+            logger.info(f"Removing {temp_table.name}")
             temp_table.drop(conn, checkfirst=True)
 
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
-            logging.info(f"Removing {swap_table.name}")
+            logger.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)

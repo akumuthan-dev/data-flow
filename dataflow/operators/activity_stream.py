@@ -1,8 +1,6 @@
-import logging
-
 from dataflow import config
 from dataflow.operators.api import _hawk_api_request
-from dataflow.utils import S3Data
+from dataflow.utils import logger, S3Data
 
 
 def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **kwargs):
@@ -19,7 +17,7 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
     source_url = f"{config.ACTIVITY_STREAM_BASE_URL}/v3/{index_name}/_search"
 
     while next_page:
-        logging.info(f"Fetching page {next_page} of {source_url}")
+        logger.info(f"Fetching page {next_page} of {source_url}")
         data = _hawk_api_request(
             source_url,
             "GET",
@@ -32,7 +30,7 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
             'hits',
         )
         if "failures" in data["_shards"]:
-            logging.warning(
+            logger.warning(
                 "Request failed on {} shards: {}".format(
                     data['_shards']['failed'], data['_shards']['failures']
                 )
@@ -46,7 +44,7 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
             f"{next_page:010}.json", [item["_source"] for item in data["hits"]["hits"]]
         )
 
-        logging.info(
+        logger.info(
             f"Fetched {len(data['hits']['hits'])} of {data['hits']['total']} records"
         )
 
@@ -55,4 +53,4 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
 
         next_page += 1
 
-    logging.info(f"Fetching from source completed, total {data['hits']['total']}")
+    logger.info(f"Fetching from source completed, total {data['hits']['total']}")

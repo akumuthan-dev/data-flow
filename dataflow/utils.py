@@ -1,6 +1,7 @@
 """A module that defines useful utils."""
 
 import json
+import logging
 from typing import Any, List, Tuple, Union
 
 import sqlalchemy
@@ -12,6 +13,9 @@ from dataflow import config
 FieldMapping = List[
     Tuple[Union[str, Tuple[Union[str, int], ...], None], sqlalchemy.Column]
 ]
+
+
+logger = logging.getLogger('dataflow')
 
 
 class S3Data:
