@@ -23,6 +23,23 @@ class _DatasetPipeline(_PipelineDAG):
         )
 
 
+class CompanyExportCountryHistory(_DatasetPipeline):
+
+    table_name = 'company_export_country_history_dataset'
+    source_url = '{0}/v4/dataset/company-export-country-history-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    field_mapping = [
+        ('id', sa.Column('id', UUID, primary_key=True)),
+        ('company_id', sa.Column('company_id', UUID)),
+        ('country__name', sa.Column("country", sa.String)),
+        ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.String)),
+        ('history_date', sa.Column('history_date', sa.DateTime)),
+        ('history_type', sa.Column('history_type', sa.String)),
+        ('status', sa.Column('status', sa.String)),
+    ]
+
+
 class CompanyExportToCountries(_DatasetPipeline):
 
     table_name = 'company_export_to_countries_dataset'
