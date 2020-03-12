@@ -86,7 +86,6 @@ class FDIDashboardPipeline(_PipelineDAG):
     def get_dag(self) -> DAG:
 
         dag = super().get_dag()
-        # get fetch task for dag
 
         sensors = []
         for pipeline in self.dependencies:
