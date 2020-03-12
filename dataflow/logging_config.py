@@ -42,6 +42,7 @@ LOGGING_CONFIG: dict = {
         },
     },
     "loggers": {
+        "dataflow": {"handlers": ["task"], "level": LOG_LEVEL, "propagate": False},
         "airflow.task": {"handlers": ["task"], "level": LOG_LEVEL, "propagate": False},
         "airflow.task_runner": {
             "handlers": ["console"],

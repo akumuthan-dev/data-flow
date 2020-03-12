@@ -1,5 +1,4 @@
 import csv
-import logging
 import tempfile
 
 import sqlalchemy as sa
@@ -7,6 +6,7 @@ from airflow.hooks.S3_hook import S3Hook
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
+from dataflow.utils import logger
 
 
 def create_csv(
@@ -51,4 +51,4 @@ def create_csv(
                 bucket_name=config.DATA_WORKSPACE_S3_BUCKET,
                 replace=True,
             )
-            logging.info(f'Wrote {row_count} rows to file {s3_output_path}')
+            logger.info(f'Wrote {row_count} rows to file {s3_output_path}')
