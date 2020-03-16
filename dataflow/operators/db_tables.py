@@ -244,8 +244,6 @@ def query_database(
     next_batch = 1
     connection = PostgresHook(postgres_conn_id=target_db).get_conn()
 
-    logging.info(f'query_database.query: \n{query}')
-
     try:
         # create connection with named cursor to fetch data in batches
         cursor = connection.cursor(name='query_database')
@@ -261,14 +259,11 @@ def query_database(
             s3.write_key(f'{next_batch:010}.json', records)
             next_batch += 1
             total_records += len(records)
-            logging.info(f'Fetched {total_records} records')
             rows = cursor.fetchmany(batch_size)
     finally:
         if connection:
             cursor.close()
             connection.close()
-
-    logging.info('Query completed')
 
 
 def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
