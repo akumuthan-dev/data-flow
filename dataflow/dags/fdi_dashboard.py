@@ -43,10 +43,10 @@ class FDIDashboardPipeline(_PipelineDAG):
 
     query = '''
     select
-      investment_projects_dataset.actual_land_date,
+      investment_projects_dataset.actual_land_date::text,
       investment_projects_dataset.actual_uk_regions,
       investment_projects_dataset.id,
-      investment_projects_dataset.estimated_land_date,
+      investment_projects_dataset.estimated_land_date::text,
       investment_projects_dataset.investment_type,
       investment_projects_dataset.level_of_involvement,
       investment_projects_dataset.number_new_jobs,

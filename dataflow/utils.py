@@ -144,7 +144,7 @@ class S3Data:
 
     def write_key(self, key, data, jsonify=True):
         if jsonify:
-            data = json.dumps(data, default=str)
+            data = json.dumps(data)
 
         return self.client.load_string(
             data, self.prefix + key, bucket_name=self.bucket, replace=True, encrypt=True
