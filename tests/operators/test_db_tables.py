@@ -26,6 +26,15 @@ def s3(mocker):
     return s3_mock
 
 
+@pytest.fixture
+def postgres_hook(mocker):
+    postgres_hook_mock = mock.MagicMock()
+    mocker.patch.object(
+        db_tables, "PostgresHook", return_value=postgres_hook_mock, autospec=True
+    )
+    return postgres_hook_mock
+
+
 def test_get_temp_table(table):
     assert db_tables._get_temp_table(table, "temp").name == "test_table_temp"
     assert table.name == "test_table"
@@ -160,6 +169,79 @@ def test_check_table_data(mock_db_conn, mocker, table):
     db_tables.check_table_data("test-db", table, ts_nodash="123")
 
     check_table.assert_called_once_with(mock.ANY, mock_db_conn, mock.ANY, table, False)
+
+
+def test_query_database_fetched_in_batches(mock_db_conn, postgres_hook, s3):
+    query = 'query'
+    target_db = 'target_db'
+    table_name = 'table_name'
+    batch_size = 3
+    ts_nodash = '2019010101:00'
+    connection = mock.Mock()
+    cursor = mock.Mock()
+    description = [['column_1'], ['column_2'], ['column_3']]
+    rows = [[[0, 1, 2], [3, 4, 5]], []]
+    cursor.description = description
+    cursor.fetchmany.side_effect = rows
+    connection.cursor.return_value = cursor
+    postgres_hook.get_conn.return_value = connection
+
+    db_tables.query_database(
+        query, target_db, table_name, batch_size, ts_nodash=ts_nodash
+    )
+
+    cursor.execute.assert_called_once_with(query)
+    assert cursor.fetchmany.call_count == 2
+    cursor.fetchmany.assert_called_with(batch_size)
+
+
+def test_query_database_converts_query_result_to_json(mock_db_conn, postgres_hook, s3):
+    query = 'query'
+    target_db = 'target_db'
+    table_name = 'table_name'
+    batch_size = 3
+    ts_nodash = '2019010101:00'
+    connection = mock.Mock()
+    cursor = mock.Mock()
+    description = [['column_1'], ['column_2'], ['column_3']]
+    rows = [[[0, 1, 2], [3, 4, 5]], []]
+    cursor.description = description
+    cursor.fetchmany.side_effect = rows
+    connection.cursor.return_value = cursor
+    postgres_hook.get_conn.return_value = connection
+    expected_records = [
+        {'column_1': 0, 'column_2': 1, 'column_3': 2},
+        {'column_1': 3, 'column_2': 4, 'column_3': 5},
+    ]
+
+    db_tables.query_database(
+        query, target_db, table_name, batch_size, ts_nodash=ts_nodash
+    )
+
+    s3.write_key.assert_called_once_with('0000000001.json', expected_records)
+
+
+def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook, s3):
+    query = 'query'
+    target_db = 'target_db'
+    table_name = 'table_name'
+    batch_size = 3
+    ts_nodash = '2019010101:00'
+    connection = mock.Mock()
+    cursor = mock.Mock()
+    description = [['column_1'], ['column_2'], ['column_3']]
+    rows = [[[0, 1, 2], [3, 4, 5]], []]
+    cursor.description = description
+    cursor.fetchmany.side_effect = rows
+    connection.cursor.return_value = cursor
+    postgres_hook.get_conn.return_value = connection
+
+    db_tables.query_database(
+        query, target_db, table_name, batch_size, ts_nodash=ts_nodash
+    )
+
+    cursor.close.assert_called_once_with()
+    connection.close.assert_called_once_with()
 
 
 def test_swap_dataset_tables(mock_db_conn, table):
