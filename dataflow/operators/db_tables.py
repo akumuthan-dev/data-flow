@@ -1,10 +1,18 @@
-import logging
+import warnings
+from typing import Tuple, Dict, Optional
 
+import sqlalchemy
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
-from dataflow.utils import get_nested_key, FieldMapping, S3Data
+from dataflow.utils import (
+    get_nested_key,
+    S3Data,
+    TableConfig,
+    SingleTableFieldMapping,
+    logger,
+)
 
 
 class MissingDataError(ValueError):
@@ -49,12 +57,58 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             table = _get_temp_table(table, kwargs["ts_nodash"])
-            logging.info(f"Creating {table.name}")
+            logger.info(f"Creating {table.name}")
             table.create(conn, checkfirst=True)
 
 
+def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
+    try:
+        record_data = {
+            db_column.name: get_nested_key(record, field, not db_column.nullable)
+            for field, db_column in field_mapping
+            if field is not None
+        }
+    except KeyError:
+        logger.warning(
+            f"Failed to load item {record.get('id', str(record))}, required field is missing"
+        )
+        raise
+
+    return record_data
+
+
+def _insert_related_records(
+    conn: sqlalchemy.engine.Connection,
+    table_config: TableConfig,
+    contexts: Tuple[Dict, ...],
+):
+    for key, related_table in table_config.related_table_configs:
+        related_records = get_nested_key(contexts[-1], key) or []
+
+        for related_record in related_records:
+            for transform in related_table.transforms:
+                related_record = transform(
+                    related_record, related_table.field_mapping, contexts
+                )
+
+            conn.execute(
+                related_table.temp_table.insert(),
+                **_get_data_to_insert(related_table.columns, related_record),
+            )
+
+            if related_table.related_table_configs:
+                _insert_related_records(
+                    conn, related_table, contexts + (related_record,)
+                )
+
+
 def insert_data_into_db(
-    target_db: str, table: sa.Table, field_mapping: FieldMapping, **kwargs
+    target_db: str,
+    table: Optional[sa.Table] = None,
+    field_mapping: Optional[SingleTableFieldMapping] = None,
+    table_config: Optional[TableConfig] = None,
+    contexts: Tuple = tuple(),
+    **kwargs,
 ):
     """Insert fetched response data into temporary DB tables.
 
@@ -67,44 +121,73 @@ def insert_data_into_db(
     path for a nested value.
 
     """
-    s3 = S3Data(table.name, kwargs["ts_nodash"])
+    if table_config:
+        if table or field_mapping:
+            raise RuntimeError(
+                "You must exclusively provide either (table_config) or (table && field_mapping), not bits of both."
+            )
+
+        table_config.configure(**kwargs)
+        s3 = S3Data(table_config.table_name, kwargs["ts_nodash"])
+
+    elif table is not None and field_mapping is not None:
+        warnings.warn(
+            (
+                "`table` and `field_mapping` parameters are deprecated. "
+                "This pipeline should be migrated to use `table_config`/`TableConfig`."
+            ),
+            DeprecationWarning,
+        )
+
+        s3 = S3Data(table.name, kwargs["ts_nodash"])
+        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+
+    else:
+        raise RuntimeError(
+            f"No complete table/field mapping configuration provided: {table}, {field_mapping}"
+        )
 
     engine = sa.create_engine(
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
     for page, records in s3.iter_keys():
-        logging.info(f'Processing page {page}')
+        logger.info(f'Processing page {page}')
 
         with engine.begin() as conn:
-            for record in records:
-                try:
-                    record_data = {
-                        db_column.name: get_nested_key(
-                            record, field, not db_column.nullable
-                        )
-                        for field, db_column in field_mapping
-                        if field is not None
-                    }
-                except KeyError:
-                    logging.warning(
-                        f"Failed to load item {record.get('id', '')}, required field is missing"
-                    )
-                    raise
-                conn.execute(temp_table.insert(), **record_data)
+            if table_config:
+                for record in records:
+                    for transform in table_config.transforms:
+                        record = transform(record, table_config, contexts)
 
-        logging.info(f'Page {page} ingested successfully')
+                    conn.execute(
+                        table_config.temp_table.insert(),
+                        **_get_data_to_insert(table_config.columns, record),
+                    )
+
+                    if table_config.related_table_configs:
+                        _insert_related_records(
+                            conn, table_config, contexts + (record,)
+                        )
+
+            elif table is not None and field_mapping:
+                for record in records:
+                    conn.execute(
+                        temp_table.insert(),
+                        **_get_data_to_insert(field_mapping, record),
+                    )
+
+        logger.info(f'Page {page} ingested successfully')
 
 
 def _check_table(
     engine, conn, temp: sa.Table, target: sa.Table, allow_null_columns: bool
 ):
-    logging.info(f"Checking {temp.name}")
+    logger.info(f"Checking {temp.name}")
 
     if engine.dialect.has_table(conn, target.name):
-        logging.info("Checking record counts")
+        logger.info("Checking record counts")
         temp_count = conn.execute(
             sa.select([sa.func.count()]).select_from(temp)
         ).fetchone()[0]
@@ -112,7 +195,7 @@ def _check_table(
             sa.select([sa.func.count()]).select_from(target)
         ).fetchone()[0]
 
-        logging.info(
+        logger.info(
             "Current records count {}, new import count {}".format(
                 target_count, temp_count
             )
@@ -121,7 +204,7 @@ def _check_table(
         if target_count > 0 and temp_count / target_count < 0.9:
             raise MissingDataError("New record count is less than 90% of current data")
 
-    logging.info("Checking for empty columns")
+    logger.info("Checking for empty columns")
     for col in temp.columns:
         row = conn.execute(
             sa.select([temp]).select_from(temp).where(col.isnot(None)).limit(1)
@@ -129,10 +212,10 @@ def _check_table(
         if row is None:
             error = f"Column {col} only contains NULL values"
             if allow_null_columns or config.ALLOW_NULL_DATASET_COLUMNS:
-                logging.warning(error)
+                logger.warning(error)
             else:
                 raise UnusedColumnError(error)
-    logging.info("All columns are used")
+    logger.info("All columns are used")
 
 
 def check_table_data(
@@ -188,10 +271,10 @@ def query_database(
     logging.info('Query completed')
 
 
-def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
-    """Rename temporary table to replace current dataset one.
+def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
+    """Rename temporary tables to replace current dataset one.
 
-    Given a dataset table `table` this finds the temporary table created
+    Given a one or more dataset tables `tables` this finds the temporary table created
     for the current DAG run and replaces existing dataset one with it.
 
     If a dataset table didn't exist the new table gets renamed, otherwise
@@ -207,40 +290,46 @@ def swap_dataset_table(target_db: str, table: sa.Table, **kwargs):
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+    for table in tables:
+        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
 
-    logging.info(f"Moving {temp_table.name} to {table.name}")
-    with engine.begin() as conn:
-        grantees = conn.execute(
-            """
-            SELECT grantee
-            FROM information_schema.role_table_grants
-            WHERE table_name='{table_name}'
-            AND privilege_type = 'SELECT'
-            AND grantor != grantee
-            """.format(
-                table_name=engine.dialect.identifier_preparer.quote(table.name)
-            )
-        ).fetchall()
-        conn.execute(
-            """
-            ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
-            ALTER TABLE {temp_table} RENAME TO {target_temp_table};
-            """.format(
-                target_temp_table=engine.dialect.identifier_preparer.quote(table.name),
-                swap_table_name=engine.dialect.identifier_preparer.quote(
-                    temp_table.name + "_swap"
-                ),
-                temp_table=engine.dialect.identifier_preparer.quote(temp_table.name),
-            )
-        )
-        for grantee in grantees:
+        logger.info(f"Moving {temp_table.name} to {table.name}")
+        with engine.begin() as conn:
+            grantees = conn.execute(
+                """
+                SELECT grantee
+                FROM information_schema.role_table_grants
+                WHERE table_name='{table_name}'
+                AND privilege_type = 'SELECT'
+                AND grantor != grantee
+                """.format(
+                    table_name=engine.dialect.identifier_preparer.quote(table.name)
+                )
+            ).fetchall()
+
             conn.execute(
-                'GRANT SELECT ON {table_name} TO {grantee}'.format(
-                    table_name=engine.dialect.identifier_preparer.quote(table.name),
-                    grantee=grantee[0],
+                """
+                ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
+                ALTER TABLE {temp_table} RENAME TO {target_temp_table};
+                """.format(
+                    target_temp_table=engine.dialect.identifier_preparer.quote(
+                        table.name
+                    ),
+                    swap_table_name=engine.dialect.identifier_preparer.quote(
+                        temp_table.name + "_swap"
+                    ),
+                    temp_table=engine.dialect.identifier_preparer.quote(
+                        temp_table.name
+                    ),
                 )
             )
+            for grantee in grantees:
+                conn.execute(
+                    'GRANT SELECT ON {table_name} TO {grantee}'.format(
+                        table_name=engine.dialect.identifier_preparer.quote(table.name),
+                        grantee=grantee[0],
+                    )
+                )
 
 
 def drop_temp_tables(target_db: str, *tables, **kwargs):
@@ -260,9 +349,9 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         for table in tables:
             temp_table = _get_temp_table(table, kwargs["ts_nodash"])
-            logging.info(f"Removing {temp_table.name}")
+            logger.info(f"Removing {temp_table.name}")
             temp_table.drop(conn, checkfirst=True)
 
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
-            logging.info(f"Removing {swap_table.name}")
+            logger.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)

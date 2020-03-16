@@ -1,11 +1,10 @@
-import logging
 from typing import Optional
 
 import backoff
 import requests
 
 from dataflow import config
-from dataflow.utils import S3Data
+from dataflow.utils import logger, S3Data
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
@@ -18,7 +17,7 @@ def _ons_sparql_request(url: str, query: str, page: int = 1, per_page: int = 100
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logging.error(f"Request failed: {response.text}")
+        logger.error(f"Request failed: {response.text}")
         raise
 
     response_json = response.json()
@@ -51,7 +50,7 @@ def _store_ons_sparql_pages(s3: S3Data, query: str, prefix: str = ""):
     total_records = 0
 
     while next_page:
-        logging.info(f"Fetching page {prefix}{next_page}")
+        logger.info(f"Fetching page {prefix}{next_page}")
         data = _ons_sparql_request(config.ONS_SPARQL_URL, query, page=next_page)
 
         if not data["results"]["bindings"]:
@@ -61,8 +60,8 @@ def _store_ons_sparql_pages(s3: S3Data, query: str, prefix: str = ""):
         total_records += len(data["results"]["bindings"])
         s3.write_key(f"{prefix}{next_page:010}.json", data["results"]["bindings"])
 
-        logging.info(f"Fetched {total_records} records")
+        logger.info(f"Fetched {total_records} records")
 
         next_page += 1
 
-    logging.info(f"Fetching from source completed, total {total_records}")
+    logger.info(f"Fetching from source completed, total {total_records}")

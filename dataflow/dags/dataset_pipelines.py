@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow import config
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.dataset import fetch_from_api
+from dataflow.utils import TableConfig
 
 
 class _DatasetPipeline(_PipelineDAG):
@@ -21,6 +22,23 @@ class _DatasetPipeline(_PipelineDAG):
             provide_context=True,
             op_args=[self.table_name, self.source_url],
         )
+
+
+class CompanyExportCountryHistory(_DatasetPipeline):
+
+    table_name = 'company_export_country_history_dataset'
+    source_url = '{0}/v4/dataset/company-export-country-history-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    field_mapping = [
+        ('id', sa.Column('id', UUID, primary_key=True)),
+        ('company_id', sa.Column('company_id', UUID)),
+        ('country__name', sa.Column("country", sa.String)),
+        ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.String)),
+        ('history_date', sa.Column('history_date', sa.DateTime)),
+        ('history_type', sa.Column('history_type', sa.String)),
+        ('status', sa.Column('status', sa.String)),
+    ]
 
 
 class CompanyExportToCountries(_DatasetPipeline):
@@ -337,18 +355,23 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
 class AdvisersDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for AdvisersDataset."""
 
-    table_name = 'advisers_dataset'
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
-    field_mapping = [
-        ('id', sa.Column('id', UUID, primary_key=True)),
-        ('date_joined', sa.Column('date_joined', sa.Date)),
-        ('first_name', sa.Column('first_name', sa.String)),
-        ('last_name', sa.Column('last_name', sa.String)),
-        ('telephone_number', sa.Column('telephone_number', sa.String)),
-        ('contact_email', sa.Column('contact_email', sa.String)),
-        ('dit_team_id', sa.Column('team_id', UUID)),
-        ('is_active', sa.Column('is_active', sa.Boolean)),
-    ]
+    table_config = TableConfig(
+        table_name='advisers_dataset',
+        field_mapping=[
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('date_joined', sa.Column('date_joined', sa.Date)),
+            ('first_name', sa.Column('first_name', sa.String)),
+            ('last_name', sa.Column('last_name', sa.String)),
+            ('telephone_number', sa.Column('telephone_number', sa.String)),
+            ('contact_email', sa.Column('contact_email', sa.String)),
+            ('dit_team_id', sa.Column('team_id', UUID)),
+            ('is_active', sa.Column('is_active', sa.Boolean)),
+        ],
+    )
+    table_name = (
+        table_config.table_name
+    )  # TODO: Remove me when all `_DatasetPipeline` sub-classes use table_config.
 
 
 class TeamsDatasetPipeline(_DatasetPipeline):

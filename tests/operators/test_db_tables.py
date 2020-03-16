@@ -5,6 +5,7 @@ import pytest
 import sqlalchemy
 
 from dataflow.operators import db_tables
+from dataflow.utils import TableConfig
 
 
 @pytest.fixture
@@ -73,6 +74,37 @@ def test_insert_data_into_db(mocker, mock_db_conn, s3):
         [
             mock.call(table.insert(), data="text", id=1),
             mock.call(table.insert(), data=None, id=2),
+        ]
+    )
+
+    s3.iter_keys.assert_called_once_with()
+
+
+def test_insert_data_into_db_using_db_config(mocker, mock_db_conn, s3):
+    s3.iter_keys.return_value = [
+        ('1', [{"id": 1, "extra": "ignored", "data": "text"}]),
+        ('2', [{"id": 2}]),
+    ]
+
+    table_config = TableConfig(
+        table_name="my-table",
+        field_mapping=(
+            ("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False)),
+            ("data", sqlalchemy.Column("data", sqlalchemy.String())),
+        ),
+    )
+    mock_table = mock.Mock()
+    mocker.patch.object(table_config, '_table', mock_table)
+    mocker.patch.object(table_config, '_temp_table', mock_table)
+
+    db_tables.insert_data_into_db(
+        target_db="test-db", table_config=table_config, ts_nodash="123",
+    )
+
+    mock_db_conn.execute.assert_has_calls(
+        [
+            mock.call(mock_table.insert(), data="text", id=1),
+            mock.call(mock_table.insert(), data=None, id=2),
         ]
     )
 
@@ -212,26 +244,27 @@ def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook
     connection.close.assert_called_once_with()
 
 
-def test_swap_dataset_table(mock_db_conn, table):
+def test_swap_dataset_tables(mock_db_conn, table):
     mock_db_conn.execute().fetchall.return_value = (('testuser',),)
-    db_tables.swap_dataset_table("test-db", table, ts_nodash="123")
+    db_tables.swap_dataset_tables("test-db", table, ts_nodash="123")
     mock_db_conn.execute.assert_has_calls(
         [
+            call(),
             call(
                 '''
-            SELECT grantee
-            FROM information_schema.role_table_grants
-            WHERE table_name='QUOTED<test_table>'
-            AND privilege_type = 'SELECT'
-            AND grantor != grantee
-            '''
+                SELECT grantee
+                FROM information_schema.role_table_grants
+                WHERE table_name='QUOTED<test_table>'
+                AND privilege_type = 'SELECT'
+                AND grantor != grantee
+                '''
             ),
             call().fetchall(),
             call(
                 '''
-            ALTER TABLE IF EXISTS QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
-            ALTER TABLE QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
-            '''
+                ALTER TABLE IF EXISTS QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
+                ALTER TABLE QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
+                '''
             ),
             call('GRANT SELECT ON QUOTED<test_table> TO testuser'),
         ]

@@ -1,7 +1,7 @@
 import sys
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Sequence
 
 import sqlalchemy as sa
 from airflow import DAG
@@ -14,9 +14,9 @@ from dataflow.operators.db_tables import (
     create_temp_tables,
     drop_temp_tables,
     insert_data_into_db,
-    swap_dataset_table,
+    swap_dataset_tables,
 )
-from dataflow.utils import FieldMapping
+from dataflow.utils import TableConfig, SingleTableFieldMapping
 
 
 class PipelineMeta(type):
@@ -56,12 +56,16 @@ class _PipelineDAG(metaclass=PipelineMeta):
     # have at least one non-null value
     allow_null_columns: bool = False
 
+    # ∨∨∨∨∨ DEPRECATED - USE `table_config` BELOW ∨∨∨∨∨
     # A list of (field/path, Column) pairs, defining which source data
     # keys end up in which DB columns. Each field/path can be one of:
     # * None (indicating an autopopulated field like an auto-increment primary key))
     # * A string for a top-level key access
     # * A tuple of strings or integers for a nested key access
-    field_mapping: FieldMapping
+    field_mapping: SingleTableFieldMapping
+    # ∧∧∧∧∧ DEPRECATED ∧∧∧∧∧
+
+    table_config: Optional[TableConfig] = None
 
     def get_fetch_operator(self) -> PythonOperator:
         raise NotImplementedError(
@@ -69,16 +73,22 @@ class _PipelineDAG(metaclass=PipelineMeta):
         )
 
     @property
-    def table(self) -> sa.Table:
-        if not hasattr(self, "_table"):
-            meta = sa.MetaData()
-            self._table = sa.Table(
-                self.table_name,
-                meta,
-                *[column.copy() for _, column in self.field_mapping],
-            )
+    def tables(self) -> Sequence[sa.Table]:
+        if not hasattr(self, "_tables"):
+            if self.table_config:
+                self._tables = self.table_config.tables
 
-        return self._table
+            else:
+                meta = sa.MetaData()
+                self._tables = [
+                    sa.Table(
+                        self.table_name,
+                        meta,
+                        *[column.copy() for _, column in self.field_mapping],
+                    )
+                ]
+
+        return self._tables
 
     def get_dag(self) -> DAG:
         dag = DAG(
@@ -106,7 +116,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
             task_id="create-temp-tables",
             python_callable=create_temp_tables,
             provide_context=True,
-            op_args=[self.target_db, self.table],
+            op_args=[self.target_db, *self.tables],
             dag=dag,
         )
 
@@ -114,22 +124,31 @@ class _PipelineDAG(metaclass=PipelineMeta):
             task_id="insert-into-temp-table",
             python_callable=insert_data_into_db,
             provide_context=True,
-            op_args=[self.target_db, self.table, self.field_mapping],
+            op_args=(
+                []
+                if self.table_config
+                else [self.target_db, *self.tables, self.field_mapping]
+            ),
+            op_kwargs=(
+                dict(target_db=self.target_db, table_config=self.table_config)
+                if self.table_config
+                else []
+            ),
         )
 
         _check_tables = PythonOperator(
             task_id="check-temp-table-data",
             python_callable=check_table_data,
             provide_context=True,
-            op_args=[self.target_db, self.table],
+            op_args=[self.target_db, *self.tables],
             op_kwargs={'allow_null_columns': self.allow_null_columns},
         )
 
-        _swap_dataset_table = PythonOperator(
+        _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
-            python_callable=swap_dataset_table,
+            python_callable=swap_dataset_tables,
             provide_context=True,
-            op_args=[self.target_db, self.table],
+            op_args=[self.target_db, *self.tables],
         )
 
         _drop_tables = PythonOperator(
@@ -137,14 +156,14 @@ class _PipelineDAG(metaclass=PipelineMeta):
             python_callable=drop_temp_tables,
             provide_context=True,
             trigger_rule="all_done",
-            op_args=[self.target_db, self.table],
+            op_args=[self.target_db, *self.tables],
         )
 
         (
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
-            >> _swap_dataset_table
+            >> _swap_dataset_tables
             >> _drop_tables
         )
 

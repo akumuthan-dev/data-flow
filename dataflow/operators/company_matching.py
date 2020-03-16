@@ -1,11 +1,10 @@
-import logging
 import re
 
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
 from dataflow.operators.api import _hawk_api_request
-from dataflow.utils import S3Data
+from dataflow.utils import logger, S3Data
 
 credentials = {
     'id': config.MATCHING_SERVICE_HAWK_ID,
@@ -18,7 +17,7 @@ valid_email = re.compile(r"[^@]+@[^@]+\.[^@]+")
 def fetch_from_company_matching(
     target_db: str, table_name: str, company_match_query: str, batch_size=str, **kwargs
 ):
-    logging.info(f"starting company matching")
+    logger.info(f"starting company matching")
 
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     next_batch = 1
@@ -56,7 +55,7 @@ def _build_request(cursor, batch_size, update):
         rows = cursor.fetchmany(batch_size)
         if not rows:
             break
-        logging.info(
+        logger.info(
             f"matching companies {f'{batch_count*batch_size}-{batch_count*batch_size+len(rows)}'}"
         )
         for row in rows:
