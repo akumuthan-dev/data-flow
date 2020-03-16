@@ -159,12 +159,12 @@ def query_database(
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     total_records = 0
     next_batch = 1
+    connection = PostgresHook(postgres_conn_id=target_db).get_conn()
 
     logging.info(f'query_database.query: \n{query}')
 
     try:
         # create connection with named cursor to fetch data in batches
-        connection = PostgresHook(postgres_conn_id=target_db).get_conn()
         cursor = connection.cursor(name='query_database')
         cursor.execute(query)
 
