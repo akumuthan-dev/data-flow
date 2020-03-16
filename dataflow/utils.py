@@ -4,16 +4,7 @@ import json
 import logging
 from dataclasses import dataclass
 from itertools import chain
-from typing import (
-    Any,
-    Tuple,
-    Union,
-    Iterable,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-)
+from typing import Any, Tuple, Union, Iterable, Callable, Dict, Optional, Sequence
 
 import sqlalchemy
 from airflow.hooks.S3_hook import S3Hook
@@ -27,7 +18,7 @@ from dataflow import config
 # to describe the shape of the related tables.
 FieldMapping = Sequence[
     Tuple[
-        Union[str, Tuple[Union[str, int], ...], None],
+        Union[str, int, Tuple[Union[str, int], ...], None],
         Union[sqlalchemy.Column, "TableConfig"],
     ]
 ]
@@ -35,11 +26,11 @@ FieldMapping = Sequence[
 # The below SingleTableFieldMapping describes only a single table, so only contains columns. It should not have
 # any other `TableConfig`s.
 SingleTableFieldMapping = Sequence[
-    Tuple[Union[str, Tuple[Union[str, int], ...], None], sqlalchemy.Column]
+    Tuple[Union[str, int, Tuple[Union[str, int], ...], None], sqlalchemy.Column]
 ]
 
 TableMapping = Sequence[
-    Tuple[Union[str, Tuple[Union[str, int], ...], None], "TableConfig"]
+    Tuple[Union[str, int, Tuple[Union[str, int], ...], None], "TableConfig"]
 ]
 
 
@@ -162,8 +153,10 @@ class S3Data:
         return json.loads(data) if jsonify else data
 
 
-def get_nested_key(data: dict, path: Union[Tuple, str], required: bool = False) -> Any:
-    if isinstance(path, str):
+def get_nested_key(
+    data: dict, path: Union[Tuple, str, int], required: bool = False
+) -> Any:
+    if isinstance(path, (str, int)):
         path = (path,)
 
     for key in path:
