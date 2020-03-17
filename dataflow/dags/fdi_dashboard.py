@@ -18,7 +18,7 @@ from dataflow.dags.dataset_pipelines import (
 class FDIDashboardPipeline(_PipelineDAG):
     dependencies = [CompaniesDatasetPipeline, InvestmentProjectsDatasetPipeline]
     field_mapping = [
-        ("actual_land_data", sa.Column("actual_land_date", sa.Date)),
+        ("actual_land_date", sa.Column("actual_land_date", sa.Date)),
         ("actual_uk_regions", sa.Column("actual_uk_regions", sa.ARRAY(sa.Text))),
         ("id", sa.Column("id", UUID, primary_key=True)),
         ("estimated_land_date", sa.Column("estimated_land_date", sa.Date)),
