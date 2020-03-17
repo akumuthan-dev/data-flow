@@ -31,11 +31,10 @@ class CompanyExportCountryHistory(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     field_mapping = [
-        ('id', sa.Column('id', UUID)),
         ('company_id', sa.Column('company_id', UUID)),
         ('country__name', sa.Column("country", sa.String)),
         ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.String)),
-        ('history_id', sa.Column('history_id', UUID, primary_key=True)),
+        ('history_id', sa.Column('id', UUID, primary_key=True)),
         ('history_date', sa.Column('history_date', sa.DateTime)),
         ('history_type', sa.Column('history_type', sa.String)),
         ('status', sa.Column('status', sa.String)),
