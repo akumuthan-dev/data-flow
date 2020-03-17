@@ -7,7 +7,7 @@ import backoff
 import requests
 
 from dataflow import config
-from dataflow.utils import S3Data
+from dataflow.utils import logger, S3Data
 
 
 def fetch_uktradeinfo_non_eu_data(table_name: str, base_filename: str, **kwargs):
@@ -15,9 +15,11 @@ def fetch_uktradeinfo_non_eu_data(table_name: str, base_filename: str, **kwargs)
     # New files are uploaded to uktradeinfo 2 months later, usually on 10th of the month.
     # 45 day offest allows us to pick up new files within 5 days of them being uploaded
     # without parsing the downloads page.
-    run_date = kwargs.get("run_date", kwargs.get("execution_date")) - timedelta(days=45)
+    run_date = kwargs.get("run_date", kwargs.get("execution_date")) - timedelta(days=60)
     filename = f"{base_filename}{run_date:%y%m}"
     source_url = f"{config.HMRC_UKTRADEINFO_URL}/{filename}.zip"
+
+    logger.info(f"Fetching {source_url}")
 
     file_contents = _download(source_url)
 

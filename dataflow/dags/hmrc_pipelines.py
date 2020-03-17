@@ -1,4 +1,6 @@
 """A module that defines Airflow DAGS for HMRC pipelines"""
+from datetime import datetime
+
 import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
@@ -11,6 +13,9 @@ class _HMRCPipeline(_PipelineDAG):
     base_filename: str
 
     table_config: TableConfig
+
+    schedule_interval = '0 5 12 * *'
+    start_date = datetime(2020, 3, 11)
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
