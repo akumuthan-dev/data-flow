@@ -1,25 +1,19 @@
+from typing import Optional
+
 import backoff
 from mohawk import Sender
 from mohawk.exc import HawkFail
 import requests
 
-from dataflow import config
-from dataflow.utils import logger, S3Data
+from dataflow.utils import logger, S3Data, get_nested_key
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
-def _hawk_api_request(url: str):
+def _hawk_api_request(
+    url: str, credentials: dict, results_key: Optional[str], next_key: Optional[str]
+):
     sender = Sender(
-        {
-            'id': config.HAWK_ID,
-            'key': config.HAWK_KEY,
-            'algorithm': config.HAWK_ALGORITHM,
-        },
-        url,
-        'get',
-        content='',
-        content_type='',
-        always_hash_content=True,
+        credentials, url, 'get', content='', content_type='', always_hash_content=True,
     )
 
     logger.info(f'Fetching page {url}')
@@ -43,25 +37,44 @@ def _hawk_api_request(url: str):
 
     response_json = response.json()
 
-    if 'results' not in response_json or 'next' not in response_json:
+    if (next_key and next_key not in response_json) or (
+        results_key and results_key not in response_json
+    ):
         raise ValueError('Unexpected response structure')
 
     return response_json
 
 
-def fetch_from_api(table_name: str, source_url: str, **kwargs):
+def fetch_from_hawk_api(
+    table_name: str,
+    source_url: str,
+    hawk_credentials: dict,
+    results_key: str = "results",
+    next_key: Optional[str] = "next",
+    **kwargs,
+):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     total_records = 0
     page = 1
 
     while True:
-        data = _hawk_api_request(source_url)
-        total_records += len(data["results"])
-        s3.write_key(f"{page:010}.json", data["results"])
+        data = _hawk_api_request(
+            source_url,
+            credentials=hawk_credentials,
+            results_key=results_key,
+            next_key=next_key,
+        )
+
+        results = get_nested_key(data, results_key)
+        s3.write_key(f"{page:010}.json", results)
+
+        total_records += len(results)
         logger.info(f"Fetched {total_records} records")
-        source_url = data.get('next')
+
+        source_url = get_nested_key(data, next_key) if next_key else None
         if not source_url:
             break
+
         page += 1
 
     logger.info('Fetching from source completed')

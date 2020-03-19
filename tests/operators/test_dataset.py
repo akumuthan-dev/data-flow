@@ -4,17 +4,24 @@ import pytest
 from mohawk.exc import HawkFail
 from requests import HTTPError
 
-from dataflow.operators import dataset
+from dataflow.operators import common
+
+
+FAKE_HAWK_CREDENTIALS = {
+    "id": "some-id",
+    "key": "some-key",
+    "algorithm": "sha256",
+}
 
 
 @pytest.fixture
 def mock_sender(mocker):
-    mock_sender = mocker.patch('dataflow.operators.dataset.Sender')
+    mock_sender = mocker.patch('dataflow.operators.common.Sender')
     mock_sender().request_header = 'dummy'
 
 
 def test_hawk_api_request_fail(mocker, requests_mock):
-    mock_sender = mocker.patch('dataflow.operators.dataset.Sender')
+    mock_sender = mocker.patch('dataflow.operators.common.Sender')
     mock_sender().request_header = 'dummy'
     mock_sender().accept_response.side_effect = HawkFail
     requests_mock.get(
@@ -23,7 +30,12 @@ def test_hawk_api_request_fail(mocker, requests_mock):
         json={'next': None, 'results': []},
     )
     with pytest.raises(HawkFail):
-        dataset._hawk_api_request('http://test')
+        common._hawk_api_request(
+            'http://test',
+            credentials=FAKE_HAWK_CREDENTIALS,
+            results_key="results",
+            next_key="next",
+        )
 
 
 def test_hawk_api_request(mock_sender, requests_mock):
@@ -32,7 +44,12 @@ def test_hawk_api_request(mock_sender, requests_mock):
         headers={'Server-Authorization': 'dummy', 'Content-Type': ''},
         json={'next': None, 'results': []},
     )
-    dataset._hawk_api_request('http://test')
+    common._hawk_api_request(
+        'http://test',
+        credentials=FAKE_HAWK_CREDENTIALS,
+        results_key="results",
+        next_key="next",
+    )
 
 
 def test_fetch_raises_error_invalid_response(mock_sender, requests_mock):
@@ -43,7 +60,12 @@ def test_fetch_raises_error_invalid_response(mock_sender, requests_mock):
     )
 
     with pytest.raises(ValueError):
-        dataset._hawk_api_request('http://test')
+        common._hawk_api_request(
+            'http://test',
+            credentials=FAKE_HAWK_CREDENTIALS,
+            results_key="results",
+            next_key="next",
+        )
 
 
 def test_fetch_raises_for_non_2xx_status(mocker, mock_sender, requests_mock):
@@ -54,12 +76,17 @@ def test_fetch_raises_for_non_2xx_status(mocker, mock_sender, requests_mock):
         status_code=404,
     )
     with pytest.raises(HTTPError):
-        dataset._hawk_api_request('http://test')
+        common._hawk_api_request(
+            'http://test',
+            credentials=FAKE_HAWK_CREDENTIALS,
+            results_key="results",
+            next_key="next",
+        )
 
 
 def test_fetch(mocker):
     req = mocker.patch.object(
-        dataset,
+        common,
         '_hawk_api_request',
         side_effect=[
             {
@@ -72,10 +99,24 @@ def test_fetch(mocker):
     )
 
     s3_mock = mock.MagicMock()
-    mocker.patch.object(dataset, "S3Data", return_value=s3_mock, autospec=True)
+    mocker.patch.object(common, "S3Data", return_value=s3_mock, autospec=True)
 
-    dataset.fetch_from_api('table', 'http://test', ts_nodash='task-1')
-    req.assert_has_calls([mock.call('http://test')])
+    common.fetch_from_hawk_api(
+        'table',
+        'http://test',
+        hawk_credentials=FAKE_HAWK_CREDENTIALS,
+        ts_nodash='task-1',
+    )
+    req.assert_has_calls(
+        [
+            mock.call(
+                'http://test',
+                credentials=FAKE_HAWK_CREDENTIALS,
+                next_key='next',
+                results_key='results',
+            )
+        ]
+    )
 
     s3_mock.write_key.assert_has_calls(
         [

@@ -1,13 +1,14 @@
 from datetime import datetime
-
+from functools import partial
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow import config
+from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.dataset import fetch_from_api
+from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.transforms import drop_empty_string_fields
 from dataflow.utils import TableConfig
 
@@ -71,7 +72,9 @@ class DataHubSPIPipeline(_PipelineDAG):
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='run-fetch',
-            python_callable=fetch_from_api,
+            python_callable=partial(
+                fetch_from_hawk_api, hawk_credentials=DATAHUB_HAWK_CREDENTIALS
+            ),
             provide_context=True,
             op_args=[self.table_config.table.name, self.source_url],
         )

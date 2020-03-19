@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-03-19
+
+### Changed
+
+- Moved datasets `fetch_from_api` to a more general `common.fetch_from_hawk_api`, as there may be a more general case for this.
+
 ## 2020-03-12
 
 ### Changed

@@ -1,4 +1,5 @@
 from dataflow import config
+from dataflow.config import ACTIVITY_STREAM_HAWK_CREDENTIALS
 from dataflow.operators.api import _hawk_api_request
 from dataflow.utils import logger, S3Data
 
@@ -19,15 +20,7 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
     while next_page:
         logger.info(f"Fetching page {next_page} of {source_url}")
         data = _hawk_api_request(
-            source_url,
-            "GET",
-            query,
-            {
-                "id": config.ACTIVITY_STREAM_ID,
-                "key": config.ACTIVITY_STREAM_SECRET,
-                "algorithm": config.HAWK_ALGORITHM,
-            },
-            'hits',
+            source_url, "GET", query, ACTIVITY_STREAM_HAWK_CREDENTIALS, 'hits',
         )
         if "failures" in data["_shards"]:
             logger.warning(

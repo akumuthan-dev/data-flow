@@ -3,14 +3,8 @@ from unittest import mock
 import pytest
 from requests.exceptions import HTTPError
 
-from dataflow import config
+from dataflow.config import ACTIVITY_STREAM_HAWK_CREDENTIALS
 from dataflow.operators import activity_stream, api
-
-credentials = {
-    'id': config.ACTIVITY_STREAM_ID,
-    'key': config.ACTIVITY_STREAM_SECRET,
-    'algorithm': 'sha256',
-}
 
 
 def test_activity_stream_request(requests_mock):
@@ -20,14 +14,16 @@ def test_activity_stream_request(requests_mock):
         json={'hits': []},
     )
 
-    api._hawk_api_request('http://test', "GET", {}, credentials)
+    api._hawk_api_request('http://test', "GET", {}, ACTIVITY_STREAM_HAWK_CREDENTIALS)
 
 
 def test_activity_stream_request_raises_error_without_hits(requests_mock):
     requests_mock.get('http://test', json={})
 
     with pytest.raises(ValueError):
-        api._hawk_api_request('http://test', "GET", {}, credentials, 'hits')
+        api._hawk_api_request(
+            'http://test', "GET", {}, ACTIVITY_STREAM_HAWK_CREDENTIALS, 'hits'
+        )
 
 
 def test_activity_stream_request_raises_for_non_2xx_status(mocker, requests_mock):
@@ -35,7 +31,9 @@ def test_activity_stream_request_raises_for_non_2xx_status(mocker, requests_mock
     requests_mock.get('http://test', status_code=404)
 
     with pytest.raises(HTTPError):
-        api._hawk_api_request('http://test', "GET", {}, credentials)
+        api._hawk_api_request(
+            'http://test', "GET", {}, ACTIVITY_STREAM_HAWK_CREDENTIALS
+        )
 
 
 def test_fetch_from_activity_stream(mocker):
@@ -69,7 +67,7 @@ def test_fetch_from_activity_stream(mocker):
                 'http://test/v3/index/_search',
                 'GET',
                 {'query': {}, 'size': 100, 'sort': [{'id': 'asc'}]},
-                credentials,
+                ACTIVITY_STREAM_HAWK_CREDENTIALS,
                 'hits',
             ),
             mock.call(
@@ -81,7 +79,7 @@ def test_fetch_from_activity_stream(mocker):
                     'sort': [{'id': 'asc'}],
                     'search_after': [120],
                 },
-                credentials,
+                ACTIVITY_STREAM_HAWK_CREDENTIALS,
                 'hits',
             ),
             mock.call(
@@ -93,7 +91,7 @@ def test_fetch_from_activity_stream(mocker):
                     'sort': [{'id': 'asc'}],
                     'search_after': [240],
                 },
-                credentials,
+                ACTIVITY_STREAM_HAWK_CREDENTIALS,
                 'hits',
             ),
         ]

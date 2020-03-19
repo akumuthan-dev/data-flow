@@ -3,14 +3,10 @@ import re
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
+from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.operators.api import _hawk_api_request
 from dataflow.utils import logger, S3Data
 
-credentials = {
-    'id': config.MATCHING_SERVICE_HAWK_ID,
-    'key': config.MATCHING_SERVICE_HAWK_KEY,
-    'algorithm': config.MATCHING_SERVICE_HAWK_ALGORITHM,
-}
 valid_email = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 
@@ -36,7 +32,7 @@ def fetch_from_company_matching(
                 url=f'{config.MATCHING_SERVICE_BASE_URL}/api/v1/company/{match_type}/',
                 method='POST',
                 query=request,
-                credentials=credentials,
+                credentials=DATAHUB_HAWK_CREDENTIALS,
                 expected_response_structure='matches',
             )
             s3.write_key(f"{next_batch:010}.json", data['matches'])

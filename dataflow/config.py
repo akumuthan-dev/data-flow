@@ -2,8 +2,11 @@
 import os
 
 ACTIVITY_STREAM_BASE_URL = os.environ.get("ACTIVITY_STREAM_BASE_URL")
-ACTIVITY_STREAM_ID = os.environ.get("ACTIVITY_STREAM_ID", "")
-ACTIVITY_STREAM_SECRET = os.environ.get("ACTIVITY_STREAM_SECRET", "")
+ACTIVITY_STREAM_HAWK_CREDENTIALS = {
+    "id": os.environ.get("ACTIVITY_STREAM_ID", ""),
+    "key": os.environ.get("ACTIVITY_STREAM_SECRET", ""),
+    "algorithm": "sha256",
+}
 ACTIVITY_STREAM_RESULTS_PER_PAGE = os.environ.get(
     "ACTIVITY_STREAM_RESULTS_PER_PAGE", 100
 )
@@ -13,9 +16,11 @@ AUTHBROKER_CLIENT_SECRET = os.environ.get("AUTHBROKER_CLIENT_SECRET")
 AUTHBROKER_ALLOWED_DOMAINS = os.environ.get("AUTHBROKER_ALLOWED_DOMAINS")
 AUTHBROKER_URL = os.environ.get("AUTHBROKER_URL")
 
-HAWK_ID = os.environ.get("HAWK_ID")
-HAWK_KEY = os.environ.get("HAWK_KEY")
-HAWK_ALGORITHM = os.environ.get("HAWK_ALGORITHM", "sha256")
+DATAHUB_HAWK_CREDENTIALS = {
+    "id": os.environ.get("HAWK_ID"),
+    "key": os.environ.get("HAWK_KEY"),
+    "algorithm": "sha256",
+}
 DATAHUB_BASE_URL = os.environ.get("DATAHUB_BASE_URL")
 EXPORT_WINS_BASE_URL = os.environ.get("EXPORT_WINS_BASE_URL")
 
@@ -39,11 +44,11 @@ ONS_SPARQL_URL = os.environ.get(
 MATCHING_SERVICE_BASE_URL = os.environ.get("MATCHING_SERVICE_BASE_URL")
 MATCHING_SERVICE_BATCH_SIZE = int(os.environ.get("MATCHING_SERVICE_BATCH_SIZE", 100000))
 MATCHING_SERVICE_UPDATE = os.environ.get("MATCHING_SERVICE_UPDATE") == "True"
-MATCHING_SERVICE_HAWK_ID = os.environ.get("MATCHING_SERVICE_HAWK_ID")
-MATCHING_SERVICE_HAWK_KEY = os.environ.get("MATCHING_SERVICE_HAWK_KEY")
-MATCHING_SERVICE_HAWK_ALGORITHM = os.environ.get(
-    "MATCHING_SERVICE_HAWK_ALGORITHM", "sha256"
-)
+MATCHING_SERVICE_HAWK_CREDENTIALS = {
+    "id": os.environ.get("MATCHING_SERVICE_HAWK_ID"),
+    "key": os.environ.get("MATCHING_SERVICE_HAWK_KEY"),
+    "algorithm": "sha256",
+}
 
 DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
 DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME", "datasets_db")
