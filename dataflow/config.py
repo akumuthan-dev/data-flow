@@ -58,3 +58,10 @@ HMRC_UKTRADEINFO_URL = os.environ.get(
     "HMRC_UKTRADEINFO_URL",
     "https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads",
 )
+
+MARKET_ACCESS_BASE_URL = os.environ.get("MARKET_ACCESS_BASE_URL")
+MARKET_ACCESS_HAWK_CREDENTIALS = {
+    "id": os.environ.get("MARKET_ACCESS_HAWK_ID"),
+    "key": os.environ.get("MARKET_ACCESS_HAWK_KEY"),
+    "algorithm": "sha256",
+}

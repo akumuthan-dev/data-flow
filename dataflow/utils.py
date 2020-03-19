@@ -4,7 +4,8 @@ import json
 import logging
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any, Tuple, Union, Iterable, Callable, Dict, Optional, Sequence
+from typing import Any, Tuple, Union, Iterable, Dict, Optional, Sequence
+from typing_extensions import Protocol
 
 import sqlalchemy
 from airflow.hooks.S3_hook import S3Hook
@@ -34,6 +35,13 @@ TableMapping = Sequence[
 ]
 
 
+class Transform(Protocol):
+    def __call__(
+        self, record: Dict, table_config: "TableConfig", contexts: Tuple[Dict, ...]
+    ) -> Dict:
+        ...
+
+
 @dataclass
 class TableConfig:
     """Wrapper for all the information needed to define how data (e.g. from an API) should be processed and
@@ -54,9 +62,7 @@ class TableConfig:
     # See DataHubSPIPipeline for an example.
     field_mapping: FieldMapping
 
-    transforms: Iterable[
-        Callable[[Dict, "TableConfig", Tuple[Dict, ...]], Dict]
-    ] = tuple()
+    transforms: Iterable[Transform] = tuple()
     temp_table_suffix: Optional[str] = None
 
     _table = None
