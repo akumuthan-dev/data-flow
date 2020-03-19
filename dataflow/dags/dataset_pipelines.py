@@ -1,12 +1,14 @@
 """A module that defines Airflow DAGS for dataset pipelines."""
+from functools import partial
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow import config
+from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.dataset import fetch_from_api
+from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.utils import TableConfig
 
 
@@ -18,7 +20,9 @@ class _DatasetPipeline(_PipelineDAG):
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='run-fetch',
-            python_callable=fetch_from_api,
+            python_callable=partial(
+                fetch_from_hawk_api, hawk_credentials=DATAHUB_HAWK_CREDENTIALS
+            ),
             provide_context=True,
             op_args=[self.table_name, self.source_url],
         )
