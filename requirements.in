@@ -4,3 +4,4 @@ mohawk
 redis
 requests
 requests-oauthlib
+typing_extensions

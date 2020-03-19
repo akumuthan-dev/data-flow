@@ -4,7 +4,7 @@ from dataflow.utils import TableConfig
 
 
 def drop_empty_string_fields(
-    record: dict, mapping: TableConfig, contexts: Tuple[Dict, ...]
+    record: dict, table_config: TableConfig, contexts: Tuple[Dict, ...]
 ) -> Dict:
     """Remove keys (and nested keys) from this dictionary where the value is an empty string
     """

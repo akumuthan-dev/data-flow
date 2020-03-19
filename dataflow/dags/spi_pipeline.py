@@ -78,6 +78,3 @@ class DataHubSPIPipeline(_PipelineDAG):
             provide_context=True,
             op_args=[self.table_config.table.name, self.source_url],
         )
-
-
-globals()['DataHubSPIPipeline__dag'] = DataHubSPIPipeline().get_dag()
