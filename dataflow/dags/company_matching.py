@@ -1,3 +1,4 @@
+import itertools
 from typing import List, Type
 
 import sqlalchemy as sa
@@ -11,6 +12,7 @@ from dataflow.dags.dataset_pipelines import (
     ContactsDatasetPipeline,
     CompaniesDatasetPipeline,
     ExportWinsWinsDatasetPipeline,
+    _DatasetPipeline,
 )
 from dataflow.operators.company_matching import fetch_from_company_matching
 
@@ -24,7 +26,9 @@ class _CompanyMatchingPipeline(_PipelineDAG):
     ]
 
     company_match_query: str
-    controller_pipeline: Type[_PipelineDAG]
+    controller_pipeline: Type[
+        _DatasetPipeline
+    ]  # TODO: Change _DatasetPipeline to _PipelineDAG when table_config not optional in _PipelineDAG.
     dependencies: List[Type[_PipelineDAG]] = []
 
     def get_fetch_operator(self) -> PythonOperator:
@@ -41,13 +45,15 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         )
 
     def get_dag(self) -> DAG:
-        self.table_name = f'{self.controller_pipeline.table_name}_match_ids'
+        self.table_name = (
+            f'{self.controller_pipeline.table_config.table_name}_match_ids'
+        )
         self.start_date = self.controller_pipeline.start_date
         self.schedule_interval = self.controller_pipeline.schedule_interval
 
         dag = super().get_dag()
 
-        for pipeline in [self.controller_pipeline] + self.dependencies:
+        for pipeline in itertools.chain([self.controller_pipeline], self.dependencies):
             sensor = ExternalTaskSensor(
                 task_id=f'wait_for_{pipeline.__name__.lower()}',
                 external_dag_id=pipeline.__name__,
@@ -74,8 +80,8 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
             companies.company_number as companies_house_id,
             'dit.datahub' as source,
             companies.modified_on as datetime
-        FROM {CompaniesDatasetPipeline.table_name} companies
-        LEFT JOIN {ContactsDatasetPipeline.table_name} contacts
+        FROM {CompaniesDatasetPipeline.table_config.table_name} companies
+        LEFT JOIN {ContactsDatasetPipeline.table_config.table_name} contacts
         ON contacts.company_id = companies.id
         ORDER BY companies.id asc, companies.modified_on desc
     """
@@ -93,6 +99,6 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
             null as copmanies_house_id,
             'dit.export-wins' as source,
             created::timestamp as datetime
-        FROM {ExportWinsWinsDatasetPipeline.table_name}
+        FROM {ExportWinsWinsDatasetPipeline.table_config.table_name}
         ORDER BY id asc, created::timestamp desc
     """
