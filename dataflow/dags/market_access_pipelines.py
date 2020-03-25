@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import partial
+from typing import Dict, Tuple
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
@@ -13,6 +14,16 @@ from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.utils import TableConfig
 
 
+def _normalize_sectors(
+    record: Dict, table_config: TableConfig, contexts: Tuple[Dict, ...]
+) -> dict:
+    if record["sectors"] == "All":
+        return {**record, "sectors": ["All"]}
+    elif record["sectors"] == "N/A":
+        return {**record, "sectors": None}
+    return record
+
+
 class MarketAccessTradeBarriersPipeline(_PipelineDAG):
     target_db = config.DATASETS_DB_NAME
     source_url = f"{config.MARKET_ACCESS_BASE_URL}/barriers/dataset"
@@ -21,6 +32,7 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
 
     table_config = TableConfig(
         table_name="market_access_trade_barriers",
+        transforms=[_normalize_sectors],
         field_mapping=[
             ("id", sa.Column("id", UUID, primary_key=True)),
             ("code", sa.Column("code", sa.Text)),
