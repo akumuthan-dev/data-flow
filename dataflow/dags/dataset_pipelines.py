@@ -16,7 +16,6 @@ class _DatasetPipeline(_PipelineDAG):
     cascade_drop_tables = True
 
     source_url: str
-    table_config: TableConfig
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
