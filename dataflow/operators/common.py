@@ -1,11 +1,11 @@
 from typing import Optional
 
 import backoff
+import requests
 from mohawk import Sender
 from mohawk.exc import HawkFail
-import requests
 
-from dataflow.utils import logger, S3Data, get_nested_key
+from dataflow.utils import S3Data, get_nested_key, logger
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
@@ -13,11 +13,13 @@ def _hawk_api_request(
     url: str, credentials: dict, results_key: Optional[str], next_key: Optional[str]
 ):
     sender = Sender(
-        credentials, url, 'get', content='', content_type='', always_hash_content=True,
+        credentials, url, "get", content="", content_type="", always_hash_content=True,
     )
 
-    logger.info(f'Fetching page {url}')
-    response = requests.get(url, headers={'Authorization': sender.request_header})
+    logger.info(f"Fetching page {url}")
+    response = requests.get(
+        url, headers={"Authorization": sender.request_header, "Content-Type": ""}
+    )
 
     try:
         response.raise_for_status()
@@ -27,12 +29,12 @@ def _hawk_api_request(
 
     try:
         sender.accept_response(
-            response.headers['Server-Authorization'],
+            response.headers["Server-Authorization"],
             content=response.content,
-            content_type=response.headers['Content-Type'],
+            content_type=response.headers["Content-Type"],
         )
     except HawkFail as e:
-        logger.error(f'HAWK Authentication failed {str(e)}')
+        logger.error(f"HAWK Authentication failed {str(e)}")
         raise
 
     response_json = response.json()
@@ -40,7 +42,7 @@ def _hawk_api_request(
     if (next_key and next_key not in response_json) or (
         results_key and results_key not in response_json
     ):
-        raise ValueError('Unexpected response structure')
+        raise ValueError("Unexpected response structure")
 
     return response_json
 
@@ -77,4 +79,4 @@ def fetch_from_hawk_api(
 
         page += 1
 
-    logger.info('Fetching from source completed')
+    logger.info("Fetching from source completed")

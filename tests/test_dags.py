@@ -5,6 +5,7 @@ from dataflow.dags import (
     activity_stream_pipelines,
     canary,
     company_matching,
+    consent_pipelines,
     dataset_pipelines,
     ons_pipelines,
     spi_pipeline,
@@ -23,8 +24,8 @@ def test_canary_dag():
 
 def test_canary_tweets():
     assert (
-        canary.canary_tweet(task_name='test')
-        == 'Canary task test was processed successfully'
+        canary.canary_tweet(task_name="test")
+        == "Canary task test was processed successfully"
     )
 
 
@@ -33,6 +34,7 @@ def test_canary_tweets():
     [
         activity_stream_pipelines,
         company_matching,
+        consent_pipelines,
         csv_pipelines_daily,
         csv_pipelines_monthly,
         csv_pipelines_yearly,
