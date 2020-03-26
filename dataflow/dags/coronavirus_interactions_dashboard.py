@@ -67,7 +67,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
         where contacts_dataset.id in (select unnest(covid_interactions.contact_ids)::uuid from covid_interactions)
     )
     select
-    ci.interaction_date as "interaction_date",
+    ci.interaction_date::text as "interaction_date",
     co.name as "company_name",
     co.address_country as "company_country",
     concat('https://www.datahub.trade.gov.uk/companies/', co.id, '/activity') as "company_link",
