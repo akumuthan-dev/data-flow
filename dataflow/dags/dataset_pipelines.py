@@ -312,19 +312,21 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
 
 
 class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
-    table_name = 'interactions_export_country'
     source_url = '{}/v4/dataset/interactions-export-country-dataset'.format(
         config.DATAHUB_BASE_URL
     )
-    field_mapping = [
-        ('country__name', sa.Column('country_name', sa.Text)),
-        ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.Text)),
-        ('created_on', sa.Column('created_on', sa.DateTime)),
-        ('id', sa.Column('id', UUID, primary_key=True)),
-        ('interaction__company_id', sa.Column('company_id', UUID)),
-        ('interaction__id', sa.Column('interaction_id', UUID)),
-        ('status', sa.Column('status', sa.Text)),
-    ]
+    table_config = TableConfig(
+        table_name='interactions_export_country',
+        field_mapping=[
+            ('country__name', sa.Column('country_name', sa.Text)),
+            ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.Text)),
+            ('created_on', sa.Column('created_on', sa.DateTime)),
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('interaction__company_id', sa.Column('company_id', UUID)),
+            ('interaction__id', sa.Column('interaction_id', UUID)),
+            ('status', sa.Column('status', sa.Text)),
+        ],
+    )
 
 
 class ContactsDatasetPipeline(_DatasetPipeline):
