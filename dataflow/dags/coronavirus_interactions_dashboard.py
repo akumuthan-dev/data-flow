@@ -28,6 +28,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
     table_config = TableConfig(
         table_name="coronavirus_interactions_dashboard_data",
         field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             ("interaction_date", sa.Column("interaction_date", sa.Date)),
             ("company_name", sa.Column("company_name", sa.Text)),
             ("company_country", sa.Column("company_country", sa.Text)),
