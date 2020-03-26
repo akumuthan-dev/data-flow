@@ -1,11 +1,11 @@
 from typing import Optional
 
 import backoff
+import requests
 from mohawk import Sender
 from mohawk.exc import HawkFail
-import requests
 
-from dataflow.utils import logger, S3Data, get_nested_key
+from dataflow.utils import S3Data, get_nested_key, logger
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
@@ -17,7 +17,7 @@ def _hawk_api_request(
     )
 
     logger.info(f'Fetching page {url}')
-    response = requests.get(url, headers={'Authorization': sender.request_header})
+    response = requests.get(url, headers={'Authorization': sender.request_header, 'Content-Type': ''})
 
     try:
         response.raise_for_status()
