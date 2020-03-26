@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Consent API pipeline.
+- Raw world bank tariff pipeline.
+- Raw world bank bound rates pipeline.
 
 ## 2020-03-25
 
