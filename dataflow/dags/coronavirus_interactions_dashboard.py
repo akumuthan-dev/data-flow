@@ -39,7 +39,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
             ("team", sa.Column("team", sa.Text)),
             ("role", sa.Column("role", sa.Text)),
             ("policy_areas", sa.Column("policy_areas", sa.ARRAY(sa.Text))),
-            ("entered_into_data_hub", sa.Column("entered_into_data_hub", sa.Datetime)),
+            ("entered_into_data_hub", sa.Column("entered_into_data_hub", sa.DateTime)),
         ],
     )
 
