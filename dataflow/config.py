@@ -65,3 +65,11 @@ MARKET_ACCESS_HAWK_CREDENTIALS = {
     "key": os.environ.get("MARKET_ACCESS_HAWK_KEY"),
     "algorithm": "sha256",
 }
+
+CONSENT_BASE_URL = os.environ.get("CONSENT_BASE_URL")
+CONSENT_HAWK_CREDENTIALS = {
+    "id": os.environ.get("CONSENT_HAWK_ID"),
+    "key": os.environ.get("CONSENT_HAWK_SECRET"),
+    "algorithm": "sha256",
+}
+CONSENT_RESULTS_PER_PAGE = 10
