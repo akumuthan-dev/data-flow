@@ -14,6 +14,9 @@ from cached_property import cached_property
 from dataflow import config
 
 
+logger = logging.getLogger('dataflow')
+
+
 # This describes how a blob of data relates to our desired DB structure. This is generally just in a single table,
 # but if the response contains nested records then the FieldMapping can also include further `TableConfig` instances
 # to describe the shape of the related tables.
@@ -130,7 +133,6 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
-logger = logging.getLogger('dataflow')
 
 
 class S3Data:
