@@ -39,7 +39,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
             ("team", sa.Column("team", sa.Text)),
             ("role", sa.Column("role", sa.Text)),
             ("policy_areas", sa.Column("policy_areas", sa.ARRAY(sa.Text))),
-            ("entered_into_data_hub", sa.Column("entered_into_data_hub", sa.Text)),
+            ("entered_into_data_hub", sa.Column("entered_into_data_hub", sa.Datetime)),
         ],
     )
 
@@ -78,7 +78,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
     (select c_advisers.team from c_advisers where c_advisers.id = ci.adviser_ids[1]::uuid) as "team",
     (select c_advisers.role from c_advisers where c_advisers.id = ci.adviser_ids[1]::uuid) as "role",
     ci.policy_areas as "policy_areas",
-    ci.created_on as "entered_into_data_hub"
+    ci.created_on::text as "entered_into_data_hub"
     from covid_interactions ci
     join companies_dataset co on co.id = ci.company_id
     order by ci.interaction_date DESC;
