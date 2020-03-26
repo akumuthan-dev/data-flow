@@ -107,7 +107,7 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
             sensor = ExternalTaskSensor(
                 task_id=f'wait_for_{pipeline.__name__.lower()}',
                 external_dag_id=pipeline.__name__,
-                external_task_id='drop-temp-tables',
+                external_task_id='swap-dataset-table',
                 timeout=self.timeout,
                 dag=dag,
             )

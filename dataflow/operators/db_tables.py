@@ -333,9 +333,6 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
     Given a dataset table `table`, deletes any related temporary
     tables created during the DAG run.
 
-    This includes a temporary table created for the run (if the DAG run
-    failed) and the swap table containing the previous version of the dataset
-    (if the DAG run succeeded and the dataset table has been replaced).
     """
     engine = sa.create_engine(
         'postgresql+psycopg2://',
@@ -347,6 +344,20 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
             logger.info(f"Removing {temp_table.name}")
             temp_table.drop(conn, checkfirst=True)
 
+
+def drop_swap_tables(target_db: str, *tables, **kwargs):
+    """Delete temporary swap dataset DB tables.
+
+    Given a dataset table `table`, deletes any related swap tables
+    containing the previous version of the dataset.
+
+    """
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+    with engine.begin() as conn:
+        for table in tables:
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logger.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)

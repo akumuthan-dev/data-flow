@@ -12,6 +12,7 @@ from dataflow.operators.csv_outputs import create_csv
 from dataflow.operators.db_tables import (
     check_table_data,
     create_temp_tables,
+    drop_swap_tables,
     drop_temp_tables,
     insert_data_into_db,
     swap_dataset_tables,
@@ -153,12 +154,20 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.tables],
         )
 
-        _drop_tables = PythonOperator(
+        _drop_temp_tables = PythonOperator(
             task_id="drop-temp-tables",
             python_callable=drop_temp_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
-            trigger_rule="all_done",
+            trigger_rule="one_failed",
+            op_args=[self.target_db, *self.tables],
+        )
+
+        _drop_swap_tables = PythonOperator(
+            task_id="drop-swap-tables",
+            python_callable=drop_swap_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
             op_args=[self.target_db, *self.tables],
         )
 
@@ -167,8 +176,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
             >> _insert_into_temp_table
             >> _check_tables
             >> _swap_dataset_tables
-            >> _drop_tables
+            >> _drop_swap_tables
         )
+
+        _insert_into_temp_table >> _drop_temp_tables
 
         return dag
 
