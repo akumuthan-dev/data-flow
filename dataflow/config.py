@@ -72,4 +72,4 @@ CONSENT_HAWK_CREDENTIALS = {
     "key": os.environ.get("CONSENT_HAWK_SECRET"),
     "algorithm": "sha256",
 }
-CONSENT_RESULTS_PER_PAGE = 10
+CONSENT_RESULTS_PER_PAGE = 1000
