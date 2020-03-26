@@ -17,7 +17,7 @@ from dataflow.operators.db_tables import (
     insert_data_into_db,
     swap_dataset_tables,
 )
-from dataflow.utils import TableConfig, SingleTableFieldMapping
+from dataflow.utils import TableConfig, SingleTableFieldMapping, slack_failed_alert
 
 
 class PipelineMeta(type):
@@ -108,6 +108,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
             max_active_runs=1,
+            on_failure_callback=slack_failed_alert,
         )
 
         _fetch = self.get_fetch_operator()

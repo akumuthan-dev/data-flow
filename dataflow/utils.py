@@ -9,6 +9,7 @@ from typing_extensions import Protocol
 
 import sqlalchemy
 from airflow.hooks.S3_hook import S3Hook
+from airflow.contrib.hooks.slack_webhook_hook import SlackWebhookHook
 from cached_property import cached_property
 
 from dataflow import config
@@ -133,6 +134,25 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
+def slack_failed_alert(context):
+    if not config.SLACK_TOKEN:
+        logger.info("No Slack token, skipping Slack notification")
+        return
+
+    return SlackWebhookHook(
+        webhook_token=config.SLACK_TOKEN,
+        attachments=[
+            {
+                "color": "#e20000",
+                "pretext": "DAG run failed",
+                "fallback": f"{context['dag'].dag_id} failed on {context['ds']}",
+                "fields": [
+                    {"title": "DAG", "value": context["dag"].dag_id, "short": True},
+                    {"title": "Run", "value": context["ts"], "short": True},
+                ],
+            }
+        ],
+    ).execute()
 
 
 class S3Data:
