@@ -1,8 +1,14 @@
 # Changelog
-  
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+## 2020-03-26
+
+### Added
+
+- Consent API pipeline.
 
 ## 2020-03-25
 
@@ -26,7 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fix operator log messages not being included in task S3 logs
 
-
 ## 2020-03-11
 
 ### Added
@@ -38,15 +43,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - The existing `AdvisorDatasetPipeline` to use the new `TableConfig` process.
 
-
 ## 2020-03-03
 
 ### Changed
 
 - Updated World bank tariff pipeline
-    - removed prf_rate
-    - added indexes to partner, reporter, product and year columns
-
+  - removed prf_rate
+  - added indexes to partner, reporter, product and year columns
 
 ## 2020-03-03
 
@@ -54,13 +57,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - World bank tariff (data-store-service) pipeline
 
-
 ## 2020-02-27
 
 ### Changed
 
 - Add created by id to interactions dataset
-
 
 ## 2020-02-26
 
@@ -68,10 +69,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Update monthly static FDI report query
   - Join string arrays with semicolons
-  - Do not include empty string for `other_business_activities` field 
+  - Do not include empty string for `other_business_activities` field
 - Ensure omis orders are included to the end of the month for the given run date
 - Set null and false values to false in export wins early cut
-
 
 ## 2020-02-25
 
@@ -79,20 +79,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Set monthly static fdi report window to end of the current month
 
-
 ## 2020-02-24
 
 ### Changed
 
 - Mark monthly fdi pipeline as static
 
-
 ## 2020-02-20
 
 ### Changed
 
 - Make column validation configurable per pipeline
-
 
 ## 2020-02-20
 
@@ -112,24 +109,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - CSV pipelines added to replace view pipelines
-    - Reports are output directly to s3 to be made downloadable via data workspace
-    - Split pipelines out into daily, monthly, yearly config files
-    - Adds a new daily pipeline that recreates all historic non-static csv files
-
+  - Reports are output directly to s3 to be made downloadable via data workspace
+  - Split pipelines out into daily, monthly, yearly config files
+  - Adds a new daily pipeline that recreates all historic non-static csv files
 
 ### Changed
 
 - Dataset pipelines configuration brought inline with new pipeline setup
-    - Use sqlalchemy to configure tables
-    - Single 'insert to db' process
-    - Fetched pages stored in s3 to be picked up by insert task
-    - Users are granted to access to newly created tables before they are removed 
+  - Use sqlalchemy to configure tables
+  - Single 'insert to db' process
+  - Fetched pages stored in s3 to be picked up by insert task
+  - Users are granted to access to newly created tables before they are removed
 
-    
 ### Removed
 
 - As part of the above changes all view pipelines have been removed
-
 
 ## 2020-02-11
 
@@ -138,21 +132,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Two new ONS datasets for UK trade in services.
 - ONS Postcode (data-store-service) pipeline
 
-
 ## 2020-02-04
 
 ### Changed
 
 - Fixed bug where business activity was not string formatted
 
-
 ## 2020-01-23
 
 ### Changed
 
 - Added 2 new fields to the company dataset
-    - `global_headquarters_id`
-    - `global_ultimate_duns_number`
-- Renamed company dataset field `classification` to `one_list_tier` 
+  - `global_headquarters_id`
+  - `global_ultimate_duns_number`
+- Renamed company dataset field `classification` to `one_list_tier`
 - Added 1 new field to the interaction dataset
-    - `modified_on`
+  - `modified_on`
