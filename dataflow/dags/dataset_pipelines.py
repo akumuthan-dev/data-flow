@@ -834,3 +834,24 @@ class WorldBankTariffPipeline(_DatasetPipeline):
             ('year', sa.Column('year', sa.Integer, index=True)),
         ],
     )
+
+
+class RawWorldBankTariffPipeline(_DatasetPipeline):
+    """Pipeline meta object for the raw world bank tariff data."""
+
+    source_url = (
+        f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/raw/'
+        f'?orientation=records'
+    )
+    table_config = TableConfig(
+        table_name='raw_world_bank_tariffs',
+        field_mapping=[
+            ('product', sa.Column('product', sa.Integer, index=True)),
+            ('partner', sa.Column('partner', sa.Integer, index=True)),
+            ('reporter', sa.Column('reporter', sa.Integer, index=True)),
+            ('year', sa.Column('year', sa.Integer, index=True)),
+            ('simpleAverage', sa.Column('simple_average', sa.Numeric)),
+            ('dutyType', sa.Column('duty_type', sa.Numeric)),
+            ('numberOfTotalLines', sa.Column('number_of_total_lines', sa.Numeric)),
+        ]
+    )
