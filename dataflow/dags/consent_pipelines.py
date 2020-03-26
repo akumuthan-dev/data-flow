@@ -18,9 +18,7 @@ class _ConsentPipeline(_PipelineDAG):
         return PythonOperator(
             task_id="fetch-consent-api-data",
             python_callable=partial(
-                fetch_from_hawk_api,
-                hawk_credentials=config.CONSENT_HAWK_CREDENTIALS,
-                content_type="application/json",
+                fetch_from_hawk_api, hawk_credentials=config.CONSENT_HAWK_CREDENTIALS,
             ),
             provide_context=True,
             op_args=[self.table_name, self.source_url],
