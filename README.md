@@ -32,7 +32,10 @@ CSV pipelines should subclass the base `dataflow.dags._CSVPipelineDAG` class and
 
 ## Running it with Docker
 
+To run this in a local development environment, you'll need to get the dev environment's S3 service key from GOV.UK PaaS (https://www.cloud.service.gov.uk/). Set up an account, then ask webops for access to the `datasci-dev` space.
+
 1. Copy sample.env to .env
+2. Using the CF CLI (for GOV.UK PaaS), read data-flow's S3 service key and use it to populate the `AIRFLOW_CONN_DEFAULT_S3` and `S3_IMPORT_DATA_BUCKET`  env variables.
 2. Run docker-compose up --build
 3. Data-flow will be available on http://localhost:8080
 
