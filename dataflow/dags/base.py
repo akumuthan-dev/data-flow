@@ -115,6 +115,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         _create_tables = PythonOperator(
             task_id="create-temp-tables",
             python_callable=create_temp_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.tables],
             dag=dag,
@@ -147,6 +148,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             python_callable=swap_dataset_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.tables],
         )
@@ -154,6 +156,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         _drop_tables = PythonOperator(
             task_id="drop-temp-tables",
             python_callable=drop_temp_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             trigger_rule="all_done",
             op_args=[self.target_db, *self.tables],
