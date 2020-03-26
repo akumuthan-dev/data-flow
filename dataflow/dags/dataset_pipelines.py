@@ -853,5 +853,24 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
             ('simpleAverage', sa.Column('simple_average', sa.Numeric)),
             ('dutyType', sa.Column('duty_type', sa.Numeric)),
             ('numberOfTotalLines', sa.Column('number_of_total_lines', sa.Numeric)),
-        ]
+        ],
+    )
+
+
+class RawWorldBankBoundRatePipeline(_DatasetPipeline):
+    """Pipeline meta object for the raw world bank bound rates data."""
+
+    source_url = (
+        f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-bound-rates/raw/'
+        f'?orientation=records'
+    )
+    table_config = TableConfig(
+        table_name='raw_world_bank_bound_rates',
+        field_mapping=[
+            ('product', sa.Column('product', sa.Integer, index=True)),
+            ('reporter', sa.Column('reporter', sa.Integer, index=True)),
+            ('boundRate', sa.Column('bound_rate', sa.Numeric)),
+            ('nomenCode', sa.Column('nomen_code', sa.Text)),
+            ('totalNumberOfLines', sa.Column('number_of_total_lines', sa.Numeric)),
+        ],
     )
