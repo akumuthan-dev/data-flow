@@ -1,10 +1,7 @@
-import itertools
-from typing import List, Type
+from typing import Type
 
 import sqlalchemy as sa
-from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.sensors import ExternalTaskSensor
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
@@ -18,22 +15,23 @@ from dataflow.utils import TableConfig
 
 
 class _CompanyMatchingPipeline(_PipelineDAG):
-    timeout: int = 7200
-
-    company_match_query: str
-    controller_pipeline: Type[_PipelineDAG]
-    dependencies: List[Type[_PipelineDAG]] = []
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.table_config = TableConfig(
-            table_name='set-by-get-dag-method',
+            table_name=f'{self.controller_pipeline.table_config.table_name}_match_ids',
             field_mapping=[
                 ("id", sa.Column("id", sa.Text, primary_key=True)),
                 ("match_id", sa.Column("match_id", sa.Integer)),
                 ("similarity", sa.Column("similarity", sa.Text)),
             ],
         )
+
+        self.start_date = self.controller_pipeline.start_date
+        self.schedule_interval = self.controller_pipeline.schedule_interval
+
+    company_match_query: str
+    controller_pipeline: Type[_PipelineDAG]
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -48,32 +46,10 @@ class _CompanyMatchingPipeline(_PipelineDAG):
             ],
         )
 
-    def get_dag(self) -> DAG:
-        self.table_config.table_name = (
-            f'{self.controller_pipeline.table_config.table_name}_match_ids'
-        )
-        self.start_date = self.controller_pipeline.start_date
-        self.schedule_interval = self.controller_pipeline.schedule_interval
-
-        dag = super().get_dag()
-
-        for pipeline in itertools.chain([self.controller_pipeline], self.dependencies):
-            sensor = ExternalTaskSensor(
-                task_id=f'wait_for_{pipeline.__name__.lower()}',
-                external_dag_id=pipeline.__name__,
-                external_task_id='swap-dataset-table',
-                timeout=self.timeout,
-                dag=dag,
-            )
-
-            dag.set_dependency(sensor.task_id, "company-match-data")
-
-        return dag
-
 
 class DataHubMatchingPipeline(_CompanyMatchingPipeline):
     controller_pipeline = CompaniesDatasetPipeline
-    dependencies = [ContactsDatasetPipeline]
+    dependencies = [CompaniesDatasetPipeline, ContactsDatasetPipeline]
     company_match_query = f"""
         SELECT distinct on (companies.id)
             companies.id as id,
@@ -93,6 +69,7 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
 
 class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
     controller_pipeline = ExportWinsWinsDatasetPipeline
+    dependencies = [ExportWinsWinsDatasetPipeline]
     company_match_query = f"""
         SELECT distinct on (id)
             id as id,
