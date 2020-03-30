@@ -2,10 +2,11 @@ import sys
 
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Optional
+from typing import List, Optional, Type
 
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.sensors import ExternalTaskSensor
 
 from dataflow import config
 from dataflow.operators.csv_outputs import create_csv
@@ -59,6 +60,17 @@ class _PipelineDAG(metaclass=PipelineMeta):
     allow_null_columns: bool = False
 
     table_config: TableConfig
+
+    dependencies: List[Type["_PipelineDAG"]] = []
+
+    # Controls how long will the task wait for dependencies to succeed
+    dependencies_timeout: int = 8 * 3600
+
+    # Offset between dependencies and this DAG running. So for example
+    # if this pipeline starts at 5am and depends on a task that starts
+    # at midnight the offset should be 5 hours. This will check for the
+    # exact time, NOT a range of "between now and 5 hours ago".
+    dependencies_execution_delta: timedelta = timedelta(hours=0)
 
     def get_fetch_operator(self) -> PythonOperator:
         raise NotImplementedError(
@@ -151,6 +163,18 @@ class _PipelineDAG(metaclass=PipelineMeta):
         )
 
         _insert_into_temp_table >> _drop_temp_tables
+
+        for dependency in self.dependencies:
+            sensor = ExternalTaskSensor(
+                task_id=f'wait-for-{dependency.__name__.lower()}',
+                external_dag_id=dependency.__name__,
+                external_task_id='swap-dataset-table',
+                execution_delta=self.dependencies_execution_delta,
+                timeout=self.dependencies_timeout,
+                dag=dag,
+            )
+
+            sensor >> [_fetch, _create_tables]
 
         return dag
 
