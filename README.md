@@ -54,3 +54,16 @@ date_trunc('month', to_date('{{ macros.datetime.strptime(ds, '%Y-%m-%d') +
 	macros.dateutil.relativedelta.relativedelta(months=+1, days=-1) }}', 'YYYY-MM-DD'));
 ```
 - Logs show up after task completed it's the expected behaviour with Airflow remote logging. (S3 is used to centralized logs)
+
+### Rerunning failed tasks
+
+The pipelines are structured to make it possible to recover in case one of the tasks fails. In order to rerun a failed task you need to select it in the Airflow graph/tree view and click "Clear". This makes Airflow "forget" the previous result and reschedule the task. By default, Airflow will also clear any tasks that depend on the selected one ("downstream"), which is what we want most of the time.
+
+Since things like temporary DB table names and S3 fetch cache locations are using DAG run ID, using "Clear" instead of triggering a new run means tasks will be able to reuse them. It also means any external task sensors that are still waiting will pick up the new result (built-in sensors only check the exact execution time, so will ignore any manually triggered DAG runs).
+
+For data import pipelines, it's important to keep the state of DB tables in mind when choosing a task to re-run:
+
+* If a pipeline fails during fetch or DB insert, the temporary table will get removed during DAG cleanup. So in order to rerun it, "create-temp-tables" task needs to be cleared first. If the fetch was successful it will rerun insert task using existing S3 cache, otherwise the entire DAG needs to be cleared in order to rerun fetch as well.
+* If a check or swap DB tables tasks fail then the temporary table is left in place, so (as long as there were no bugs in fetch/insert tasks that needed a new release) only the failed tasks need to be cleared for a rerun.
+
+
