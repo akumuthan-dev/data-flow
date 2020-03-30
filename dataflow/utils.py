@@ -134,7 +134,7 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
-def slack_failed_alert(context):
+def slack_alert(context, success=False):
     if not config.SLACK_TOKEN:
         logger.info("No Slack token, skipping Slack notification")
         return
@@ -143,9 +143,13 @@ def slack_failed_alert(context):
         webhook_token=config.SLACK_TOKEN,
         attachments=[
             {
-                "color": "#e20000",
-                "pretext": "DAG run failed",
-                "fallback": f"{context['dag'].dag_id} failed on {context['ds']}",
+                "color": "good" if success else "danger",
+                "pretext": "DAG run {}".format("succeeded" if success else "failed"),
+                "fallback": "{} {} on {}".format(
+                    context['dag'].dag_id,
+                    "succeeded" if success else "failed",
+                    context['ds'],
+                ),
                 "fields": [
                     {"title": "DAG", "value": context["dag"].dag_id, "short": True},
                     {"title": "Run", "value": context["ts"], "short": True},

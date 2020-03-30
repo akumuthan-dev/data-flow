@@ -1,6 +1,7 @@
 import sys
 
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
@@ -17,7 +18,7 @@ from dataflow.operators.db_tables import (
     insert_data_into_db,
     swap_dataset_tables,
 )
-from dataflow.utils import TableConfig, SingleTableFieldMapping, slack_failed_alert
+from dataflow.utils import TableConfig, SingleTableFieldMapping, slack_alert
 
 
 class PipelineMeta(type):
@@ -49,6 +50,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
     end_date: Optional[datetime] = None
     schedule_interval: str = "@daily"
     catchup: bool = False
+
+    # Enable or disable Slack notification when DAG run finishes
+    alert_on_success: bool = False
+    alert_on_failure: bool = True
 
     # Name of the DB table that will be created for the dataset
     table_name: str
@@ -108,7 +113,12 @@ class _PipelineDAG(metaclass=PipelineMeta):
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
             max_active_runs=1,
-            on_failure_callback=slack_failed_alert,
+            on_success_callback=partial(slack_alert, success=True)
+            if self.alert_on_success
+            else None,
+            on_failure_callback=partial(slack_alert, success=False)
+            if self.alert_on_failure
+            else None,
         )
 
         _fetch = self.get_fetch_operator()
