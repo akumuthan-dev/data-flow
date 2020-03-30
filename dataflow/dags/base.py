@@ -167,6 +167,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         for dependency in self.dependencies:
             sensor = ExternalTaskSensor(
                 task_id=f'wait-for-{dependency.__name__.lower()}',
+                pool="sensors",
                 external_dag_id=dependency.__name__,
                 external_task_id='swap-dataset-table',
                 execution_delta=self.dependencies_execution_delta,
