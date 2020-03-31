@@ -1,8 +1,6 @@
 import datetime
 
 import sqlalchemy as sa
-from airflow import DAG
-from airflow.operators.sensors import ExternalTaskSensor
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
@@ -87,7 +85,6 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
 
     schedule_interval = '@daily'
     start_date = datetime.datetime(2020, 3, 25)
-    timeout = 7200
 
     def get_fetch_operator(self):
         op = PythonOperator(
@@ -97,20 +94,3 @@ class CoronavirusInteractionsDashboardPipeline(_PipelineDAG):
             op_args=[self.query, self.target_db, self.table_config.table_name],
         )
         return op
-
-    def get_dag(self) -> DAG:
-
-        dag = super().get_dag()
-
-        sensors = []
-        for pipeline in self.dependencies:
-            sensor = ExternalTaskSensor(
-                task_id=f'wait_for_{pipeline.__name__.lower()}',
-                external_dag_id=pipeline.__name__,
-                external_task_id='swap-dataset-table',
-                timeout=self.timeout,
-                dag=dag,
-            )
-            sensors.append(sensor)
-        sensors >> dag.tasks[0]
-        return dag
