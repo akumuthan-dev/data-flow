@@ -19,18 +19,21 @@ from dataflow.utils import TableConfig
 
 class _CompanyMatchingPipeline(_PipelineDAG):
     timeout: int = 7200
-    table_config = TableConfig(
-        table_name='set-by-get-dag-method',
-        field_mapping=[
-            ("id", sa.Column("id", sa.Text, primary_key=True)),
-            ("match_id", sa.Column("match_id", sa.Integer)),
-            ("similarity", sa.Column("similarity", sa.Text)),
-        ],
-    )
 
     company_match_query: str
     controller_pipeline: Type[_PipelineDAG]
     dependencies: List[Type[_PipelineDAG]] = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.table_config = TableConfig(
+            table_name='set-by-get-dag-method',
+            field_mapping=[
+                ("id", sa.Column("id", sa.Text, primary_key=True)),
+                ("match_id", sa.Column("match_id", sa.Integer)),
+                ("similarity", sa.Column("similarity", sa.Text)),
+            ],
+        )
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
