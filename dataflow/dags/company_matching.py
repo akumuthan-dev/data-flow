@@ -12,23 +12,24 @@ from dataflow.dags.dataset_pipelines import (
     ContactsDatasetPipeline,
     CompaniesDatasetPipeline,
     ExportWinsWinsDatasetPipeline,
-    _DatasetPipeline,
 )
 from dataflow.operators.company_matching import fetch_from_company_matching
+from dataflow.utils import TableConfig
 
 
 class _CompanyMatchingPipeline(_PipelineDAG):
     timeout: int = 7200
-    field_mapping = [
-        ("id", sa.Column("id", sa.Text, primary_key=True)),
-        ("match_id", sa.Column("match_id", sa.Integer)),
-        ("similarity", sa.Column("similarity", sa.Text)),
-    ]
+    table_config = TableConfig(
+        table_name='set-by-get-dag-method',
+        field_mapping=[
+            ("id", sa.Column("id", sa.Text, primary_key=True)),
+            ("match_id", sa.Column("match_id", sa.Integer)),
+            ("similarity", sa.Column("similarity", sa.Text)),
+        ],
+    )
 
     company_match_query: str
-    controller_pipeline: Type[
-        _DatasetPipeline
-    ]  # TODO: Change _DatasetPipeline to _PipelineDAG when table_config not optional in _PipelineDAG.
+    controller_pipeline: Type[_PipelineDAG]
     dependencies: List[Type[_PipelineDAG]] = []
 
     def get_fetch_operator(self) -> PythonOperator:
@@ -38,14 +39,14 @@ class _CompanyMatchingPipeline(_PipelineDAG):
             provide_context=True,
             op_args=[
                 self.target_db,
-                self.table_name,
+                self.table_config.table_name,
                 self.company_match_query,
                 config.MATCHING_SERVICE_BATCH_SIZE,
             ],
         )
 
     def get_dag(self) -> DAG:
-        self.table_name = (
+        self.table_config.table_name = (
             f'{self.controller_pipeline.table_config.table_name}_match_ids'
         )
         self.start_date = self.controller_pipeline.start_date

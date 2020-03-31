@@ -12,8 +12,6 @@ from dataflow.utils import TableConfig
 class _HMRCPipeline(_PipelineDAG):
     base_filename: str
 
-    table_config: TableConfig
-
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
 

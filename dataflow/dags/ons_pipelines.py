@@ -5,6 +5,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.ons import fetch_from_ons_sparql
+from dataflow.utils import TableConfig
 
 
 class _ONSPipeline(_PipelineDAG):
@@ -16,21 +17,22 @@ class _ONSPipeline(_PipelineDAG):
             task_id="fetch-from-ons-sparql",
             python_callable=fetch_from_ons_sparql,
             provide_context=True,
-            op_args=[self.table_name, self.query, self.index_query],
+            op_args=[self.table_config.table_name, self.query, self.index_query],
         )
 
 
 class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
-    table_name = "ons_uk_sa_trade_in_goods"
-
-    field_mapping = [
-        (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-        (("period", "value"), sa.Column("period", sa.String)),
-        (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-        (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric)),
-        (("unit", "value"), sa.Column("unit", sa.String)),
-    ]
+    table_config = TableConfig(
+        table_name="ons_uk_sa_trade_in_goods",
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (("period", "value"), sa.Column("period", sa.String)),
+            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("direction", "value"), sa.Column("direction", sa.String)),
+            (("total", "value"), sa.Column("total", sa.Numeric)),
+            (("unit", "value"), sa.Column("unit", sa.String)),
+        ],
+    )
 
     query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -55,18 +57,20 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
 
 
 class ONSUKTradeInGoodsPipeline(_ONSPipeline):
-    table_name = "ons_uk_trade_in_goods"
     schedule_interval = "@weekly"
 
-    field_mapping = [
-        (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-        (("period", "value"), sa.Column("period", sa.String)),
-        (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-        (("product", "value"), sa.Column("product", sa.String)),
-        (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric)),
-        (("unit", "value"), sa.Column("unit", sa.String)),
-    ]
+    table_config = TableConfig(
+        table_name="ons_uk_trade_in_goods",
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (("period", "value"), sa.Column("period", sa.String)),
+            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("product", "value"), sa.Column("product", sa.String)),
+            (("direction", "value"), sa.Column("direction", sa.String)),
+            (("total", "value"), sa.Column("total", sa.Numeric)),
+            (("unit", "value"), sa.Column("unit", sa.String)),
+        ],
+    )
 
     index_query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -118,18 +122,19 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
 
 
 class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
-    table_name = "ons_uk_trade_in_goods_by_commodity"
-
-    field_mapping = [
-        (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-        (("period", "value"), sa.Column("period", sa.String)),
-        (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-        (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric)),
-        (("unit", "value"), sa.Column("unit", sa.String)),
-        (("sic_label", "value"), sa.Column("sector", sa.String)),
-        (("product_label", "value"), sa.Column("product", sa.String)),
-    ]
+    table_config = TableConfig(
+        table_name="ons_uk_trade_in_goods_by_commodity",
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (("period", "value"), sa.Column("period", sa.String)),
+            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("direction", "value"), sa.Column("direction", sa.String)),
+            (("total", "value"), sa.Column("total", sa.Numeric)),
+            (("unit", "value"), sa.Column("unit", sa.String)),
+            (("sic_label", "value"), sa.Column("sector", sa.String)),
+            (("product_label", "value"), sa.Column("product", sa.String)),
+        ],
+    )
 
     query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -159,17 +164,18 @@ class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
 
 
 class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
-    table_name = "ons_uk_trade_in_services_by_country"
-
-    field_mapping = [
-        (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-        (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-        (("product_label", "value"), sa.Column("product", sa.String)),
-        (("period", "value"), sa.Column("period", sa.String)),
-        (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric)),
-        (("unit", "value"), sa.Column("unit", sa.String)),
-    ]
+    table_config = TableConfig(
+        table_name="ons_uk_trade_in_services_by_country",
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("product_label", "value"), sa.Column("product", sa.String)),
+            (("period", "value"), sa.Column("period", sa.String)),
+            (("direction", "value"), sa.Column("direction", sa.String)),
+            (("total", "value"), sa.Column("total", sa.Numeric)),
+            (("unit", "value"), sa.Column("unit", sa.String)),
+        ],
+    )
 
     query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -193,16 +199,17 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
 
 
 class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
-    table_name = "ons_uk_total_trade_in_services_by_country"
-
-    field_mapping = [
-        (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-        (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-        (("period", "value"), sa.Column("period", sa.String)),
-        (("direction", "value"), sa.Column("direction", sa.String)),
-        (("total", "value"), sa.Column("total", sa.Numeric)),
-        (("unit", "value"), sa.Column("unit", sa.String)),
-    ]
+    table_config = TableConfig(
+        table_name="ons_uk_total_trade_in_services_by_country",
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("period", "value"), sa.Column("period", sa.String)),
+            (("direction", "value"), sa.Column("direction", sa.String)),
+            (("total", "value"), sa.Column("total", sa.Numeric)),
+            (("unit", "value"), sa.Column("unit", sa.String)),
+        ],
+    )
 
     query = """
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
