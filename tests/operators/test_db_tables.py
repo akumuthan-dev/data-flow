@@ -272,13 +272,28 @@ def test_swap_dataset_tables(mock_db_conn, table):
 
 
 def test_drop_temp_tables(mocker, mock_db_conn):
-    tables = [mock.Mock(), mock.Mock()]
+    tables = [mock.Mock()]
     tables[0].name = "test_table"
-    tables[1].name = "swap_table"
 
-    mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
 
     db_tables.drop_temp_tables("test-db", mock.Mock(), ts_nodash="123")
+
+    target.assert_called_once_with(mock.ANY, "123")
+
+    for table in tables:
+        table.drop.assert_called_once_with(mock_db_conn, checkfirst=True)
+
+
+def test_drop_swap_tables(mocker, mock_db_conn):
+    tables = [mock.Mock()]
+    tables[0].name = "test_table_swap"
+
+    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+
+    db_tables.drop_swap_tables("test-db", mock.Mock(), ts_nodash="123")
+
+    target.assert_called_once_with(mock.ANY, "123_swap")
 
     for table in tables:
         table.drop.assert_called_once_with(mock_db_conn, checkfirst=True)

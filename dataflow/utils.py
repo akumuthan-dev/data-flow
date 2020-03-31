@@ -9,9 +9,13 @@ from typing_extensions import Protocol
 
 import sqlalchemy
 from airflow.hooks.S3_hook import S3Hook
+from airflow.contrib.hooks.slack_webhook_hook import SlackWebhookHook
 from cached_property import cached_property
 
 from dataflow import config
+
+
+logger = logging.getLogger('dataflow')
 
 
 # This describes how a blob of data relates to our desired DB structure. This is generally just in a single table,
@@ -130,7 +134,29 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
-logger = logging.getLogger('dataflow')
+def slack_alert(context, success=False):
+    if not config.SLACK_TOKEN:
+        logger.info("No Slack token, skipping Slack notification")
+        return
+
+    return SlackWebhookHook(
+        webhook_token=config.SLACK_TOKEN,
+        attachments=[
+            {
+                "color": "good" if success else "danger",
+                "pretext": "DAG run {}".format("succeeded" if success else "failed"),
+                "fallback": "{} {} on {}".format(
+                    context['dag'].dag_id,
+                    "succeeded" if success else "failed",
+                    context['ds'],
+                ),
+                "fields": [
+                    {"title": "DAG", "value": context["dag"].dag_id, "short": True},
+                    {"title": "Run", "value": context["ts"], "short": True},
+                ],
+            }
+        ],
+    ).execute()
 
 
 class S3Data:

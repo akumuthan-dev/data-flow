@@ -1,6 +1,7 @@
 import sys
 
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
@@ -12,11 +13,12 @@ from dataflow.operators.csv_outputs import create_csv
 from dataflow.operators.db_tables import (
     check_table_data,
     create_temp_tables,
+    drop_swap_tables,
     drop_temp_tables,
     insert_data_into_db,
     swap_dataset_tables,
 )
-from dataflow.utils import TableConfig, SingleTableFieldMapping
+from dataflow.utils import TableConfig, SingleTableFieldMapping, slack_alert
 
 
 class PipelineMeta(type):
@@ -48,6 +50,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
     end_date: Optional[datetime] = None
     schedule_interval: str = "@daily"
     catchup: bool = False
+
+    # Enable or disable Slack notification when DAG run finishes
+    alert_on_success: bool = False
+    alert_on_failure: bool = True
 
     # Name of the DB table that will be created for the dataset
     table_name: str
@@ -107,6 +113,12 @@ class _PipelineDAG(metaclass=PipelineMeta):
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
             max_active_runs=1,
+            on_success_callback=partial(slack_alert, success=True)
+            if self.alert_on_success
+            else None,
+            on_failure_callback=partial(slack_alert, success=False)
+            if self.alert_on_failure
+            else None,
         )
 
         _fetch = self.get_fetch_operator()
@@ -115,6 +127,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         _create_tables = PythonOperator(
             task_id="create-temp-tables",
             python_callable=create_temp_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.tables],
             dag=dag,
@@ -147,15 +160,25 @@ class _PipelineDAG(metaclass=PipelineMeta):
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             python_callable=swap_dataset_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.tables],
         )
 
-        _drop_tables = PythonOperator(
+        _drop_temp_tables = PythonOperator(
             task_id="drop-temp-tables",
             python_callable=drop_temp_tables,
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
-            trigger_rule="all_done",
+            trigger_rule="one_failed",
+            op_args=[self.target_db, *self.tables],
+        )
+
+        _drop_swap_tables = PythonOperator(
+            task_id="drop-swap-tables",
+            python_callable=drop_swap_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
             op_args=[self.target_db, *self.tables],
         )
 
@@ -164,8 +187,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
             >> _insert_into_temp_table
             >> _check_tables
             >> _swap_dataset_tables
-            >> _drop_tables
+            >> _drop_swap_tables
         )
+
+        _insert_into_temp_table >> _drop_temp_tables
 
         return dag
 

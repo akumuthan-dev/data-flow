@@ -73,3 +73,5 @@ CONSENT_HAWK_CREDENTIALS = {
     "algorithm": "sha256",
 }
 CONSENT_RESULTS_PER_PAGE = 1000
+
+SLACK_TOKEN = os.environ.get("SLACK_TOKEN")

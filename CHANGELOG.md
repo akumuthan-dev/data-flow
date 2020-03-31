@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-03-30
+
+### Added
+
+- Timeouts on data pipeline tasks to prevent them from getting stuck waiting for DB lock
+- Slack notifications for failed/successful DAG runs
+
+### Changed
+
+- New data pipeline DAG structure with separate clean-up steps for temp and swap tables
+- Increased log levels to reduce airflow log noise
+
+
 ## 2020-03-26
 
 ### Added
