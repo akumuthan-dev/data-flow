@@ -1,7 +1,8 @@
 ---
 applications:
 - name: data-flow
-  buildpack: python_buildpack
+  buildpacks:
+   - python_buildpack
   memory: 5gb
   services:
     - data-flow-db
