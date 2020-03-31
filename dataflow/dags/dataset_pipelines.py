@@ -50,6 +50,28 @@ class CompanyExportCountryHistory(_DatasetPipeline):
     )
 
 
+class CompanyExportCountry(_DatasetPipeline):
+
+    source_url = '{0}/v4/dataset/company-export-country-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    table_config = TableConfig(
+        table_name='company_export_country_dataset',
+        field_mapping=[
+            ('company_id', sa.Column('company_id', UUID)),
+            ('country__name', sa.Column("country", sa.String)),
+            (
+                'country__iso_alpha2_code',
+                sa.Column('country_iso_alpha2_code', sa.String),
+            ),
+            ('created_on', sa.Column('created_on', sa.DateTime)),
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('modified_on', sa.Column('modified_on', sa.DateTime)),
+            ('status', sa.Column('status', sa.String)),
+        ],
+    )
+
+
 class CompanyExportToCountries(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/company-export-to-countries-dataset'.format(
