@@ -12,7 +12,7 @@ services:
 
   data-flow-redis:
     image: redis
-    ports: 
+    ports:
       - "16379:6379"
 
   data-flow:
@@ -25,6 +25,14 @@ services:
       - "8080:8080"
       - "8793:8793"
     env_file: .env
+    command:
+      - /bin/sh
+      - -c
+      - |
+          airflow initdb
+          ./bin/airflow-scheduler.sh &
+          airflow worker &
+          airflow webserver --pid /tmp/airflow-webserver.pid -p 8080
     links:
       - "data-flow-db"
       - "data-flow-redis"
