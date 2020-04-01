@@ -31,7 +31,7 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             ('overseas_region', sa.Column('overseas_region', sa.Text)),
             ('country', sa.Column('country', sa.ARRAY(sa.Text))),
             ('admin_areas', sa.Column('admin_areas', sa.ARRAY(sa.Text))),
-            ('barrier_types', sa.Column('barrier_types', sa.ARRAY(sa.Text))),
+            ('categories', sa.Column('categories', sa.ARRAY(sa.Text))),
             ('product', sa.Column('product', sa.Text)),
             ('source', sa.Column('source', sa.Text)),
             ('priority', sa.Column('priority', sa.Text)),
