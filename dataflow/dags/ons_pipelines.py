@@ -43,7 +43,7 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
             <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
             <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
             <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
-            <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
+            <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
             <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
 
     ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
@@ -103,7 +103,7 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
 
         ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-trade-in-goods> ;
         <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s ;
-        <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
+        <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
         <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
         <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
@@ -147,7 +147,7 @@ class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
             <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
             <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
             <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
-            <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
+            <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
             <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
 
     ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
@@ -183,7 +183,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
 
     SELECT ?geography_name ?product_label ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-trade-in-services> ;
-        <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
+        <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
         <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s ;
         <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
@@ -217,7 +217,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
 
     SELECT ?geography_name ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-total-trade> ;
-        <http://gss-data.org.uk/def/dimension/trade-partner-geography> ?geography_s ;
+        <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
         <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s ;
         <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
