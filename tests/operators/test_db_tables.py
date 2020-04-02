@@ -250,6 +250,7 @@ def test_swap_dataset_tables(mock_db_conn, table):
     mock_db_conn.execute.assert_has_calls(
         [
             call(),
+            call('SET statement_timeout = 600000'),
             call(
                 '''
                 SELECT grantee

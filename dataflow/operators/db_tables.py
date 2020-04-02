@@ -55,6 +55,7 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
     )
 
     with engine.begin() as conn:
+        conn.execute("SET statement_timeout = 600000")
         for table in tables:
             table = _get_temp_table(table, kwargs["ts_nodash"])
             logger.info(f"Creating {table.name}")
@@ -290,6 +291,7 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
 
         logger.info(f"Moving {temp_table.name} to {table.name}")
         with engine.begin() as conn:
+            conn.execute("SET statement_timeout = 600000")
             grantees = conn.execute(
                 """
                 SELECT grantee
@@ -339,6 +341,7 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
     with engine.begin() as conn:
+        conn.execute("SET statement_timeout = 600000")
         for table in tables:
             temp_table = _get_temp_table(table, kwargs["ts_nodash"])
             logger.info(f"Removing {temp_table.name}")
@@ -357,6 +360,7 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
     with engine.begin() as conn:
+        conn.execute("SET statement_timeout = 600000")
         for table in tables:
             swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logger.info(f"Removing {swap_table.name}")
