@@ -42,7 +42,11 @@ LOGGING_CONFIG: dict = {
         },
     },
     "loggers": {
-        "dataflow": {"handlers": ["task"], "level": LOG_LEVEL, "propagate": False},
+        "dataflow": {
+            "handlers": ["task", "console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
         "airflow.task": {"handlers": ["task"], "level": LOG_LEVEL, "propagate": False},
         "airflow.models.dagbag": {"level": DAG_PARSING_LOG_LEVEL},
         "airflow.processor": {"level": DAG_PARSING_LOG_LEVEL},
