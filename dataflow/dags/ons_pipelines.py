@@ -28,6 +28,7 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("period", "value"), sa.Column("period", sa.String)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("geography_code", "value"), sa.Column("geography_code", sa.String)),
             (("direction", "value"), sa.Column("direction", sa.String)),
             (("total", "value"), sa.Column("total", sa.Numeric)),
             (("unit", "value"), sa.Column("unit", sa.String)),
@@ -38,7 +39,7 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?period ?geography_name ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    SELECT ?period ?geography_name ?geography_code ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
         ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-sa-trade-in-goods> ;
             <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
             <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
@@ -65,6 +66,7 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("period", "value"), sa.Column("period", sa.String)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("geography_code", "value"), sa.Column("geography_code", sa.String)),
             (("product", "value"), sa.Column("product", sa.String)),
             (("direction", "value"), sa.Column("direction", sa.String)),
             (("total", "value"), sa.Column("total", sa.Numeric)),
@@ -97,7 +99,7 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
 
     {% raw %}
 
-    SELECT ?period ?geography_name ?product ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {{
+    SELECT ?period ?geography_name ?geography_code ?product ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {{
 
         BIND(<{compvalue[value]}> AS ?period_s)
 
@@ -127,6 +129,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("geography_code", "value"), sa.Column("geography_code", sa.String)),
             (("product_label", "value"), sa.Column("product", sa.String)),
             (("period", "value"), sa.Column("period", sa.String)),
             (("direction", "value"), sa.Column("direction", sa.String)),
@@ -139,7 +142,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?geography_name ?product_label ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    SELECT ?geography_name ?geography_code ?product_label ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-trade-in-services> ;
         <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
@@ -147,7 +150,9 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
         <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
         <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s .
+
     ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
+    ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
     ?product_s <http://www.w3.org/2000/01/rdf-schema#label> ?product_label .
     ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
     ?direction_s <http://www.w3.org/2000/01/rdf-schema#label> ?direction .
@@ -162,6 +167,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
+            (("geography_code", "value"), sa.Column("geography_code", sa.String)),
             (("period", "value"), sa.Column("period", sa.String)),
             (("direction", "value"), sa.Column("direction", sa.String)),
             (("total", "value"), sa.Column("total", sa.Numeric)),
@@ -173,7 +179,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?geography_name ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    SELECT ?geography_name ?geography_code ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-total-trade> ;
         <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
@@ -182,6 +188,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
         <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
         <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s .
     ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
+    ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
     ?product_s <http://www.w3.org/2000/01/rdf-schema#label> "Services" .
     ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
     ?direction_s <http://www.w3.org/2000/01/rdf-schema#label> ?direction .
