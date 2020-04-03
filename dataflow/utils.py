@@ -178,7 +178,7 @@ class S3Data:
             yield key, self.read_key(key, jsonify=json)
 
     def list_keys(self):
-        return self.client.list_keys(bucket_name=self.bucket, prefix=self.prefix)
+        return self.client.list_keys(bucket_name=self.bucket, prefix=self.prefix) or []
 
     def read_key(self, full_key, jsonify=True):
         data = self.client.read_key(full_key, bucket_name=self.bucket)
