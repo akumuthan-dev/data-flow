@@ -5,6 +5,8 @@ import logging
 from dataclasses import dataclass
 from itertools import chain
 from typing import Any, Tuple, Union, Iterable, Dict, Optional, Sequence
+
+from airflow.utils.state import State
 from typing_extensions import Protocol
 
 import sqlalchemy
@@ -139,22 +141,38 @@ def slack_alert(context, success=False):
         logger.info("No Slack token, skipping Slack notification")
         return
 
+    dag_text = context['dag'].dag_id
+    ts = context["ts"]
+    title = "DAG run {}".format("succeeded" if success else "failed")
+
+    if not success:
+        failed_task_logs_url = (
+            context['dag_run'].get_task_instances(state=State.FAILED)[0].log_url
+        )
+        failed_task_name = (
+            context['dag_run'].get_task_instances(state=State.FAILED)[0].task_id
+        )
+        dag_text = f"<{failed_task_logs_url}|{dag_text}.{failed_task_name}>"
+
     return SlackWebhookHook(
         webhook_token=config.SLACK_TOKEN,
         attachments=[
             {
-                "color": "good" if success else "danger",
-                "pretext": "DAG run {}".format("succeeded" if success else "failed"),
-                "fallback": "{} {} on {}".format(
-                    context['dag'].dag_id,
-                    "succeeded" if success else "failed",
-                    context['ds'],
-                ),
-                "fields": [
-                    {"title": "DAG", "value": context["dag"].dag_id, "short": True},
-                    {"title": "Run", "value": context["ts"], "short": True},
+                "color": "#007000" if success else "#D2222D",
+                "fallback": title,
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"text": title, "type": "mrkdwn"},
+                        "fields": [
+                            {"type": "mrkdwn", "text": "*DAG*"},
+                            {"type": "mrkdwn", "text": "*Run*"},
+                            {"type": "mrkdwn", "text": dag_text},
+                            {"type": "plain_text", "text": ts},
+                        ],
+                    }
                 ],
-            }
+            },
         ],
     ).execute()
 
