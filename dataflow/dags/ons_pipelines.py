@@ -121,48 +121,6 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
     """
 
 
-class ONSUKTradeInGoodsByCommodityPipeline(_ONSPipeline):
-    table_config = TableConfig(
-        table_name="ons_uk_trade_in_goods_by_commodity",
-        field_mapping=[
-            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-            (("period", "value"), sa.Column("period", sa.String)),
-            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-            (("direction", "value"), sa.Column("direction", sa.String)),
-            (("total", "value"), sa.Column("total", sa.Numeric)),
-            (("unit", "value"), sa.Column("unit", sa.String)),
-            (("sic_label", "value"), sa.Column("sector", sa.String)),
-            (("product_label", "value"), sa.Column("product", sa.String)),
-        ],
-    )
-
-    query = """
-    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-
-    SELECT ?geography_name ?sic_label ?product_label ?period ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
-        ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-trade-in-goods-by-industry-country-and-commodity> ;
-        <http://gss-data.org.uk/def/dimension/product> ?product_s ;
-        <http://gss-data.org.uk/def/dimension/sic-industry> ?sic_industry_s ;
-            <http://gss-data.org.uk/def/dimension/flow> ?direction_s ;
-            <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
-            <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
-            <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
-            <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
-
-    ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
-    ?direction_s <http://www.w3.org/2000/01/rdf-schema#label> ?direction .
-    ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
-    ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
-    ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
-    ?sic_industry_s <http://www.w3.org/2000/01/rdf-schema#label> ?sic_label .
-    ?sic_industry_s <http://business.data.gov.uk/companies/def/sic-2007/sicNotation> ?sic_code .
-    ?product_s <http://www.w3.org/2000/01/rdf-schema#label> ?product_label .
-
-    } ORDER BY ?product_s ?sic_industry_s ?geography_s ?period_s
-    """
-
-
 class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     table_config = TableConfig(
         table_name="ons_uk_trade_in_services_by_country",
