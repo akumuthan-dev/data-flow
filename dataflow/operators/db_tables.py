@@ -153,8 +153,10 @@ def insert_data_into_db(
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
 
+    count = 0
     for page, records in s3.iter_keys():
         logger.info(f'Processing page {page}')
+        count += 1
 
         with engine.begin() as conn:
             if table_config:
@@ -180,6 +182,9 @@ def insert_data_into_db(
                     )
 
         logger.info(f'Page {page} ingested successfully')
+
+    if count == 0:
+        raise MissingDataError("There are no pages of records in S3 to insert.")
 
 
 def _check_table(
