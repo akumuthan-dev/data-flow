@@ -48,7 +48,6 @@ future==0.16.0            # via apache-airflow
 graphviz==0.13.2          # via apache-airflow
 gunicorn==19.10.0         # via apache-airflow
 idna==2.8                 # via requests
-importlib-metadata==1.5.0  # via argcomplete, jsonschema
 iso8601==0.1.12           # via apache-airflow
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.3            # via apache-airflow, flask, flask-babel
@@ -101,7 +100,7 @@ termcolor==1.1.0          # via apache-airflow
 text-unidecode==1.2       # via apache-airflow
 thrift==0.13.0            # via apache-airflow
 tornado==5.1.1            # via apache-airflow, flower
-typing-extensions==3.7.4.1  # via -r requirements.in, apache-airflow
+typing_extensions==3.7.4.2  # via -r requirements.in
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 urllib3==1.25.7           # via botocore, requests, sentry-sdk
@@ -109,7 +108,6 @@ vine==1.3.0               # via amqp, celery
 websocket-client==0.54.0  # via slackclient
 werkzeug==0.16.0          # via apache-airflow, flask, flask-caching, flask-jwt-extended
 wtforms==2.2.1            # via flask-admin, flask-wtf
-zipp==2.2.0               # via importlib-metadata
 zope.deprecation==4.4.0   # via apache-airflow
 
 # The following packages are considered to be unsafe in a requirements file:
