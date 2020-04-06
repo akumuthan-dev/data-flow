@@ -7,5 +7,5 @@ mypy==0.770
 pip-tools==4.5.1
 pytest==5.4.1
 pytest-cov==2.8.1
-pytest-mock==2.0.0
+pytest-mock==3.0.0
 requests-mock==1.7.0
