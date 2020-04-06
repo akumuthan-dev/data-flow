@@ -199,8 +199,19 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
     # DB query to generate data for the CSV file
     query: str
 
+    dependencies: List[Type["_PipelineDAG"]] = []
+
+    # Controls how long will the task wait for dependencies to succeed
+    dependencies_timeout: int = 8 * 3600
+
+    # Offset between dependencies and this DAG running. So for example
+    # if this pipeline starts at 5am and depends on a task that starts
+    # at midnight the offset should be 5 hours. This will check for the
+    # exact time, NOT a range of "between now and 5 hours ago".
+    dependencies_execution_delta: timedelta = timedelta(hours=0)
+
     def get_dag(self) -> DAG:
-        with DAG(
+        dag = DAG(
             self.__class__.__name__,
             catchup=self.catchup,
             default_args={
@@ -212,21 +223,36 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
                 'retry_delay': timedelta(minutes=5),
                 'start_date': datetime(2019, 1, 1),
             },
+            user_defined_macros={"dependencies": self.dependencies},
             start_date=self.start_date,
             end_date=self.end_date,
             schedule_interval=self.schedule_interval,
-        ) as dag:
-            PythonOperator(
-                task_id=f'create-csv-current',
-                python_callable=create_csv,
-                provide_context=True,
-                op_args=[
-                    self.target_db,
-                    self.base_file_name,
-                    self.timestamp_output,
-                    self.query,
-                ],
+        )
+
+        _create_csv = PythonOperator(
+            task_id=f'create-csv-current',
+            python_callable=create_csv,
+            provide_context=True,
+            op_args=[
+                self.target_db,
+                self.base_file_name,
+                self.timestamp_output,
+                self.query,
+            ],
+            dag=dag,
+        )
+
+        for dependency in self.dependencies:
+            sensor = ExternalTaskSensor(
+                task_id=f'wait-for-{dependency.__name__.lower()}',
+                pool="sensors",
+                external_dag_id=dependency.__name__,
+                external_task_id='swap-dataset-table',
+                execution_delta=self.dependencies_execution_delta,
+                timeout=self.dependencies_timeout,
                 dag=dag,
             )
+
+            sensor >> [_create_csv]
 
         return dag
