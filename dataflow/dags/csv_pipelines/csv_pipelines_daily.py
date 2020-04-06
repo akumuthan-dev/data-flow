@@ -12,6 +12,7 @@ class _DailyCSVPipeline(_CSVPipelineDAG):
     start_date = datetime(2020, 2, 11)
     timestamp_output = False
     static = True
+    catchup = False
 
 
 class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
