@@ -895,3 +895,20 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
             ('totalNumberOfLines', sa.Column('number_of_total_lines', sa.Numeric)),
         ],
     )
+
+
+class DITBACIPipeline(_DatasetPipeline):
+    """Pipeline meta object for the BACI data."""
+
+    source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-dit-baci-data/?orientation=records'
+    table_config = TableConfig(
+        table_name='dit_baci',
+        field_mapping=[
+            ('year', sa.Column('year', sa.Integer, index=True)),
+            ('productCategory', sa.Column('product_category', sa.Integer, index=True)),
+            ('exporter', sa.Column('exporter', sa.Integer, index=True)),
+            ('importer', sa.Column('importer', sa.Integer, index=True)),
+            ('tradeFlowValue', sa.Column('trade_flow_value', sa.Numeric)),
+            ('quantity', sa.Column('quantity', sa.Numeric)),
+        ],
+    )
