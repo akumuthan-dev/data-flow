@@ -80,6 +80,7 @@ class DailyCSVRefreshPipeline(_CSVPipelineDAG):
                                 task_id=f'{pipeline.__name__}-{run_date.strftime("%Y-%m-%d")}',
                                 python_callable=create_csv,
                                 provide_context=True,
+                                params={'run_date': run_date.strftime('%Y-%m-%d')},
                                 op_args=[
                                     pipeline.target_db,
                                     pipeline.base_file_name,

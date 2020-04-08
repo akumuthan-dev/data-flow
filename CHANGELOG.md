@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Updated duty type field type to text on raw world bank tariff pipeline
 - Added columns eu_rep_rate and eu_part_rate to world bank tariff pipeline
 - Updated partner and reporter field types to text on world bank tariff pipeline
+- Set the timestamp on CSVs to the date that the file is created (rather than the start date of the task)
 
 ## 2020-04-07
 
