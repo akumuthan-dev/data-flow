@@ -872,7 +872,7 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
             ('reporter', sa.Column('reporter', sa.Integer, index=True)),
             ('year', sa.Column('year', sa.Integer, index=True)),
             ('simpleAverage', sa.Column('simple_average', sa.Numeric)),
-            ('dutyType', sa.Column('duty_type', sa.Numeric)),
+            ('dutyType', sa.Column('duty_type', sa.Text)),
             ('numberOfTotalLines', sa.Column('number_of_total_lines', sa.Numeric)),
         ],
     )
