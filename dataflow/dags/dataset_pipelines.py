@@ -838,6 +838,7 @@ class ONSPostcodePipeline(_DatasetPipeline):
 class WorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for World bank tariff data."""
 
+    schedule_interval = '@yearly'
     source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
     allow_null_columns = True
     table_config = TableConfig(
@@ -860,6 +861,7 @@ class WorldBankTariffPipeline(_DatasetPipeline):
 class RawWorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for the raw world bank tariff data."""
 
+    schedule_interval = '@yearly'
     source_url = (
         f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/raw/'
         f'?orientation=records'
@@ -881,6 +883,7 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
 class RawWorldBankBoundRatePipeline(_DatasetPipeline):
     """Pipeline meta object for the raw world bank bound rates data."""
 
+    schedule_interval = '@yearly'
     source_url = (
         f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-bound-rates/raw/'
         f'?orientation=records'
@@ -900,6 +903,7 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
 class DITBACIPipeline(_DatasetPipeline):
     """Pipeline meta object for the BACI data."""
 
+    schedule_interval = '@yearly'
     source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-dit-baci-data/?orientation=records'
     table_config = TableConfig(
         table_name='dit_baci',
