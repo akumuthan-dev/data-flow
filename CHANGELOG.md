@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - ONS UK Trade in services pipelines now include period types, and shouldn't have duplicated data for quarterly rows.
+- Set schedule to yearly for DIT BACI pipeline
+- Set schedule to yearly for world bank tariff pipelines
+- Updated duty type field type to text on raw world bank tariff pipeline
+- Added columns eu_rep_rate and eu_part_rate to world bank tariff pipeline
+- Updated partner and reporter field types to text on world bank tariff pipeline
 
 ## 2020-04-07
 
