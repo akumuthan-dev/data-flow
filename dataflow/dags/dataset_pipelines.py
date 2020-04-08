@@ -849,11 +849,13 @@ class WorldBankTariffPipeline(_DatasetPipeline):
             ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
             ('countryAverage', sa.Column('country_average', sa.Numeric)),
             ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
-            ('partner', sa.Column('partner', sa.Integer, index=True)),
+            ('partner', sa.Column('partner', sa.Text, index=True)),
             ('product', sa.Column('product', sa.Integer, index=True)),
-            ('reporter', sa.Column('reporter', sa.Integer, index=True)),
+            ('reporter', sa.Column('reporter', sa.Text, index=True)),
             ('worldAverage', sa.Column('world_average', sa.Numeric)),
             ('year', sa.Column('year', sa.Integer, index=True)),
+            ('euRepRate', sa.Column('eu_rep_rate', sa.Numeric)),
+            ('euPartRate', sa.Column('eu_part_rate', sa.Numeric)),
         ],
     )
 
