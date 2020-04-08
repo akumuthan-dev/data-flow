@@ -25,7 +25,6 @@ DATAHUB_BASE_URL = os.environ.get("DATAHUB_BASE_URL")
 EXPORT_WINS_BASE_URL = os.environ.get("EXPORT_WINS_BASE_URL")
 
 DEBUG = True if os.environ.get("DEBUG") == "True" else False
-INGEST_TASK_CONCURRENCY = int(os.environ.get("INGEST_TASK_CONCURRENCY", 1))
 REDIS_URL = os.environ.get("AIRFLOW__CELERY__BROKER_URL")
 COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
     "COUNTRIES_OF_INTEREST_BASE_URL", "localhost:5000"
@@ -35,6 +34,11 @@ DATA_STORE_SERVICE_BASE_URL = os.environ.get(
 )
 
 S3_IMPORT_DATA_BUCKET = os.environ.get("S3_IMPORT_DATA_BUCKET")
+S3_RETENTION_PERIOD_DAYS = os.environ.get("S3_RETENTION_PERIOD_DAYS", 7)
+
+DB_TEMP_TABLE_RETENTION_PERIOD_DAYS = os.environ.get(
+    "DB_TEMP_TABLE_RETENTION_PERIOD_DAYS", 3
+)
 
 ONS_SPARQL_URL = os.environ.get(
     "ONS_SPARQL_URL",
