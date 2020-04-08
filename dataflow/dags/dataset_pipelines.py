@@ -838,6 +838,7 @@ class ONSPostcodePipeline(_DatasetPipeline):
 class WorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for World bank tariff data."""
 
+    schedule_interval = '@yearly'
     source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
     allow_null_columns = True
     table_config = TableConfig(
@@ -848,11 +849,13 @@ class WorldBankTariffPipeline(_DatasetPipeline):
             ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
             ('countryAverage', sa.Column('country_average', sa.Numeric)),
             ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
-            ('partner', sa.Column('partner', sa.Integer, index=True)),
+            ('partner', sa.Column('partner', sa.Text, index=True)),
             ('product', sa.Column('product', sa.Integer, index=True)),
-            ('reporter', sa.Column('reporter', sa.Integer, index=True)),
+            ('reporter', sa.Column('reporter', sa.Text, index=True)),
             ('worldAverage', sa.Column('world_average', sa.Numeric)),
             ('year', sa.Column('year', sa.Integer, index=True)),
+            ('euRepRate', sa.Column('eu_rep_rate', sa.Numeric)),
+            ('euPartRate', sa.Column('eu_part_rate', sa.Numeric)),
         ],
     )
 
@@ -860,6 +863,7 @@ class WorldBankTariffPipeline(_DatasetPipeline):
 class RawWorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for the raw world bank tariff data."""
 
+    schedule_interval = '@yearly'
     source_url = (
         f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/raw/'
         f'?orientation=records'
@@ -872,7 +876,7 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
             ('reporter', sa.Column('reporter', sa.Integer, index=True)),
             ('year', sa.Column('year', sa.Integer, index=True)),
             ('simpleAverage', sa.Column('simple_average', sa.Numeric)),
-            ('dutyType', sa.Column('duty_type', sa.Numeric)),
+            ('dutyType', sa.Column('duty_type', sa.Text)),
             ('numberOfTotalLines', sa.Column('number_of_total_lines', sa.Numeric)),
         ],
     )
@@ -881,6 +885,7 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
 class RawWorldBankBoundRatePipeline(_DatasetPipeline):
     """Pipeline meta object for the raw world bank bound rates data."""
 
+    schedule_interval = '@yearly'
     source_url = (
         f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-bound-rates/raw/'
         f'?orientation=records'
@@ -900,6 +905,7 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
 class DITBACIPipeline(_DatasetPipeline):
     """Pipeline meta object for the BACI data."""
 
+    schedule_interval = '@yearly'
     source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-dit-baci-data/?orientation=records'
     table_config = TableConfig(
         table_name='dit_baci',
