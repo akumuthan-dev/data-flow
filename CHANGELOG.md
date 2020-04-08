@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-04-08
+
+### Changed
+
+- ONS UK Trade in services pipelines now include period types, and shouldn't have duplicated data for quarterly rows.
+
 ## 2020-04-07
 
 ### Added
