@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Maintenance DAG with tasks to clean up old S3 files and temporary DB tables
+- CSV pipeline for ONS UK Trade in Services
 
 ### Changed
 

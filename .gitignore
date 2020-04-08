@@ -88,3 +88,4 @@ airflow/
 
 # pyenv
 .python-version
+.coverage
