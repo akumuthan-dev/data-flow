@@ -1,3 +1,4 @@
+import botocore.exceptions
 import pytest
 import sqlalchemy
 from sqlalchemy import Column, Integer, String
@@ -71,6 +72,57 @@ def test_s3_data_iter_keys(mocker):
     mock_list.assert_called_once_with(
         bucket_name="test-bucket", prefix='import-data/table/20010101/'
     )
+
+
+def test_s3_data_read_key_retries_requests(mocker):
+    mocker.patch("time.sleep")  # skip backoff retry delay
+    mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
+
+    mocker.patch(
+        'dataflow.utils.S3Hook.read_key',
+        side_effect=[
+            botocore.exceptions.EndpointConnectionError(endpoint_url='aws'),
+            "{}",
+        ],
+    )
+
+    s3 = utils.S3Data('table', '20010101')
+
+    assert s3.read_key("key") == {}
+
+
+def test_s3_data_write_key_retries_requests(mocker):
+    mocker.patch("time.sleep")  # skip backoff retry delay
+    mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
+
+    mocker.patch(
+        'dataflow.utils.S3Hook.load_string',
+        side_effect=[
+            botocore.exceptions.EndpointConnectionError(endpoint_url='aws'),
+            "{}",
+        ],
+    )
+
+    s3 = utils.S3Data('table', '20010101')
+
+    assert s3.write_key("key", {})
+
+
+def test_s3_data_list_keys_retries_requests(mocker):
+    mocker.patch("time.sleep")  # skip backoff retry delay
+    mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
+
+    mocker.patch(
+        'dataflow.utils.S3Hook.list_keys',
+        side_effect=[
+            botocore.exceptions.EndpointConnectionError(endpoint_url='aws'),
+            [],
+        ],
+    )
+
+    s3 = utils.S3Data('table', '20010101')
+
+    assert s3.list_keys() == []
 
 
 class TestTableConfig:
