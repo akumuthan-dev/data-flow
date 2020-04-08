@@ -32,7 +32,8 @@ def test_create_csv(mocker, mock_db_conn, timestamp_file, output_filename):
         'test_base_file',
         timestamp_file,
         'select * from tmp',
-        execution_date=datetime(2020, 1, 1),
+        execution_date=datetime(2019, 12, 1),
+        next_execution_date=datetime(2020, 1, 1),
     )
 
     mock_csv.writer().writerow.assert_has_calls(
