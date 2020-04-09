@@ -42,7 +42,6 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             ('import_market_size', sa.Column('import_market_size', sa.BigInteger)),
             ('commercial_value', sa.Column('commercial_value', sa.BigInteger)),
             ('export_value', sa.Column('export_value', sa.BigInteger)),
-            ('resolved_date', sa.Column('resolved_date', sa.Date)),
             ('team_count', sa.Column('team_count', sa.Integer)),
             ('company_names', sa.Column('company_names', sa.ARRAY(sa.Text))),
             ('company_ids', sa.Column('company_ids', sa.ARRAY(sa.Text))),
