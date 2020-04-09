@@ -8,7 +8,7 @@ from dataflow.operators import csv_outputs
 
 @pytest.mark.parametrize(
     'timestamp_file,output_filename',
-    [(True, 'test_base_file_2020_01_01.csv'), (False, 'test_base_file.csv')],
+    [(True, 'test_base_file-2020-01-01.csv'), (False, 'test_base_file.csv')],
 )
 def test_create_csv(mocker, mock_db_conn, timestamp_file, output_filename):
     mocker.patch.object(csv_outputs.config, 'DATA_WORKSPACE_S3_BUCKET', 'test-bucket')
