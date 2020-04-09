@@ -18,7 +18,7 @@ class _DailyCSVPipeline(_CSVPipelineDAG):
 class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
 
-    base_file_name = 'fdi_daily'
+    base_file_name = 'datahub-foreign-direct-investment-daily'
     query = '''
         WITH fdi_report AS (
             WITH companies_last_version AS (
@@ -207,7 +207,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated service deliveries report"""
 
-    base_file_name = 'data_hub_service_deliveries_current_calendar_year'
+    base_file_name = 'datahub-service-deliveries-current-calendar-year'
     query = '''
         WITH interactions AS (
             SELECT *
@@ -286,7 +286,7 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated interactions report"""
 
-    base_file_name = 'data_hub_interactions_current_calendar_year'
+    base_file_name = 'datahub-interactions-current-calendar-year'
     query = '''
         WITH interactions AS (
             SELECT *
@@ -365,7 +365,7 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated service deliveries report for previous calendar year"""
 
-    base_file_name = 'data_hub_service_deliveries_previous_calendar_year'
+    base_file_name = 'datahub-service-deliveries-previous-calendar-year'
     query = '''
         WITH interactions AS (
             SELECT *
@@ -444,7 +444,7 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated interactions report for previous calendar year"""
 
-    base_file_name = 'data_hub_interactions_previous_calendar_year'
+    base_file_name = 'datahub-interactions-previous-calendar-year'
     query = '''
         WITH interactions AS (
             SELECT *
@@ -522,7 +522,7 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
 class ExportWinsCurrentFinancialYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated export wins for current financial year"""
 
-    base_file_name = 'export_wins_current_financial_year'
+    base_file_name = 'export-wins-current-financial-year'
     query = '''
         SELECT
             "ID",

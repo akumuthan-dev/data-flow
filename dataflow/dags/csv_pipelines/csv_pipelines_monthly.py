@@ -15,7 +15,7 @@ class _MonthlyCSVPipeline(_CSVPipelineDAG):
 class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
 
-    base_file_name = 'completed_omis_orders'
+    base_file_name = 'datahub-omis-completed-orders'
     query = '''
         SELECT
             omis_dataset.omis_order_reference AS "OMIS Order Reference",
@@ -49,7 +49,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
 class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Cancelled OMIS Order CSV."""
 
-    base_file_name = 'cancelled_omis_orders'
+    base_file_name = 'datahub-omis-cancelled-orders'
     query = '''
         WITH omis AS (
             SELECT
@@ -91,7 +91,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
      of the last calendar month"""
 
-    base_file_name = 'all_omis_orders'
+    base_file_name = 'datahub-omis-all-orders'
     start_date = datetime(2019, 12, 1)
     query = '''
         SELECT
@@ -125,7 +125,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
 class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for monthly OMIS Client Survey report."""
 
-    base_file_name = 'omis_client_survey_static'
+    base_file_name = 'datahub-omis-client-survey'
     static = True
     query = '''
         SELECT
@@ -162,7 +162,7 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
 class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
-    base_file_name = 'datahub_service_interactions'
+    base_file_name = 'datahub-service-deliveries-and-interactions'
     start_date = datetime(2019, 11, 15)
     schedule_interval = '0 5 15 * *'
     query = '''
@@ -254,7 +254,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
 class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub export client survey report."""
 
-    base_file_name = 'datahub_export_client_survey'
+    base_file_name = 'datahub-export-client-survey'
     start_date = datetime(2019, 11, 15)
     schedule_interval = '0 5 15 * *'
     static = True
@@ -349,7 +349,7 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
 class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Static monthly view of the FDI (investment projects) report"""
 
-    base_file_name = 'data_hub_fdi_monthly_static'
+    base_file_name = 'datahub-foreign-direct-investment-monthly'
     start_date = datetime(2020, 1, 1)
     static = True
     query = '''

@@ -17,7 +17,7 @@ def create_csv(
     """
     if timestamp_output:
         end_date = kwargs.get('run_date', kwargs.get('next_execution_date'))
-        file_name = f'{base_file_name}_{end_date.strftime("%Y_%m_%d")}.csv'
+        file_name = f'{base_file_name}-{end_date.strftime("%Y-%m-%d")}.csv'
     else:
         file_name = f'{base_file_name}.csv'
 
