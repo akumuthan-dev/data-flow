@@ -291,7 +291,9 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
 
 
 class InteractionsDatasetPipeline(_DatasetPipeline):
-    source_url = '{}/v4/dataset/interactions-dataset'.format(config.DATAHUB_BASE_URL)
+    source_url = '{}/v4/dataset/interactions-dataset?page_size=1000'.format(
+        config.DATAHUB_BASE_URL
+    )
     table_config = TableConfig(
         table_name='interactions_dataset',
         field_mapping=[

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Updated the Market Access Trade Barriers to no longer read the `resolved_date` field, which was removed in the upstream API.
+- Updated the Interactions pipeline to include a page_size=1000 query param (the default is 100), so that this pipeline hopefully completes sooner.
 
 ## 2020-04-08
 
