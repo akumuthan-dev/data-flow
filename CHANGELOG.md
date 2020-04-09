@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-04-09
+
+### Changed
+
+- Updated the Market Access Trade Barriers to no longer read the `resolved_date` field, which was removed in the upstream API.
+
 ## 2020-04-08
 
 ### Added
