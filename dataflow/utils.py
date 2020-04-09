@@ -6,13 +6,14 @@ from dataclasses import dataclass
 from itertools import chain
 from typing import Any, Tuple, Union, Iterable, Dict, Optional, Sequence
 
-from airflow.utils.state import State
-from typing_extensions import Protocol
-
+import backoff
+import botocore.exceptions
 import sqlalchemy
+from airflow.utils.state import State
 from airflow.hooks.S3_hook import S3Hook
 from airflow.contrib.hooks.slack_webhook_hook import SlackWebhookHook
 from cached_property import cached_property
+from typing_extensions import Protocol
 
 from dataflow import config
 
@@ -183,6 +184,9 @@ class S3Data:
         self.bucket = config.S3_IMPORT_DATA_BUCKET
         self.prefix = f"import-data/{table_name}/{ts_nodash}/"
 
+    @backoff.on_exception(
+        backoff.expo, botocore.exceptions.EndpointConnectionError, max_tries=5
+    )
     def write_key(self, key, data, jsonify=True):
         if jsonify:
             data = json.dumps(data)
@@ -195,9 +199,15 @@ class S3Data:
         for key in self.list_keys():
             yield key, self.read_key(key, jsonify=json)
 
+    @backoff.on_exception(
+        backoff.expo, botocore.exceptions.EndpointConnectionError, max_tries=5
+    )
     def list_keys(self):
         return self.client.list_keys(bucket_name=self.bucket, prefix=self.prefix) or []
 
+    @backoff.on_exception(
+        backoff.expo, botocore.exceptions.EndpointConnectionError, max_tries=5
+    )
     def read_key(self, full_key, jsonify=True):
         data = self.client.read_key(full_key, bucket_name=self.bucket)
         return json.loads(data) if jsonify else data
