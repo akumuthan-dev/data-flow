@@ -106,6 +106,10 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                         total)
 SELECT imports_t.geography_code AS "ons_geography_code",
        imports_t.geography_name,
+       CASE
+           WHEN imports_t.parent_geography_code = 'B5' THEN 'yes'
+           ELSE 'no'
+       END AS included_in_eu28,
        imports_t.product,
        imports_t.period,
        imports_t.period_type,
@@ -185,6 +189,10 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                         total)
 SELECT imports_t.geography_code AS "ons_geography_code",
        imports_t.geography_name,
+       CASE
+           WHEN imports_t.parent_geography_code = 'B5' THEN 'yes'
+           ELSE 'no'
+       END AS included_in_eu28,
        imports_t.period,
        imports_t.period_type,
        imports_t.total                 as "import",
