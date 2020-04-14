@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta
+from functools import partial
 
 from airflow import DAG
 from airflow.hooks.S3_hook import S3Hook
@@ -9,7 +10,7 @@ from airflow.operators.python_operator import PythonOperator
 import sqlalchemy as sa
 
 from dataflow import config
-from dataflow.utils import logger
+from dataflow.utils import logger, slack_alert
 
 
 def cleanup_old_s3_files(*args, **kwargs):
@@ -85,7 +86,7 @@ def cleanup_old_datasets_db_tables(*args, **kwargs):
                         )
                     )
             else:
-                logger.info("Keeping table {table}")
+                logger.info(f"Keeping table {table}")
 
 
 dag = DAG(
@@ -93,6 +94,7 @@ dag = DAG(
     catchup=False,
     start_date=datetime(2020, 4, 7),
     schedule_interval="@daily",
+    on_failure_callback=partial(slack_alert, success=False),
 )
 
 
