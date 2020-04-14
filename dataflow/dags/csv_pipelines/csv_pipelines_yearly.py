@@ -14,7 +14,7 @@ class _YearlyCSVPipeline(_CSVPipelineDAG):
 class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
     """Pipeline meta object for the yearly export wins report."""
 
-    base_file_name = 'export_wins_yearly'
+    base_file_name = 'export-wins-yearly'
     start_date = datetime(2018, 1, 1)
 
     query = '''
