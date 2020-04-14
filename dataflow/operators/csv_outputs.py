@@ -16,8 +16,9 @@ def create_csv(
     Given a db, view name and a query create a csv file and upload it to s3.
     """
     if timestamp_output:
-        end_date = kwargs.get('run_date', kwargs.get('next_execution_date'))
-        file_name = f'{base_file_name}-{end_date.strftime("%Y-%m-%d")}.csv'
+        file_name = (
+            f'{base_file_name}-{kwargs["next_execution_date"].strftime("%Y-%m-%d")}.csv'
+        )
     else:
         file_name = f'{base_file_name}.csv'
 

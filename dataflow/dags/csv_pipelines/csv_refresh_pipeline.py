@@ -29,20 +29,18 @@ class DailyCSVRefreshPipeline(_CSVPipelineDAG):
     catchup = False
 
     @staticmethod
-    def _get_pipeline_previous_run_dates(pipeline):
+    def _get_pipeline_previous_runs(pipeline):
         """
-        Get all previous run dataset for a DAG excluding today's run
+        Return start and end dates for each previous run of a pipeline
         """
-        return (
-            pipeline()
-            .get_dag()
-            .get_run_dates(
-                pipeline.start_date.replace(tzinfo=pytz.UTC),
-                datetime.utcnow().replace(
-                    hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
-                ),
-            )
+        dag = pipeline().get_dag()
+        run_dates = dag.get_run_dates(
+            pipeline.start_date.replace(tzinfo=pytz.UTC),
+            datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+            ),
         )
+        return ((run_date, dag.following_schedule(run_date)) for run_date in run_dates)
 
     # Find a list of all dags that need to be run
     def get_dag(self):
@@ -71,10 +69,11 @@ class DailyCSVRefreshPipeline(_CSVPipelineDAG):
                     if not pipeline.static
                 ]
                 for pipeline in pipelines:
-                    run_dates = self._get_pipeline_previous_run_dates(pipeline)
+                    previous_runs = self._get_pipeline_previous_runs(pipeline)
                     task_group = DummyOperator(task_id=pipeline.__name__)
                     tasks = []
-                    for run_date in run_dates:
+                    for previous_run in previous_runs:
+                        run_date, end_date = previous_run
                         tasks.append(
                             PythonOperator(
                                 task_id=f'{pipeline.__name__}-{run_date.strftime("%Y-%m-%d")}',
@@ -87,7 +86,10 @@ class DailyCSVRefreshPipeline(_CSVPipelineDAG):
                                     pipeline.timestamp_output,
                                     pipeline.query,
                                 ],
-                                op_kwargs={'run_date': run_date},
+                                op_kwargs={
+                                    'run_date': run_date,
+                                    'next_execution_date': end_date,
+                                },
                                 dag=dag,
                             )
                         )
