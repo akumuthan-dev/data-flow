@@ -62,7 +62,6 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
             ?geography_s <http://www.w3.org/2004/02/skos/core#broader> ?parent_geography_s .
             ?parent_geography_s <http://www.w3.org/2004/02/skos/core#notation> ?parent_geography_code .
         }
-
     }
     ORDER BY ?period ?geography_s
     """
@@ -141,6 +140,10 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
             (("geography_code", "value"), sa.Column("geography_code", sa.String)),
+            (
+                ("parent_geography_code", "value"),
+                sa.Column("parent_geography_code", sa.String),
+            ),
             (("product_label", "value"), sa.Column("product", sa.String)),
             (("period", "value"), sa.Column("period", sa.String)),
             (("period_type", "value"), sa.Column("period_type", sa.String)),
@@ -154,7 +157,7 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?geography_name ?geography_code ?product_label ?period ?period_type ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    SELECT ?geography_name ?geography_code ?parent_geography_code ?product_label ?period ?period_type ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-trade-in-services> ;
         <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
@@ -170,6 +173,12 @@ class ONSUKTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
     BIND(IF(STRSTARTS(xsd:string(?period_s), "http://reference.data.gov.uk/id/quarter/") = true, "quarter", "year") AS ?period_type) .
     BIND(STRAFTER(STRAFTER(xsd:string(?period_s), "http://reference.data.gov.uk/id/"), "/") AS ?period) .
+
+    OPTIONAL {
+        ?geography_s <http://www.w3.org/2004/02/skos/core#broader> ?parent_geography_s .
+        ?parent_geography_s <http://www.w3.org/2004/02/skos/core#notation> ?parent_geography_code .
+    }
+
     } ORDER BY ?geography_name ?product_label ASC(?period)
     """
 
@@ -181,6 +190,10 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("geography_name", "value"), sa.Column("geography_name", sa.String)),
             (("geography_code", "value"), sa.Column("geography_code", sa.String)),
+            (
+                ("parent_geography_code", "value"),
+                sa.Column("parent_geography_code", sa.String),
+            ),
             (("period", "value"), sa.Column("period", sa.String)),
             (("period_type", "value"), sa.Column("period_type", sa.String)),
             (("direction", "value"), sa.Column("direction", sa.String)),
@@ -193,7 +206,7 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?geography_name ?geography_code ?period ?period_type ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
+    SELECT ?geography_name ?geography_code ?parent_geography_code ?period ?period_type ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit WHERE {
     ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-total-trade> ;
         <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
         <http://gss-data.org.uk/def/dimension/product> ?product_s ;
@@ -208,5 +221,11 @@ class ONSUKTotalTradeInServicesByPartnerCountryPipeline(_ONSPipeline):
     ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
     BIND(IF(STRSTARTS(xsd:string(?period_s), "http://reference.data.gov.uk/id/quarter/") = true, "quarter", "year") AS ?period_type) .
     BIND(STRAFTER(STRAFTER(xsd:string(?period_s), "http://reference.data.gov.uk/id/"), "/") AS ?period) .
+
+    OPTIONAL {
+        ?geography_s <http://www.w3.org/2004/02/skos/core#broader> ?parent_geography_s .
+        ?parent_geography_s <http://www.w3.org/2004/02/skos/core#notation> ?parent_geography_code .
+    }
+
     } ORDER BY ?geography_name ASC(?period)
     """
