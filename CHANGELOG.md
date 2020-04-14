@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-04-14
+
+### Changed
+
+- Use the dag run end date when refreshing CSV files
+
 ## 2020-04-09
 
 ### Changed
