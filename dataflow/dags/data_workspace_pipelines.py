@@ -21,6 +21,7 @@ class _DataWorkspacePipeline(_PipelineDAG):
             python_callable=partial(
                 fetch_from_hawk_api,
                 hawk_credentials=config.DATA_WORKSPACE_HAWK_CREDENTIALS,
+                validate_response=False,
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],

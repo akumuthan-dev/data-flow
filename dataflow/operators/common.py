@@ -10,7 +10,7 @@ from dataflow.utils import S3Data, get_nested_key, logger
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
 def _hawk_api_request(
-    url: str, credentials: dict, results_key: Optional[str], next_key: Optional[str]
+    url: str, credentials: dict, results_key: Optional[str], next_key: Optional[str], validate_response: Optional[bool] = True
 ):
     sender = Sender(
         credentials, url, "get", content="", content_type="", always_hash_content=True,
@@ -27,15 +27,16 @@ def _hawk_api_request(
         logger.error(f"Request failed: {response.text}")
         raise
 
-    try:
-        sender.accept_response(
-            response.headers["Server-Authorization"],
-            content=response.content,
-            content_type=response.headers["Content-Type"],
-        )
-    except HawkFail as e:
-        logger.error(f"HAWK Authentication failed {str(e)}")
-        raise
+    if validate_response:
+        try:
+            sender.accept_response(
+                response.headers["Server-Authorization"],
+                content=response.content,
+                content_type=response.headers["Content-Type"],
+            )
+        except HawkFail as e:
+            logger.error(f"HAWK Authentication failed {str(e)}")
+            raise
 
     response_json = response.json()
 
@@ -53,6 +54,7 @@ def fetch_from_hawk_api(
     hawk_credentials: dict,
     results_key: str = "results",
     next_key: Optional[str] = "next",
+    validate_response: Optional[bool] = True,
     **kwargs,
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
@@ -65,6 +67,7 @@ def fetch_from_hawk_api(
             credentials=hawk_credentials,
             results_key=results_key,
             next_key=next_key,
+            validate_response=validate_response,
         )
 
         results = get_nested_key(data, results_key)
