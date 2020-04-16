@@ -10,10 +10,14 @@ from dataflow.utils import S3Data, get_nested_key, logger
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
 def _hawk_api_request(
-    url: str, credentials: dict, results_key: Optional[str], next_key: Optional[str], validate_response: Optional[bool] = True
+    url: str,
+    credentials: dict,
+    results_key: Optional[str],
+    next_key: Optional[str],
+    validate_response: Optional[bool] = True,
 ):
     sender = Sender(
-        credentials, url, "get", content="", content_type="", always_hash_content=True,
+        credentials, url, "get", content="", content_type="", always_hash_content=True
     )
 
     logger.info(f"Fetching page {url}")

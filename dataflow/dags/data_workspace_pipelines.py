@@ -84,7 +84,10 @@ class DataWorkspaceApplicationInstancePipeline(_DataWorkspacePipeline):
                 'spawner_application_instance_id',
                 sa.Column('spawner_application_instance_id', sa.Text),
             ),
-            ('application_template_name', sa.Column('application_template_name', sa.Text),),
+            (
+                'application_template_name',
+                sa.Column('application_template_name', sa.Text),
+            ),
             ('spawner_cpu', sa.Column('spawner_cpu', sa.Text)),
             ('spawner_created_at', sa.Column('spawner_created_at', sa.DateTime)),
             ('spawner_memory', sa.Column('spawner_memory', sa.Text)),
