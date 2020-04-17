@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-04-15
+
+### Added
+
+- 3 new data workspace datasets
+  - Users
+  - Events
+  - Application instances
+
 ## 2020-04-14
 
 ### Changed

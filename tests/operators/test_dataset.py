@@ -114,6 +114,7 @@ def test_fetch(mocker):
                 credentials=FAKE_HAWK_CREDENTIALS,
                 next_key='next',
                 results_key='results',
+                validate_response=True,
             )
         ]
     )

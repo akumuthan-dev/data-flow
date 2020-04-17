@@ -79,3 +79,10 @@ CONSENT_HAWK_CREDENTIALS = {
 CONSENT_RESULTS_PER_PAGE = 1000
 
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
+
+DATA_WORKSPACE_BASE_URL = os.environ.get("DATA_WORKSPACE_BASE_URL")
+DATA_WORKSPACE_HAWK_CREDENTIALS = {
+    "id": os.environ.get("DATA_WORKSPACE_HAWK_ID"),
+    "key": os.environ.get("DATA_WORKSPACE_HAWK_KEY"),
+    "algorithm": "sha256",
+}
