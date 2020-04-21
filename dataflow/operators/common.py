@@ -15,9 +15,17 @@ def _hawk_api_request(
     results_key: Optional[str],
     next_key: Optional[str],
     validate_response: Optional[bool] = True,
+    force_http: Optional[bool] = False,
 ):
     sender = Sender(
-        credentials, url, "get", content="", content_type="", always_hash_content=True
+        credentials,
+        # Currently data workspace denies hawk requests signed with https urls.
+        # Once fixed the protocol replacement can be removed.
+        url.replace('https', 'http') if force_http else url,
+        "get",
+        content="",
+        content_type="",
+        always_hash_content=True,
     )
 
     logger.info(f"Fetching page {url}")
@@ -59,6 +67,7 @@ def fetch_from_hawk_api(
     results_key: str = "results",
     next_key: Optional[str] = "next",
     validate_response: Optional[bool] = True,
+    force_http: Optional[bool] = False,
     **kwargs,
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
@@ -72,6 +81,7 @@ def fetch_from_hawk_api(
             results_key=results_key,
             next_key=next_key,
             validate_response=validate_response,
+            force_http=force_http,
         )
 
         results = get_nested_key(data, results_key)
