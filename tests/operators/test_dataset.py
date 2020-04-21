@@ -7,11 +7,7 @@ from requests import HTTPError
 from dataflow.operators import common
 
 
-FAKE_HAWK_CREDENTIALS = {
-    "id": "some-id",
-    "key": "some-key",
-    "algorithm": "sha256",
-}
+FAKE_HAWK_CREDENTIALS = {"id": "some-id", "key": "some-key", "algorithm": "sha256"}
 
 
 @pytest.fixture
@@ -115,6 +111,7 @@ def test_fetch(mocker):
                 next_key='next',
                 results_key='results',
                 validate_response=True,
+                force_http=False,
             )
         ]
     )
