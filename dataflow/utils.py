@@ -173,7 +173,7 @@ def slack_alert(context, success=False):
                         ],
                     }
                 ],
-            },
+            }
         ],
     ).execute()
 
@@ -222,7 +222,7 @@ def get_nested_key(
     for key in path:
         try:
             data = data[key]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, TypeError):
             if required:
                 raise
             else:

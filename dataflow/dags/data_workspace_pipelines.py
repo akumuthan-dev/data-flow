@@ -22,6 +22,7 @@ class _DataWorkspacePipeline(_PipelineDAG):
                 fetch_from_hawk_api,
                 hawk_credentials=config.DATA_WORKSPACE_HAWK_CREDENTIALS,
                 validate_response=False,
+                force_http=True,  # This is a workaround until hawk auth is sorted on data workspace
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
