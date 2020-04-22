@@ -865,4 +865,5 @@ class ExportWinsCurrentFinancialYearDailyCSVPipeline(_DailyCSVPipeline):
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
         WHERE (confirmation_created_financial_year IS NULL OR confirmation_created_financial_year = current_financial_year)
+        AND "Please confirm these details are correct" = 'Yes'
 '''
