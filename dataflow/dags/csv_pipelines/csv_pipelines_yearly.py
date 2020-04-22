@@ -348,4 +348,5 @@ class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
             LEFT JOIN export_wins_hvc_dataset ON export_wins.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year)
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
+        WHERE "Please confirm these details are correct" = 'Yes'
     '''
