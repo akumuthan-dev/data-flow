@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Ensure rejected export wins are not included in current year report
+- Ensure rejected export wins are not included in yearly report
 
 ## 2020-04-21
 
