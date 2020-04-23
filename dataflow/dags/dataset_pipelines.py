@@ -72,44 +72,6 @@ class CompanyExportCountry(_DatasetPipeline):
     )
 
 
-class CompanyExportToCountries(_DatasetPipeline):
-
-    source_url = '{0}/v4/dataset/company-export-to-countries-dataset'.format(
-        config.DATAHUB_BASE_URL
-    )
-    table_config = TableConfig(
-        table_name='company_export_to_countries_dataset',
-        field_mapping=[
-            ('id', sa.Column('id', sa.Integer, primary_key=True)),
-            ('company_id', sa.Column('company_id', UUID)),
-            ('country__name', sa.Column('country', sa.String)),
-            (
-                'country__iso_alpha2_code',
-                sa.Column('country_iso_alpha2_code', sa.String),
-            ),
-        ],
-    )
-
-
-class CompanyFutureInterestCountries(_DatasetPipeline):
-
-    source_url = '{0}/v4/dataset/company-future-interest-countries-dataset'.format(
-        config.DATAHUB_BASE_URL
-    )
-    table_config = TableConfig(
-        table_name='company_future_interest_countries_dataset',
-        field_mapping=[
-            ('id', sa.Column('id', sa.Integer, primary_key=True)),
-            ('company_id', sa.Column('company_id', UUID)),
-            ('country__name', sa.Column('country', sa.String)),
-            (
-                'country__iso_alpha2_code',
-                sa.Column('country_iso_alpha2_code', sa.String),
-            ),
-        ],
-    )
-
-
 class CountriesOfInterestServicePipeline(_DatasetPipeline):
     source_url = (
         '{0}/api/v1/get-company-countries-and-sectors-of-interest'
