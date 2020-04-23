@@ -799,31 +799,6 @@ class ONSPostcodePipeline(_DatasetPipeline):
     )
 
 
-class WorldBankTariffPipeline(_DatasetPipeline):
-    """Pipeline meta object for World bank tariff data."""
-
-    schedule_interval = '@yearly'
-    source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-world-bank-tariffs/?orientation=records'
-    allow_null_columns = True
-    table_config = TableConfig(
-        table_name='world_bank_tariffs',
-        field_mapping=[
-            ('appRate', sa.Column('app_rate', sa.Numeric)),
-            ('assumedTariff', sa.Column('assumed_tariff', sa.Numeric)),
-            ('bndRate', sa.Column('bnd_rate', sa.Numeric)),
-            ('countryAverage', sa.Column('country_average', sa.Numeric)),
-            ('mfnRate', sa.Column('mfn_rate', sa.Numeric)),
-            ('partner', sa.Column('partner', sa.Text, index=True)),
-            ('product', sa.Column('product', sa.Integer, index=True)),
-            ('reporter', sa.Column('reporter', sa.Text, index=True)),
-            ('worldAverage', sa.Column('world_average', sa.Numeric)),
-            ('year', sa.Column('year', sa.Integer, index=True)),
-            ('euRepRate', sa.Column('eu_rep_rate', sa.Numeric)),
-            ('euPartRate', sa.Column('eu_part_rate', sa.Numeric)),
-        ],
-    )
-
-
 class RawWorldBankTariffPipeline(_DatasetPipeline):
     """Pipeline meta object for the raw world bank tariff data."""
 
@@ -862,23 +837,5 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
             ('boundRate', sa.Column('bound_rate', sa.Numeric)),
             ('nomenCode', sa.Column('nomen_code', sa.Text)),
             ('totalNumberOfLines', sa.Column('number_of_total_lines', sa.Numeric)),
-        ],
-    )
-
-
-class DITBACIPipeline(_DatasetPipeline):
-    """Pipeline meta object for the BACI data."""
-
-    schedule_interval = '@yearly'
-    source_url = f'{config.DATA_STORE_SERVICE_BASE_URL}/api/v1/get-dit-baci-data/?orientation=records'
-    table_config = TableConfig(
-        table_name='dit_baci',
-        field_mapping=[
-            ('year', sa.Column('year', sa.Integer, index=True)),
-            ('productCategory', sa.Column('product_category', sa.Integer, index=True)),
-            ('exporter', sa.Column('exporter', sa.Integer, index=True)),
-            ('importer', sa.Column('importer', sa.Integer, index=True)),
-            ('tradeFlowValue', sa.Column('trade_flow_value', sa.Numeric)),
-            ('quantity', sa.Column('quantity', sa.Numeric)),
         ],
     )
