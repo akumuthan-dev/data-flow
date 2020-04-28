@@ -99,3 +99,47 @@ def fetch_from_hawk_api(
         page += 1
 
     logger.info("Fetching from source completed")
+
+
+def fetch_from_token_authenticated_api(
+    table_name: str,
+    source_url: str,
+    token: str,
+    results_key: str = "results",
+    next_key: Optional[str] = "next",
+    **kwargs,
+):
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
+    total_records = 0
+    page = 1
+
+    while True:
+        response = requests.get(source_url, headers={'Authorization': f'Token {token}'})
+
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            logger.error(f"Request failed: {response.text}")
+            raise
+
+        response_json = response.json()
+
+        if (next_key and next_key not in response_json) or (
+            results_key and results_key not in response_json
+        ):
+            raise ValueError("Unexpected response structure")
+
+        results = get_nested_key(response_json, results_key)
+
+        s3.write_key(f"{page:010}.json", results)
+
+        total_records += len(results)
+        logger.info(f"Fetched {total_records} records")
+
+        source_url = get_nested_key(response_json, next_key) if next_key else None
+        if not source_url:
+            break
+
+        page += 1
+
+    logger.info("Fetching from source completed")

@@ -124,3 +124,69 @@ def test_fetch(mocker):
             )
         ]
     )
+
+
+def test_token_auth_invalid_response(mocker, requests_mock):
+    s3_mock = mock.MagicMock()
+    mocker.patch.object(common, "S3Data", return_value=s3_mock, autospec=True)
+    requests_mock.get(
+        'http://test',
+        headers={'Authorization': 'token test-token'},
+        json={'next': None},
+    )
+
+    with pytest.raises(ValueError):
+        common.fetch_from_token_authenticated_api(
+            'test_table',
+            'http://test',
+            'test-token',
+            results_key="results",
+            next_key="next",
+            ts_nodash='token-auth-test',
+        )
+
+
+def test_token_auth_request_fail(mocker, mock_sender, requests_mock):
+    mocker.patch("time.sleep")  # skip backoff retry delay
+    requests_mock.get('http://test', headers={'token': 'test-token'}, status_code=404)
+    with pytest.raises(HTTPError):
+        common.fetch_from_token_authenticated_api(
+            'test_table', 'http://test', 'test-token', ts_nodash='token-auth-test'
+        )
+
+
+def test_token_auth_request(mocker, requests_mock):
+    s3_mock = mock.MagicMock()
+    mocker.patch.object(common, "S3Data", return_value=s3_mock, autospec=True)
+    requests_mock.get(
+        'http://test',
+        [
+            {
+                'status_code': 200,
+                'json': {
+                    'next': 'http://test',
+                    'results': [
+                        {'id': 1, 'name': 'record1'},
+                        {'id': 2, 'name': 'record2'},
+                    ],
+                },
+            },
+            {
+                'status_code': 200,
+                'json': {'next': None, 'results': [{'id': 3, 'name': 'record3'}]},
+            },
+        ],
+    )
+    common.fetch_from_token_authenticated_api(
+        'test_table', 'http://test', token='test-token', ts_nodash='task-1'
+    )
+    assert requests_mock.call_count == 2
+    s3_mock.write_key.assert_has_calls(
+        [
+            mock.call(
+                '0000000001.json',
+                [{'id': 1, 'name': 'record1'}, {'id': 2, 'name': 'record2'}],
+            ),
+            mock.call('0000000002.json', [{'id': 3, 'name': 'record3'}]),
+        ]
+    )
