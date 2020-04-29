@@ -8,7 +8,9 @@ from mohawk.exc import HawkFail
 from dataflow.utils import S3Data, get_nested_key, logger
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+@backoff.on_exception(
+    backoff.expo, requests.exceptions.RequestException, max_tries=5, max_time=600
+)
 def _hawk_api_request(
     url: str,
     credentials: dict,

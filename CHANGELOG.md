@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Bump page_size for interactions dataset in order to (hopefully) reduce run time.
+- Set max time for requests to try to error earlier if things get stuck.
 
 ## 2020-04-22
 
