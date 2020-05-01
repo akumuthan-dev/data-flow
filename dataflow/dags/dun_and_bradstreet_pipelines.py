@@ -28,7 +28,7 @@ class _DNBPipeline(_PipelineDAG):
 class DNBCompanyPipeline(_DNBPipeline):
     schedule_interval = '@once'
     allow_null_columns = True
-    source_url = f'{config.DNB_BASE_URL}/api/workspace/companies/'
+    source_url = f'{config.DNB_BASE_URL}/api/workspace/companies/?page_size=1000'
     table_config = TableConfig(
         table_name='dnb__companies',
         field_mapping=[
