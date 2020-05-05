@@ -24,32 +24,107 @@ class ONSUKSATradeInGoodsCSV(_CSVPipelineDAG):
     timestamp_output = False
 
     query = """
-
+SELECT * FROM (
+SELECT
+    geography_code as ons_geography_code,
+    geography_name as geography,
+    period,
+    CASE
+        WHEN direction = 'Imports' THEN 'import'
+        WHEN direction = 'Exports' THEN 'export'
+    END as type,
+    total as value,
+    unit
+FROM ons_uk_sa_trade_in_goods
+UNION (
     SELECT
-        import_t.geography_code AS ons_geography_code,
-        import_t.geography_name,
-        CASE
-            WHEN import_t.parent_geography_code = 'B5' THEN 'yes'
-            ELSE 'no'
-        END AS included_in_eu28,
-        import_t.period,
-        CASE
-            WHEN char_length(import_t.period) = 4 THEN 'year'
-            ELSE 'month'
-        END AS period_type,
-        import_t.total AS import,
-        export_t.total AS export,
-        export_t.total + import_t.total AS total_trade,
-        export_t.total - import_t.total AS trade_balance,
-        import_t.unit
-    FROM
-        {{ dependencies[0].table_config.table_name }} import_t INNER JOIN {{ dependencies[0].table_config.table_name }} export_t
-        ON import_t.geography_code = export_t.geography_code AND import_t.period = export_t.period
-    WHERE
-        import_t.direction = 'Imports' AND
-        export_t.direction = 'Exports'
-    ORDER BY
-        import_t.geography_name, import_t.period
+        i.geography_code as ons_geography_code,
+        i.geography_name as geography,
+        i.period,
+        'total trade' as type,
+        e.total + i.total as value,
+        i.unit
+    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    ON i.geography_code = e.geography_code AND i.period = e.period
+    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+) UNION (
+    select
+        i.geography_code as ons_geography_code,
+        i.geography_name as geography,
+        i.period,
+        'trade balance' as type,
+        e.total - i.total as value,
+        i.unit
+    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    ON i.geography_code = e.geography_code AND i.period = e.period
+    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+) UNION (
+    SELECT
+        geography_code as ons_geography_code,
+        geography_name as geography,
+        period,
+        'export 12 month rolling total' as type,
+        sum(total) over w AS value,
+        unit
+    FROM ons_uk_sa_trade_in_goods
+    WHERE direction = 'Exports' AND char_length(period) = 7
+    GROUP BY ons_geography_code, geography, period, total, unit
+    WINDOW w AS (
+            PARTITION BY geography_name
+            ORDER BY geography_name, period ASC
+            ROWS between 11 preceding and current row)
+) UNION (
+    SELECT
+        geography_code as ons_geography_code,
+        geography_name as geography,
+        period,
+        'import 12 month rolling total' as type,
+        sum(total) over w AS value,
+        unit
+    FROM ons_uk_sa_trade_in_goods
+    WHERE direction = 'Imports' AND char_length(period) = 7
+    GROUP BY ons_geography_code, geography, period, total, unit
+    WINDOW w AS (
+            PARTITION BY geography_name
+            ORDER BY geography_name, period ASC
+            ROWS between 11 preceding and current row)
+) UNION (
+    SELECT
+        i.geography_code as ons_geography_code,
+        i.geography_name as geography,
+        i.period,
+        'trade balance 12 month rolling total' as type,
+        sum(e.total - i.total) over w AS value,
+        i.unit
+    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    ON i.geography_code = e.geography_code AND i.period = e.period
+    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+        AND char_length(i.period) = 7
+    GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
+    WINDOW w AS (
+            PARTITION BY i.geography_name
+            ORDER BY i.geography_name, i.period ASC
+            ROWS between 11 preceding and current row)
+) UNION (
+    SELECT
+        i.geography_code as ons_geography_code,
+        i.geography_name as geography,
+        i.period,
+        'total trade 12 month rolling total' as type,
+        sum(e.total + i.total) over w AS value,
+        i.unit
+    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    ON i.geography_code = e.geography_code AND i.period = e.period
+    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+        AND char_length(i.period) = 7
+    GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
+    WINDOW w AS (
+            PARTITION BY i.geography_name
+            ORDER BY i.geography_name, i.period ASC
+            ROWS between 11 preceding and current row)
+)
+ORDER BY geography, period, type
+) AS query WHERE (period > '1998-11') OR (type IN ('import', 'export', 'total trade', 'trade balance'))
     """
 
 
