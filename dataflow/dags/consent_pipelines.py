@@ -35,7 +35,7 @@ class ConsentPipeline(_ConsentPipeline):
     table_config = TableConfig(
         table_name="consent_dataset",
         field_mapping=[
-            ("id", sa.Column("id", sa.Integer, primary_key=True)),
+            ("id", sa.Column("id", sa.Integer)),
             ("key", sa.Column("key", sa.String)),
             ("email", sa.Column("email", sa.String)),
             ("phone", sa.Column("phone", sa.String)),
