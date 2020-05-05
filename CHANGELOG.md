@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Remove primary key from consent service pipeline
+- Timeout hawk API requests after 5 minutes, so that retries can happen.
+- Enable run-fetch full task retries on the Interactions pipeline.
 
 ## 2020-04-29
 

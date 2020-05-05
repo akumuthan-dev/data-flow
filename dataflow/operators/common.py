@@ -8,9 +8,7 @@ from mohawk.exc import HawkFail
 from dataflow.utils import S3Data, get_nested_key, logger
 
 
-@backoff.on_exception(
-    backoff.expo, requests.exceptions.RequestException, max_tries=5, max_time=600
-)
+@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
 def _hawk_api_request(
     url: str,
     credentials: dict,
@@ -32,7 +30,9 @@ def _hawk_api_request(
 
     logger.info(f"Fetching page {url}")
     response = requests.get(
-        url, headers={"Authorization": sender.request_header, "Content-Type": ""}
+        url,
+        headers={"Authorization": sender.request_header, "Content-Type": ""},
+        timeout=300,
     )
 
     try:
