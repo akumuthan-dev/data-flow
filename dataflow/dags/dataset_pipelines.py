@@ -17,6 +17,8 @@ class _DatasetPipeline(_PipelineDAG):
 
     source_url: str
 
+    fetch_retries = 0
+
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='run-fetch',
@@ -25,6 +27,7 @@ class _DatasetPipeline(_PipelineDAG):
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
+            retries=self.fetch_retries,
         )
 
 
@@ -294,6 +297,7 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
             ),
         ],
     )
+    fetch_retries = 3
 
 
 class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
