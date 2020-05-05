@@ -72,30 +72,30 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
     WITH datahub_companies AS (
       SELECT
         DISTINCT ON (export_wins_wins_dataset.id) export_wins_wins_dataset.id AS export_win_id,
-	CASE 
+        CASE
           WHEN companies_dataset.id IS NOT NULL
-	    THEN CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/exports')
-	  ELSE ''
-	END AS dh_company_link,
-	CASE 
+            THEN CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/exports')
+          ELSE ''
+        END AS dh_company_link,
+        CASE
           WHEN companies_dataset.id IS NOT NULL
-	    THEN companies_dataset.name
-	  ELSE ''
-	END AS dh_company_name
-	
+            THEN companies_dataset.name
+          ELSE ''
+        END AS dh_company_name
+
         FROM export_wins_wins_dataset
-	  LEFT JOIN export_wins_wins_dataset_match_ids ON export_wins_wins_dataset_match_ids.id::uuid = export_wins_wins_dataset.id
-	  LEFT JOIN companies_dataset_match_ids ON companies_dataset_match_ids.match_id = export_wins_wins_dataset_match_ids.match_id
-	  LEFT JOIN companies_dataset ON companies_dataset.id = companies_dataset_match_ids.id::uuid
-     
+          LEFT JOIN export_wins_wins_dataset_match_ids ON export_wins_wins_dataset_match_ids.id::uuid = export_wins_wins_dataset.id
+          LEFT JOIN companies_dataset_match_ids ON companies_dataset_match_ids.match_id = export_wins_wins_dataset_match_ids.match_id
+          LEFT JOIN companies_dataset ON companies_dataset.id = companies_dataset_match_ids.id::uuid
+
     ), win_participants AS (
-      select 
+      select
         export_wins_wins_dataset.id AS win_id,
         initcap(export_wins_wins_dataset.lead_officer_name) AS participant_name,
         export_wins_wins_dataset.hq_team AS participant_team,
         export_wins_wins_dataset.team_type AS team_type,
         'Lead' AS contribution_type
-      
+
       from export_wins_wins_dataset
         UNION ALL
           select
@@ -109,12 +109,12 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
 
     ), contributor_count AS (
       SELECT
-	export_wins_wins_dataset.id AS id,
-	count(export_wins_advisers_dataset.*) AS contributor_count
-	
+        export_wins_wins_dataset.id AS id,
+        count(export_wins_advisers_dataset.*) AS contributor_count
+
       from export_wins_wins_dataset
-	join export_wins_advisers_dataset on export_wins_advisers_dataset.win_id = export_wins_wins_dataset.id
-	
+        join export_wins_advisers_dataset on export_wins_advisers_dataset.win_id = export_wins_wins_dataset.id
+
       group by export_wins_wins_dataset.id
 
     )
@@ -134,7 +134,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
         ELSE 'Unverified'
       END AS "Verified or unverified",
       export_wins_wins_dataset.confirmation_created::date AS "EW confirmation created",
-      CASE 
+      CASE
         WHEN export_wins_wins_dataset.confirmation_created IS NULL
           THEN NULL
         WHEN DATE_PART('month', export_wins_wins_dataset.confirmation_created) >= 4
@@ -161,7 +161,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
 
     FROM export_wins_wins_dataset
       JOIN datahub_companies ON datahub_companies.export_win_id = export_wins_wins_dataset.id
-      LEFT JOIN export_wins_hvc_dataset ON export_wins_wins_dataset.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year) 
+      LEFT JOIN export_wins_hvc_dataset ON export_wins_wins_dataset.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year)
       JOIN win_participants ON win_participants.win_id = export_wins_wins_dataset.id
       LEFT JOIN contributor_count ON contributor_count.id = export_wins_wins_dataset.id
 
