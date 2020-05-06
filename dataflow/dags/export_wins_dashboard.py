@@ -127,7 +127,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
         ELSE datahub_companies.dh_company_name::text
       END AS "Company name",
       datahub_companies.dh_company_link::text AS "DH company link",
-      export_wins_wins_dataset.confirmation_agree_with_win::text AS "EW agree with win",
+      export_wins_wins_dataset.confirmation_agree_with_win AS "EW agree with win",
       CASE
         WHEN export_wins_wins_dataset.confirmation_agree_with_win = true
           THEN 'Verified'
