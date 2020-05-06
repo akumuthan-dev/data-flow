@@ -204,7 +204,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
                 sa.Column('Company number of employees', sa.Text),
             ),
             ('Company Turnover', sa.Column('Company Turnover', sa.Text)),
-            ('Company One List Tier', sa.Column('Company One List Tier', sa.Numeric)),
+            ('Company One List Tier', sa.Column('Company One List Tier', sa.Text)),
             ('Company Sector', sa.Column('Company Sector', sa.Text)),
             ('Interaction Date', sa.Column('Interaction Date', sa.Date)),
             ('Adviser ID', sa.Column('Adviser ID', UUID)),
