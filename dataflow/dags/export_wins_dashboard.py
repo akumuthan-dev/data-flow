@@ -144,7 +144,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
       export_wins_wins_dataset.country AS "EW country",
       export_wins_wins_dataset.created::text AS "EW created date",
       export_wins_wins_dataset.customer_email_date::text AS "EW customer email date",
-      export_wins_wins_dataset.text AS "EW date business won",
+      export_wins_wins_dataset::text AS "EW date business won",
       export_wins_wins_dataset.total_expected_export_value AS "EW total expected export value",
       export_wins_wins_dataset.total_expected_non_export_value AS "EW total expected non-export value",
       export_wins_wins_dataset.total_expected_odi_value AS "EW total expected ODI value",
