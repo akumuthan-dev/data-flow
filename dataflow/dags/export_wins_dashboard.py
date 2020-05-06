@@ -120,43 +120,43 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
     )
 
     SELECT
-      export_wins_wins_dataset.id::text AS "EW ID",
+      export_wins_wins_dataset.id AS "EW ID",
       CASE
         WHEN datahub_companies.dh_company_name = ''
-          THEN export_wins_wins_dataset.company_name::text
-        ELSE datahub_companies.dh_company_name::text
+          THEN export_wins_wins_dataset.company_name
+        ELSE datahub_companies.dh_company_name
       END AS "Company name",
-      datahub_companies.dh_company_link::text AS "DH company link",
+      datahub_companies.dh_company_link AS "DH company link",
       export_wins_wins_dataset.confirmation_agree_with_win AS "EW agree with win",
       CASE
         WHEN export_wins_wins_dataset.confirmation_agree_with_win = true
           THEN 'Verified'
         ELSE 'Unverified'
       END AS "Verified or unverified",
-      export_wins_wins_dataset.confirmation_created::date::text AS "EW confirmation created",
+      export_wins_wins_dataset.confirmation_created::text AS "EW confirmation created",
       CASE
         WHEN export_wins_wins_dataset.confirmation_created IS NULL
           THEN NULL
         WHEN DATE_PART('month', export_wins_wins_dataset.confirmation_created) >= 4
-          THEN CONCAT((DATE_PART('year', export_wins_wins_dataset.confirmation_created)::varchar),' / ',(DATE_PART('year', export_wins_wins_dataset.confirmation_created + interval '+1' year)::varchar))::text
-        ELSE CONCAT((DATE_PART('year', export_wins_wins_dataset.confirmation_created + interval '-1' year)::varchar),' / ',(DATE_PART('year', export_wins_wins_dataset.confirmation_created)::varchar))::text
+          THEN CONCAT((DATE_PART('year', export_wins_wins_dataset.confirmation_created)::varchar),' / ',(DATE_PART('year', export_wins_wins_dataset.confirmation_created + interval '+1' year)::varchar))
+        ELSE CONCAT((DATE_PART('year', export_wins_wins_dataset.confirmation_created + interval '-1' year)::varchar),' / ',(DATE_PART('year', export_wins_wins_dataset.confirmation_created)::varchar))
       END AS "Confirmation financial year",
-      export_wins_wins_dataset.country::text AS "EW country",
-      export_wins_wins_dataset.created::date::text AS "EW created date",
-      export_wins_wins_dataset.customer_email_date::date::text AS "EW customer email date",
-      export_wins_wins_dataset.date::text AS "EW date business won",
-      export_wins_wins_dataset.total_expected_export_value::text AS "EW total expected export value",
-      export_wins_wins_dataset.total_expected_non_export_value::text AS "EW total expected non-export value",
-      export_wins_wins_dataset.total_expected_odi_value::text AS "EW total expected ODI value",
-      export_wins_wins_dataset.customer_location::text AS "EW Customer Location",
-      SPLIT_PART(export_wins_wins_dataset.sector, ' : ', 1) ::text AS "EW sector",
-      DATE_PART('day', export_wins_wins_dataset.confirmation_created - export_wins_wins_dataset.customer_email_date)::text AS "Time to confirm",
-      LEFT(export_wins_wins_dataset.hvc,4)::text AS "EW HVC Code",
-      export_wins_hvc_dataset.name::text AS "EW HVC Name",
-      win_participants.participant_name::text,
-      win_participants.participant_team::text,
-      win_participants.team_type::text,
-      win_participants.contribution_type::text,
+      export_wins_wins_dataset.country AS "EW country",
+      export_wins_wins_dataset.created::text AS "EW created date",
+      export_wins_wins_dataset.customer_email_date::text AS "EW customer email date",
+      export_wins_wins_dataset.text AS "EW date business won",
+      export_wins_wins_dataset.total_expected_export_value AS "EW total expected export value",
+      export_wins_wins_dataset.total_expected_non_export_value AS "EW total expected non-export value",
+      export_wins_wins_dataset.total_expected_odi_value AS "EW total expected ODI value",
+      export_wins_wins_dataset.customer_location AS "EW Customer Location",
+      SPLIT_PART(export_wins_wins_dataset.sector, ' : ', 1) AS "EW sector",
+      DATE_PART('day', export_wins_wins_dataset.confirmation_created - export_wins_wins_dataset.customer_email_date) AS "Time to confirm",
+      LEFT(export_wins_wins_dataset.hvc,4) AS "EW HVC Code",
+      export_wins_hvc_dataset.name AS "EW HVC Name",
+      win_participants.participant_name,
+      win_participants.participant_team,
+      win_participants.team_type,
+      win_participants.contribution_type,
       CASE WHEN contributor_count IS NULL THEN 1 ELSE (contributor_count.contributor_count + 1) END AS "Number of Advisers Involved"
 
     FROM export_wins_wins_dataset
