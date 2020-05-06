@@ -247,7 +247,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             CASE
                 WHEN ons_postcodes.long IS NOT NULL
                 THEN CONCAT(ons_postcodes.lat,' ,',ons_postcodes.long)
-                END AS "Company Address Longitude and Latitude",
+                END AS "Company Address Latitude and Longitude",
             companies_dataset.uk_region AS "Company UK Region",
             companies_dataset.number_of_employees AS "Company number of employees",
             companies_dataset.turnover AS "Company Turnover",
