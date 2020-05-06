@@ -253,7 +253,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             companies_dataset.turnover AS "Company Turnover",
             companies_dataset.one_list_tier AS "Company One List Tier",
             SPLIT_PART(companies_dataset.sector, ' : ', 1) AS "Company Sector",
-            minister_interactions.interaction_date AS "Interaction Date",
+            minister_interactions.interaction_date::TEXT AS "Interaction Date",
             minister_interactions.adviser_id::UUID AS "Adviser ID",
             CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS "Adviser Name",
             minister_interactions.interaction_subject AS "Interaction Subject",
