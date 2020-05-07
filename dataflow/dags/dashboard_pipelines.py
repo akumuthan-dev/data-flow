@@ -188,7 +188,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
     table_config = TableConfig(
         table_name='ministerial_interactions',
         field_mapping=[
-            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('id', sa.Column('id', sa.Text, primary_key=True)),
             ('Interaction ID', sa.Column('Interaction ID', UUID)),
             ('Interaction Link', sa.Column('Interaction Link', sa.Text)),
             ('Company Name', sa.Column('Company Name', sa.Text)),
