@@ -1,4 +1,7 @@
+from datetime import date, datetime
+
 import botocore.exceptions
+import freezegun as freezegun
 import pytest
 import sqlalchemy
 from sqlalchemy import Column, Integer, String
@@ -40,6 +43,24 @@ def test_s3_data_write_key(mocker):
 
     mock_load.assert_called_once_with(
         '{"data": "value"}',
+        'import-data/table/20010101/key.json',
+        bucket_name="test-bucket",
+        encrypt=True,
+        replace=True,
+    )
+
+
+def test_s3_data_write_key_handles_dates_and_times(mocker):
+    mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
+
+    mock_load = mocker.patch('dataflow.utils.S3Hook.load_string')
+
+    s3 = utils.S3Data('table', '20010101')
+    with freezegun.freeze_time('2020-01-01T12:00:00Z'):
+        s3.write_key("key.json", {"date": date.today(), "datetime": datetime.now()})
+
+    mock_load.assert_called_once_with(
+        '{"date": "2020-01-01", "datetime": "2020-01-01T12:00:00"}',
         'import-data/table/20010101/key.json',
         bucket_name="test-bucket",
         encrypt=True,
