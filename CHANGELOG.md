@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 20202-05-07
+
+### Changed
+
+- Automatically cast dates/times to strings when json encoding for an s3 write.
+
 ## 2020-05-06
 
 - Move dashboard DAGs to a single file `dashboard_pipelines.py`
