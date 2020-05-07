@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Automatically cast dates/times to strings when json encoding for an s3 write.
+- Add a primary key to ministerial interactions dashboard dataset
 
 ## 2020-05-06
 

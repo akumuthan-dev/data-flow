@@ -188,6 +188,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
     table_config = TableConfig(
         table_name='ministerial_interactions',
         field_mapping=[
+            ('id', sa.Column('id', UUID, primary_key=True)),
             ('Interaction ID', sa.Column('Interaction ID', UUID)),
             ('Interaction Link', sa.Column('Interaction Link', sa.Text)),
             ('Company Name', sa.Column('Company Name', sa.Text)),
@@ -238,7 +239,8 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             OR '3dbade20-03f2-45f1-b073-09f096c19990' = ANY(adviser_ids)
         )
         SELECT
-            minister_interactions.id::UUID AS "Interaction ID",
+            CONCAT(minister_interactions.id, '_', minister_interactions.adviser_id) AS id,
+            minister_interactions.id AS "Interaction ID",
             minister_interactions.interaction_link AS "Interaction Link",
             companies_dataset.name AS "Company Name",
             CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/activity') AS "Company Link",
@@ -246,14 +248,14 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             companies_dataset.address_postcode AS "Company Postcode",
             CASE
                 WHEN ons_postcodes.long IS NOT NULL
-                THEN CONCAT(ons_postcodes.lat,' ,',ons_postcodes.long)
+                THEN CONCAT(ons_postcodes.lat, ', ', ons_postcodes.long)
                 END AS "Company Address Latitude and Longitude",
             companies_dataset.uk_region AS "Company UK Region",
             companies_dataset.number_of_employees AS "Company number of employees",
             companies_dataset.turnover AS "Company Turnover",
             companies_dataset.one_list_tier AS "Company One List Tier",
             SPLIT_PART(companies_dataset.sector, ' : ', 1) AS "Company Sector",
-            minister_interactions.interaction_date::TEXT AS "Interaction Date",
+            minister_interactions.interaction_date AS "Interaction Date",
             minister_interactions.adviser_id::UUID AS "Adviser ID",
             CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS "Adviser Name",
             minister_interactions.interaction_subject AS "Interaction Subject",
