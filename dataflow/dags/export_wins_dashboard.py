@@ -133,7 +133,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
           THEN 'Verified'
         ELSE 'Unverified'
       END AS "Verified or unverified",
-      export_wins_wins_dataset.confirmation_created::date AS "EW confirmation created",
+      export_wins_wins_dataset.confirmation_created::text AS "EW confirmation created",
       CASE
         WHEN export_wins_wins_dataset.confirmation_created IS NULL
           THEN NULL
@@ -142,14 +142,14 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
         ELSE CONCAT((DATE_PART('year', export_wins_wins_dataset.confirmation_created + interval '-1' year)::varchar),' / ',(DATE_PART('year', export_wins_wins_dataset.confirmation_created)::varchar))
       END AS "Confirmation financial year",
       export_wins_wins_dataset.country AS "EW country",
-      export_wins_wins_dataset.created::date AS "EW created date",
-      export_wins_wins_dataset.customer_email_date::date AS "EW customer email date",
-      export_wins_wins_dataset.date AS "EW date business won",
+      export_wins_wins_dataset.created::text AS "EW created date",
+      export_wins_wins_dataset.customer_email_date::text AS "EW customer email date",
+      export_wins_wins_dataset.date::text AS "EW date business won",
       export_wins_wins_dataset.total_expected_export_value AS "EW total expected export value",
       export_wins_wins_dataset.total_expected_non_export_value AS "EW total expected non-export value",
       export_wins_wins_dataset.total_expected_odi_value AS "EW total expected ODI value",
       export_wins_wins_dataset.customer_location AS "EW Customer Location",
-      SPLIT_PART(export_wins_wins_dataset.sector, ' : ', 1)  AS "EW sector",
+      SPLIT_PART(export_wins_wins_dataset.sector, ' : ', 1) AS "EW sector",
       DATE_PART('day', export_wins_wins_dataset.confirmation_created - export_wins_wins_dataset.customer_email_date) AS "Time to confirm",
       LEFT(export_wins_wins_dataset.hvc,4) AS "EW HVC Code",
       export_wins_hvc_dataset.name AS "EW HVC Name",
