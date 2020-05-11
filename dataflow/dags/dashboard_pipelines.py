@@ -188,7 +188,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
     table_config = TableConfig(
         table_name='ministerial_interactions',
         field_mapping=[
-            ('id', sa.Column('id', sa.Text, primary_key=True)),
+            (None, sa.Column('id', sa.Integer, primary_key=True, autoincrement=True)),
             ('Interaction ID', sa.Column('Interaction ID', UUID)),
             ('Interaction Link', sa.Column('Interaction Link', sa.Text)),
             ('Company Name', sa.Column('Company Name', sa.Text)),
@@ -239,7 +239,6 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             OR '3dbade20-03f2-45f1-b073-09f096c19990' = ANY(adviser_ids)
         )
         SELECT
-            CONCAT(minister_interactions.id, '_', minister_interactions.adviser_id) AS id,
             minister_interactions.id AS "Interaction ID",
             minister_interactions.interaction_link AS "Interaction Link",
             companies_dataset.name AS "Company Name",
