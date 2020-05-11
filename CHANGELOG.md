@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## 20202-05-07
+## 2020-05-11
+
+### Changed
+
+- Set primary key to auto incrementing integer for ministerial interactions dashboard
+
+## 2020-05-07
 
 ### Changed
 
