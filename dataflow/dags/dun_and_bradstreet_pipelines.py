@@ -98,6 +98,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                         }
                     ],
                     field_mapping=[
+                        ('duns_number', sa.Column('duns_number', sa.Text)),
                         ('registration_type', sa.Column('registration_type', sa.Text)),
                         (
                             'registration_number',
@@ -119,6 +120,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                     field_mapping=[
                         ('code', sa.Column('code', sa.Text)),
                         ('description', sa.Column('description', sa.Text)),
+                        ('duns_number', sa.Column('duns_number', sa.Text)),
                         ('priority', sa.Column('priority', sa.Numeric)),
                         ('typeDescription', sa.Column('typeDescription', sa.Text)),
                         ('typeDnBCode', sa.Column('typeDnBCode', sa.Text)),
@@ -136,6 +138,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                         }
                     ],
                     field_mapping=[
+                        ('duns_number', sa.Column('duns_number', sa.Text)),
                         ('usSicV4', sa.Column('usSicV4', sa.Text)),
                         (
                             'usSicV4Description',
