@@ -239,35 +239,35 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             OR '3dbade20-03f2-45f1-b073-09f096c19990' = ANY(adviser_ids)
         )
         SELECT
-            minister_interactions.id AS "Interaction ID",
-            minister_interactions.interaction_link AS "Interaction Link",
-            companies_dataset.name AS "Company Name",
-            CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/activity') AS "Company Link",
-            companies_dataset.address_country AS "Company Country",
-            companies_dataset.address_postcode AS "Company Postcode",
+            minister_interactions.id AS interaction_id,
+            minister_interactions.interaction_link AS interaction_link,
+            companies_dataset.name AS company_name,
+            CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/activity') AS company_link,
+            companies_dataset.address_country AS company_country,
+            companies_dataset.address_postcode AS company_postcode,
             CASE
                 WHEN ons_postcodes.long IS NOT NULL
                 THEN CONCAT(ons_postcodes.lat, ', ', ons_postcodes.long)
-                END AS "Company Address Latitude and Longitude",
-            companies_dataset.uk_region AS "Company UK Region",
-            companies_dataset.number_of_employees AS "Company number of employees",
-            companies_dataset.turnover AS "Company Turnover",
-            companies_dataset.one_list_tier AS "Company One List Tier",
-            SPLIT_PART(companies_dataset.sector, ' : ', 1) AS "Company Sector",
-            minister_interactions.interaction_date AS "Interaction Date",
-            minister_interactions.adviser_id::UUID AS "Adviser ID",
-            CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS "Adviser Name",
-            minister_interactions.interaction_subject AS "Interaction Subject",
-            minister_interactions.communication_channel AS "Communication Channel",
-            array_to_string(minister_interactions.policy_areas, ', ') AS "Policy Areas",
-            minister_interactions.policy_feedback_notes AS "Policy Feedback Notes",
-            array_to_string(minister_interactions.policy_issue_types, ', ') AS "Policy Issue Types",
+                END AS company_address_latitude_longitude,
+            companies_dataset.uk_region AS company_uk_region,
+            companies_dataset.number_of_employees AS company_number_of_employees,
+            companies_dataset.turnover AS company_turnover,
+            companies_dataset.one_list_tier AS company_one_list_tier,
+            SPLIT_PART(companies_dataset.sector, ' : ', 1) AS company_sector,
+            minister_interactions.interaction_date AS interaction_date,
+            minister_interactions.adviser_id::UUID AS adviser_id,
+            CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS adviser_name,
+            minister_interactions.interaction_subject AS interaction_subect,
+            minister_interactions.communication_channel AS communication_channel,
+            array_to_string(minister_interactions.policy_areas, ', ') AS policy_areas,
+            minister_interactions.policy_feedback_notes AS policy_feedback_notes,
+            array_to_string(minister_interactions.policy_issue_types, ', ') AS policy_issue_types,
             CASE
                 WHEN companies_dataset.duns_number IS NULL
                 THEN 'No'
                 ELSE 'Yes'
-            END AS "Dun and Bradstreet Linked Record",
-            minister_interactions.service_delivery AS "Service"
+            END AS dun_and_bradstreet_linked_record,
+            minister_interactions.service_delivery AS service
         FROM minister_interactions
         JOIN companies_dataset ON companies_dataset.id = minister_interactions.company_id
         JOIN advisers_dataset ON advisers_dataset.id = minister_interactions.adviser_id::uuid
