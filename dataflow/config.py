@@ -86,3 +86,6 @@ DATA_WORKSPACE_HAWK_CREDENTIALS = {
     "key": os.environ.get("DATA_WORKSPACE_HAWK_KEY"),
     "algorithm": "sha256",
 }
+
+DNB_AUTH_TOKEN = os.environ.get('DNB_AUTH_TOKEN')
+DNB_BASE_URL = os.environ.get('DNB_BASE_URL')
