@@ -257,7 +257,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             minister_interactions.interaction_date AS interaction_date,
             minister_interactions.adviser_id::UUID AS adviser_id,
             CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS adviser_name,
-            minister_interactions.interaction_subject AS interaction_subect,
+            minister_interactions.interaction_subject AS interaction_subject,
             minister_interactions.communication_channel AS communication_channel,
             array_to_string(minister_interactions.policy_areas, ', ') AS policy_areas,
             minister_interactions.policy_feedback_notes AS policy_feedback_notes,
