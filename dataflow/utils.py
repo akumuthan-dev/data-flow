@@ -188,7 +188,7 @@ class DateTimeJsonEncoder(JSONEncoder):
             pass
 
         # Let the base class default method raise the TypeError
-        super().default(self, o)
+        super().default(o)
 
 
 class S3Data:
