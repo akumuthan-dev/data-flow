@@ -1,5 +1,5 @@
 """A module that defines useful utils."""
-
+import decimal
 import json
 import logging
 from dataclasses import dataclass
@@ -179,13 +179,16 @@ def slack_alert(context, success=False):
     ).execute()
 
 
-class DateTimeJsonEncoder(JSONEncoder):
+class S3JsonEncoder(JSONEncoder):
     def default(self, o):
         try:
             # Date / DateTime objects both have `.isoformat()` methods.
             return o.isoformat()
         except AttributeError:
             pass
+
+        if isinstance(o, decimal.Decimal):
+            return str(o)
 
         # Let the base class default method raise the TypeError
         super().default(o)
@@ -202,7 +205,7 @@ class S3Data:
     )
     def write_key(self, key, data, jsonify=True):
         if jsonify:
-            data = json.dumps(data, cls=DateTimeJsonEncoder)
+            data = json.dumps(data, cls=S3JsonEncoder)
 
         return self.client.load_string(
             data, self.prefix + key, bucket_name=self.bucket, replace=True, encrypt=True
