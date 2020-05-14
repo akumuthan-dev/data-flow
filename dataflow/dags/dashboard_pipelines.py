@@ -71,35 +71,32 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
             ("address_country", sa.Column("address_country", sa.String)),
         ],
     )
-
     query = '''
-    select
-      investment_projects_dataset.actual_land_date::text,
-      investment_projects_dataset.actual_uk_regions::text,
-      investment_projects_dataset.id::text,
-      investment_projects_dataset.estimated_land_date::text,
-      investment_projects_dataset.investment_type::text,
-      investment_projects_dataset.level_of_involvement::text,
-      investment_projects_dataset.number_new_jobs::text,
-      investment_projects_dataset.number_safeguarded_jobs::text,
-      investment_projects_dataset.possible_uk_regions::text,
-      investment_projects_dataset.fdi_value::text,
-      investment_projects_dataset.project_reference::text,
-      investment_projects_dataset.investor_company_sector::text,
-      investment_projects_dataset.stage::text,
-      investment_projects_dataset.status::text,
-      investment_projects_dataset.foreign_equity_investment::text,
-      investment_projects_dataset.address_postcode::text,
-      investment_projects_dataset.investor_company_id::text,
-      address_country::text
-
-    from investment_projects_dataset join companies_dataset
-      on companies_dataset.id = investment_projects_dataset.investor_company_id
-
-    where investment_projects_dataset.actual_land_date between '2020-04-01' AND '2021-03-31'
-     and investment_projects_dataset.estimated_land_date between '2020-04-01' AND '2021-03-31'
-     and investment_projects_dataset.investment_type = 'FDI'
-     and investment_projects_dataset.status = 'ongoing'
+        SELECT
+          investment_projects_dataset.actual_land_date,
+          investment_projects_dataset.actual_uk_regions,
+          investment_projects_dataset.id,
+          investment_projects_dataset.estimated_land_date,
+          investment_projects_dataset.investment_type,
+          investment_projects_dataset.level_of_involvement,
+          investment_projects_dataset.number_new_jobs,
+          investment_projects_dataset.number_safeguarded_jobs,
+          investment_projects_dataset.possible_uk_regions,
+          investment_projects_dataset.fdi_value,
+          investment_projects_dataset.project_reference,
+          investment_projects_dataset.investor_company_sector,
+          investment_projects_dataset.stage,
+          investment_projects_dataset.status,
+          investment_projects_dataset.foreign_equity_investment,
+          investment_projects_dataset.address_postcode,
+          investment_projects_dataset.investor_company_id,
+          address_country
+        FROM investment_projects_dataset
+        JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
+        WHERE investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+        AND investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+        AND investment_projects_dataset.investment_type = 'FDI'
+        AND investment_projects_dataset.status = 'ongoing'
     '''
 
 

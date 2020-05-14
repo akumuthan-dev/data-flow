@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Fix typo in ministerial interactions column name
+- Remove unnecessary casting of all fields to text on the fdi dashboard pipeline 
 
 ## 2020-05-13
 
