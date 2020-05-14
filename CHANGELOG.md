@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Fix typo in ministerial interactions column name
 - Remove unnecessary casting of all fields to text on the fdi dashboard pipeline 
 - Fix bug where TypeError was not being raised correctly on JsonEncoder
+- JSON encode decimals when writing to s3
 
 ## 2020-05-13
 
