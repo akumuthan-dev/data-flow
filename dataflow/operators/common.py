@@ -1,9 +1,10 @@
 import codecs
 import csv
 from contextlib import closing
-from typing import Optional
+from typing import Optional, Union
 
 import backoff
+import jwt
 import requests
 from mohawk import Sender
 from mohawk.exc import HawkFail
@@ -102,6 +103,22 @@ def fetch_from_hawk_api(
         page += 1
 
     logger.info("Fetching from source completed")
+
+
+def fetch_from_jwt_api(
+    table_name: str,
+    source_url: str,
+    payload: dict,
+    secret: Union[bytes, str],
+    algorithm: str,
+    results_key: Optional[str] = "results",
+    next_key: Optional[str] = "next",
+    **kwargs,
+):
+    auth_token = jwt.encode(payload, secret, algorithm=algorithm).decode("utf-8")
+    fetch_from_api_endpoint(
+        table_name, source_url, auth_token, results_key, next_key, **kwargs
+    )
 
 
 def fetch_from_api_endpoint(
