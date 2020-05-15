@@ -28,18 +28,20 @@ tab = dist.as_pandas(sheet_name='Time Series')
 
 # tab.rename(columns=tab.iloc[0], inplace=True)
 tab = tab.iloc[1:, :]
-tab = tab.drop(tab.columns[[2, 4]], axis=1)
 tab
 # -
 
 tab.columns.values[0] = 'Flow'
-tab.columns.values[1] = 'Trade Services'
-tab.columns.values[2] = 'ONS Partner Geography'
+tab.columns.values[1] = 'Trade Services Code'
+tab.columns.values[2] = 'Trade Services Name'
+tab.columns.values[3] = 'Geography Code'
+tab.columns.values[4] = 'Geography Name'
 
-new_table = pd.melt(tab, id_vars=['Flow', 'Trade Services', 'ONS Partner Geography'], var_name='Period',
+new_table = pd.melt(tab, id_vars=['Flow', 'Trade Services Code', 'Trade Services Name', 'Geography Code', 'Geography Name'], var_name='Period',
                     value_name='Value')
 
 new_table['Period'] = new_table['Period'].astype(str)
+new_table['Trade Services Code'] = new_table['Trade Services Code'].astype(str)
 
 # +
 import re
@@ -100,20 +102,20 @@ new_table['Marker'] = new_table.apply(lambda row: user_perc(row['Value']), axis=
 new_table['Value'] = pd.to_numeric(new_table['Value'], errors='coerce')
 
 new_table = new_table[
-    ['ONS Partner Geography', 'Period', 'Flow', 'Trade Services', 'Seasonal Adjustment', 'Measure Type', 'Value',
+    ['Geography Code', 'Geography Name', 'Period', 'Flow', 'Trade Services Code', 'Trade Services Name', 'Measure Type', 'Value',
      'Unit', 'Marker']]
 
 # +
-indexNames = new_table[new_table['Trade Services'].str.contains('NaN', na=True)].index
+indexNames = new_table[new_table['Trade Services Code'].str.contains('nan', na=True)].index
 new_table.drop(indexNames, inplace=True)
 
 # The 27 April 2020 release added Trade Services which dont have Type codes. This causes duplicates as all the various Services without numbers are classed as the same service.
 # This will need further investigation upon review. I did look to see if the most recent pink book publications had any reference to them but I coulnd't find antyhing.
 
 # +
-new_table.rename(columns={'ONS Partner Geography': 'CORD Geography',
-                          'Flow': 'Flow Directions'},
-                 inplace=True)
+# new_table.rename(columns={'Geography Code': 'CORD Geography',
+#                           'Flow': 'Flow Directions'},
+#                  inplace=True)
 
 # ONS Partner geography has been changed since certain codes are missing from Vademecum codelist that it points to, CORD codelists are editable by us
 # Flow has been changed to Flow Direction to differentiate from Migration flow dimension - I believe

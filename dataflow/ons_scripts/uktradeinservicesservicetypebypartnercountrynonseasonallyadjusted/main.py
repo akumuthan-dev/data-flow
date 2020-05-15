@@ -13,9 +13,6 @@ from gssutils import *
 # %%
 tables = []
 
-get_ipython().run_line_magic('run', '"Trade in Services by Country.py"')
-tables.append(new_table)
-
 get_ipython().run_line_magic('run', '"UK trade in services by partner country.py"')
 tables.append(new_table)
 
