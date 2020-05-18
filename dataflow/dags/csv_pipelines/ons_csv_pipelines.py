@@ -141,11 +141,6 @@ WITH rolling_import_totals AS (SELECT geography_code,
 SELECT
     geography_code,
     geography_name,
-    CASE
-        -- Taken from http://gss-data.org.uk/concept?uri=http%3A%2F%2Fgss-data.org.uk%2Fdef%2Fconcept%2Fons-partner-geography%2FB5
-        WHEN geography_name IN ('Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands', 'Poland', 'Portugal', 'Romania', 'Slovakia', 'Slovenia', 'Spain', 'Sweden') THEN 'yes'
-    ELSE 'no'
-    END AS included_in_eu28,
     product_code,
     product_name,
     period,
@@ -157,8 +152,7 @@ SELECT
 FROM
     imports_and_exports_with_rolling_totals
 WHERE
-    NOT (period_type = 'year'
-    AND measure LIKE '4-quarter %')
+    (NOT (period_type = 'year' AND measure LIKE '4-quarter %')) AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
 ORDER BY
     geography_name,
     product_code,
