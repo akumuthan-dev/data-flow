@@ -1,12 +1,12 @@
 .PHONY: check
 check:
 	flake8 .
-	black --exclude=venv --skip-string-normalization --check .
+	black --check --exclude='/(venv|dataflow\/ons_scripts)/' --skip-string-normalization .
 	mypy .
 
 .PHONY: format
 format:
-	black --exclude=venv --skip-string-normalization .
+	black --check --exclude='/(venv|dataflow\/ons_scripts)/' --skip-string-normalization .
 
 .PHONY: test
 test:

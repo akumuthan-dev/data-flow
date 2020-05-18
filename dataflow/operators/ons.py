@@ -1,3 +1,7 @@
+import os
+import shutil
+import subprocess
+from tempfile import TemporaryDirectory
 from typing import Optional
 
 import backoff
@@ -65,3 +69,19 @@ def _store_ons_sparql_pages(s3: S3Data, query: str, prefix: str = ""):
         next_page += 1
 
     logger.info(f"Fetching from source completed, total {total_records}")
+
+
+def run_ipython_ons_extraction(table_name: str, script_name: str, **kwargs):
+    with TemporaryDirectory() as tempdir:
+        os.chdir(tempdir)
+
+        shutil.copytree('/app/dataflow/ons_scripts', 'ons_scripts')
+
+        subprocess.call(['ipython', 'main.py'], cwd=f'ons_scripts/{script_name}')
+
+        s3 = S3Data(table_name, kwargs['ts_nodash'])
+        s3.write_key(
+            "observations.csv",
+            open(f"ons_scripts/{script_name}/out/observations.csv", "r").read(),
+            jsonify=False,
+        )

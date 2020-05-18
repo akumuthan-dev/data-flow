@@ -77,6 +77,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             f"{self.__class__} needs to override get_fetch_operator"
         )
 
+    def get_insert_data_callable(self):
+        return insert_data_into_db
+
     def get_dag(self) -> DAG:
         dag = DAG(
             self.__class__.__name__,
@@ -116,7 +119,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
 
         _insert_into_temp_table = PythonOperator(
             task_id="insert-into-temp-table",
-            python_callable=insert_data_into_db,
+            python_callable=self.get_insert_data_callable(),
             provide_context=True,
             op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
         )
