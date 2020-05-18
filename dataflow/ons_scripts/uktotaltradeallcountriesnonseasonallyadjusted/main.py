@@ -45,9 +45,11 @@ for name, tab in tabs.items():
     Year = tab.excel_ref('C4').expand(RIGHT).is_not_blank().is_not_whitespace()
     Flow = tab.fill(DOWN).one_of(['Exports','Imports'])
     geo = tab.excel_ref('A7').expand(DOWN).is_not_blank().is_not_whitespace()
+    geo_name = tab.excel_ref('B7').expand(DOWN).is_not_blank().is_not_whitespace()
     Dimensions = [
         HDim(Year,'Period',DIRECTLY,ABOVE),
-        HDim(geo,'ONS Partner Geography',DIRECTLY,LEFT),
+        HDim(geo,'Geography Code',DIRECTLY,LEFT),
+        HDim(geo_name,'Geography Name',DIRECTLY,LEFT),
         HDim(Flow, 'Flow',CLOSEST,ABOVE),
         HDimConst('Measure Type', 'GBP Total'),
         HDimConst('Unit','gbp-million')
@@ -55,11 +57,12 @@ for name, tab in tabs.items():
     c1 = ConversionSegment(observations, Dimensions, processTIMEUNIT=True)
     new_table = c1.topandas()
     import numpy as np
-    new_table.rename(columns={'OBS': 'Value'}, inplace=True)
+    new_table.rename(columns={'OBS': 'Value', 'DATAMARKER': 'Marker'}, inplace=True)
     new_table['Flow'] = new_table['Flow'].map(lambda s: s.lower().strip())
-    new_table['ONS ABS Trade'] = product(name)
+    new_table['Product'] = product(name)
     new_table['Period'] = new_table['Period'].astype(str)
-    new_table = new_table[['ONS Partner Geography', 'Period','Flow','ONS ABS Trade', 'Measure Type','Value','Unit' ]]
+    new_table['Marker'] = new_table['Marker'].fillna('') if 'Marker' in new_table else ''
+    new_table = new_table[['Geography Code','Geography Name', 'Period','Flow','Product', 'Measure Type','Value', 'Unit', 'Marker' ]]
     Final_table = pd.concat([Final_table, new_table])
 
 # +
