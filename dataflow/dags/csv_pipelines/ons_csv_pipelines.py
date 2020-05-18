@@ -111,6 +111,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
      imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
                                                         imports_t.geography_name,
                                                         imports_t.product_code,
+                                                        imports_t.product_name,
                                                         imports_t.period,
                                                         imports_t.period_type,
                                                         unnest(
@@ -146,6 +147,7 @@ SELECT
     ELSE 'no'
     END AS included_in_eu28,
     product_code,
+    product_name,
     period,
     period_type,
     measure,
