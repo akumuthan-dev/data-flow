@@ -6,6 +6,7 @@ from datetime import datetime
 from dataflow.dags import _CSVPipelineDAG
 from dataflow.dags.ons_parsing_pipelines import (
     ONSUKTradeInServicesByPartnerCountryNSAPipeline,
+    ONSUKTotalTradeAllCountriesNSA,
 )
 from dataflow.dags.ons_pipelines import (
     ONSUKSATradeInGoodsPipeline,
@@ -237,4 +238,93 @@ WHERE imports_t.direction = 'Imports'
   AND exports_t.direction = 'Exports'
 ORDER BY imports_t.geography_name,
          imports_t.period
+"""
+
+
+class ONSUKTotalTradeAllCountriesNSACSVPipeline(_CSVPipelineDAG):
+    dependencies = [ONSUKTotalTradeAllCountriesNSA]
+    start_date = ONSUKTotalTradeAllCountriesNSA.start_date
+    schedule_interval = ONSUKTotalTradeAllCountriesNSA.schedule_interval
+
+    catchup = False
+    static = True
+
+    base_file_name = "ons_uk_total_trade_all_countries_nsa"
+    timestamp_output = False
+
+    query = """
+WITH rolling_import_totals AS (SELECT geography_code,
+                                      product_name,
+                                      period,
+                                      total,
+                                      sum(total) over (PARTITION
+                                          BY
+                                          geography_code,
+                                          product_name
+                                          ORDER BY
+                                              geography_code,
+                                              product_name,
+                                              period ASC rows between 3 preceding and current row) AS rolling_total
+                               FROM public.ons_uk_total_trade_all_countries_nsa
+                               WHERE direction = 'imports'
+                                 and period_type = 'quarter'
+                               GROUP BY geography_code,
+                                        product_name,
+                                        period,
+                                        total),
+     rolling_export_totals AS (SELECT geography_code,
+                                      product_name,
+                                      period,
+                                      total,
+                                      sum(total) over (PARTITION
+                                          BY
+                                          geography_code,
+                                          product_name
+                                          ORDER BY
+                                              geography_code,
+                                              product_name,
+                                              period ASC rows between 3 preceding and current row) AS rolling_total
+                               FROM public.ons_uk_total_trade_all_countries_nsa
+                               WHERE direction = 'exports'
+                                 and period_type = 'quarter'
+                               GROUP BY geography_code,
+                                        product_name,
+                                        period,
+                                        total),
+     imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
+                                                        imports_t.geography_name,
+                                                        imports_t.product_name,
+                                                        imports_t.period,
+                                                        imports_t.period_type,
+                                                        unnest(
+                                                                array ['imports', 'exports', '4-quarter rolling imports total', '4-quarter rolling exports total'])         as "measure",
+                                                        unnest(
+                                                                array [imports_t.total, exports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
+                                                        imports_t.unit,
+                                                        unnest(array [imports_t.marker, exports_t.marker, '', ''])                                                          as "marker"
+                                                 FROM public.ons_uk_total_trade_all_countries_nsa as imports_t
+                                                          INNER JOIN
+                                                      public.ons_uk_total_trade_all_countries_nsa as exports_t
+                                                      ON imports_t.geography_code = exports_t.geography_code
+                                                          AND imports_t.product_name = exports_t.product_name
+                                                          AND imports_t.period = exports_t.period
+                                                          LEFT JOIN
+                                                      rolling_import_totals rolling_imports_t
+                                                      ON imports_t.geography_code = rolling_imports_t.geography_code
+                                                          AND imports_t.product_name = rolling_imports_t.product_name
+                                                          AND imports_t.period = rolling_imports_t.period
+                                                          LEFT JOIN
+                                                      rolling_export_totals rolling_exports_t
+                                                      ON exports_t.geography_code = rolling_exports_t.geography_code
+                                                          AND exports_t.product_name = rolling_exports_t.product_name
+                                                          AND exports_t.period = rolling_exports_t.period
+                                                 WHERE imports_t.direction = 'imports'
+                                                   AND exports_t.direction = 'exports')
+SELECT * FROM imports_and_exports_with_rolling_totals
+WHERE
+    (NOT (period_type = 'year' AND measure LIKE '4-quarter %')) AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
+ORDER BY
+    geography_name,
+    product_name,
+    period;
 """

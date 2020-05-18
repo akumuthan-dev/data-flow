@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 
@@ -47,6 +49,38 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
             ("Flow", sa.Column("direction", sa.String)),
             ("Trade Services Code", sa.Column("product_code", sa.String)),
             ("Trade Services Name", sa.Column("product_name", sa.String)),
+            ("Value", sa.Column("total", sa.Numeric)),
+            ("Unit", sa.Column("unit", sa.String)),
+            ("Marker", sa.Column("marker", sa.String)),
+        ],
+    )
+
+
+class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
+    start_date = datetime(2020, 4, 1)
+    schedule_interval = "@monthly"
+
+    ons_script_dir = 'uktotaltradeallcountriesnonseasonallyadjusted'
+
+    table_config = TableConfig(
+        table_name="ons_uk_total_trade_all_countries_nsa",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "Period": record["Period"].split("/")[1],
+                "Period Type": record["Period"].split("/")[0],
+                "Value": record["Value"]
+                or None,  # Convert redacted values ('') to Nones (NULL in DB).
+            },
+        ],
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            ("Geography Code", sa.Column("geography_code", sa.String)),
+            ("Geography Name", sa.Column("geography_name", sa.String)),
+            ("Product", sa.Column("product_name", sa.String)),
+            ("Period", sa.Column("period", sa.String)),
+            ("Period Type", sa.Column("period_type", sa.String)),
+            ("Flow", sa.Column("direction", sa.String)),
             ("Value", sa.Column("total", sa.Numeric)),
             ("Unit", sa.Column("unit", sa.String)),
             ("Marker", sa.Column("marker", sa.String)),
