@@ -111,6 +111,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
      imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
                                                         imports_t.geography_name,
                                                         imports_t.product_code,
+                                                        imports_t.product_name,
                                                         imports_t.period,
                                                         imports_t.period_type,
                                                         unnest(
@@ -138,7 +139,21 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                                  WHERE imports_t.direction = 'imports'
                                                    AND exports_t.direction = 'exports')
 SELECT
-    *
+    geography_code,
+    geography_name,
+    CASE
+        -- Taken from http://gss-data.org.uk/concept?uri=http%3A%2F%2Fgss-data.org.uk%2Fdef%2Fconcept%2Fons-partner-geography%2FB5
+        WHEN geography_name IN ('Austria', 'Belgium', 'Bulgaria', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Ireland', 'Italy', 'Latvia', 'Lithuania', 'Luxembourg', 'Malta', 'Netherlands', 'Poland', 'Portugal', 'Romania', 'Slovakia', 'Slovenia', 'Spain', 'Sweden') THEN 'yes'
+    ELSE 'no'
+    END AS included_in_eu28,
+    product_code,
+    product_name,
+    period,
+    period_type,
+    measure,
+    value,
+    unit,
+    marker
 FROM
     imports_and_exports_with_rolling_totals
 WHERE
