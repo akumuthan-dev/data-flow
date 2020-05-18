@@ -157,8 +157,7 @@ SELECT
 FROM
     imports_and_exports_with_rolling_totals
 WHERE
-    NOT (period_type = 'year'
-    AND measure LIKE '4-quarter %')
+    (NOT (period_type = 'year' AND measure LIKE '4-quarter %')) AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
 ORDER BY
     geography_name,
     product_code,
