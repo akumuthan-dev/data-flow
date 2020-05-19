@@ -29,6 +29,9 @@ class _ONSParserPipeline(_PipelineDAG):
 
 
 class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
+    start_date = datetime(2020, 4, 1)
+    schedule_interval = "@monthly"
+
     ons_script_dir = 'uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
 
     table_config = TableConfig(
