@@ -214,11 +214,11 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                                         imports_t.period,
                                                         imports_t.period_type,
                                                         unnest(
-                                                                array ['imports', 'exports', '4-quarter rolling imports total', '4-quarter rolling exports total'])         as "measure",
+                                                                array ['imports', 'exports', 'trade balance', 'total trade', '4-quarter rolling imports total', '4-quarter rolling exports total'])                                               as "measure",
                                                         unnest(
-                                                                array [imports_t.total, exports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
+                                                                array [imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
                                                         imports_t.unit,
-                                                        unnest(array [imports_t.marker, exports_t.marker, '', ''])                                                          as "marker"
+                                                        unnest(array [imports_t.marker, exports_t.marker, '', '', '', ''])                                                                                                                        as "marker"
                                                  FROM public.ons_uk_total_trade_all_countries_nsa as imports_t
                                                           INNER JOIN
                                                       public.ons_uk_total_trade_all_countries_nsa as exports_t
@@ -237,11 +237,11 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                                           AND exports_t.period = rolling_exports_t.period
                                                  WHERE imports_t.direction = 'imports'
                                                    AND exports_t.direction = 'exports')
-SELECT * FROM imports_and_exports_with_rolling_totals
-WHERE
-    (NOT (period_type = 'year' AND measure LIKE '4-quarter %')) AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
-ORDER BY
-    geography_name,
-    product_name,
-    period;
+SELECT *
+FROM imports_and_exports_with_rolling_totals
+WHERE (NOT (period_type = 'year' AND measure LIKE '4-quarter %'))
+  AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
+ORDER BY geography_name,
+         product_name,
+         period;
 """
