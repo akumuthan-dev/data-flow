@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - ONS dataset 4 "ONSUKTotalTradeAllCountriesNSA"
 
+### Removed
+
+- Old pipeline 'ONSUKTotalTradeInServicesByPartnerCountry' using gss-data (we've changed to scraping XLSX ourselves for now).
+
 ## 2020-05-17
 
 ## Added
