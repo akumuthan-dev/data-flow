@@ -38,6 +38,7 @@ def _get_temp_table(table, suffix):
         f"{table.name}_{suffix}".lower(),
         table.metadata,
         *[column.copy() for column in table.columns],
+        schema=table.schema,
     )
 
 
@@ -248,7 +249,7 @@ def _check_table(
 ):
     logger.info(f"Checking {temp.name}")
 
-    if engine.dialect.has_table(conn, target.name):
+    if engine.dialect.has_table(conn, target.name, schema=target.schema):
         logger.info("Checking record counts")
         temp_count = conn.execute(
             sa.select([sa.func.count()]).select_from(temp)
@@ -367,9 +368,10 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
 
             conn.execute(
                 """
-                ALTER TABLE IF EXISTS {target_temp_table} RENAME TO {swap_table_name};
-                ALTER TABLE {temp_table} RENAME TO {target_temp_table};
+                ALTER TABLE IF EXISTS {schema}.{target_temp_table} RENAME TO {swap_table_name};
+                ALTER TABLE {schema}.{temp_table} RENAME TO {target_temp_table};
                 """.format(
+                    schema=engine.dialect.identifier_preparer.quote(table.schema),
                     target_temp_table=engine.dialect.identifier_preparer.quote(
                         table.name
                     ),

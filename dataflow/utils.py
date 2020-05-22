@@ -72,6 +72,7 @@ class TableConfig:
 
     transforms: Iterable[Transform] = tuple()
     temp_table_suffix: Optional[str] = None
+    schema: str = 'public'
 
     _table = None
     _temp_table = None
@@ -110,6 +111,7 @@ class TableConfig:
                 self.table_name,
                 sqlalchemy.MetaData(),
                 *[column.copy() for _, column in self.columns],
+                schema=self.schema,
             )
         return self._table
 
@@ -126,6 +128,7 @@ class TableConfig:
                 f"{self.table.name}_{self.temp_table_suffix}".lower(),
                 self.table.metadata,
                 *[column.copy() for column in self.table.columns],
+                schema=self.schema,
             )
 
         return self._temp_table

@@ -15,6 +15,7 @@ def table():
         sqlalchemy.MetaData(),
         sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False),
         sqlalchemy.Column("data", sqlalchemy.Integer()),
+        schema='public',
     )
 
 
@@ -263,8 +264,8 @@ def test_swap_dataset_tables(mock_db_conn, table):
             call().fetchall(),
             call(
                 '''
-                ALTER TABLE IF EXISTS QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
-                ALTER TABLE QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
+                ALTER TABLE IF EXISTS QUOTED<public>.QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
+                ALTER TABLE QUOTED<public>.QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
                 '''
             ),
             call('GRANT SELECT ON QUOTED<test_table> TO testuser'),
