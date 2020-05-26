@@ -7,10 +7,10 @@
 from gssutils import *
 import json
 
-landingPage = json.load(open('info.json'))['landingPage']
+landingPage = json.load(open('info.json'))['landingPage'][1]
 display(landingPage)
 
-scraper = Scraper('imports'.join(landingPage.rsplit('exports', 1)))
+scraper = Scraper(landingPage)
 scraper
 
 
@@ -35,9 +35,9 @@ data
 # %%
 table = data.drop(columns='DIRECTION')
 table.rename(columns={
-    'COMMODITY': 'CORD SITC',
-    'COUNTRY': 'ONS Partner Geography'}, inplace=True)
-table = pd.melt(table, id_vars=['CORD SITC','ONS Partner Geography'], var_name='Period', value_name='Value')
+    'COMMODITY': 'Product',
+    'COUNTRY': 'Geography'}, inplace=True)
+table = pd.melt(table, id_vars=['Product','Geography'], var_name='Period', value_name='Value')
 table['Period'] = table['Period'].astype('category')
 table.dropna(subset=['Value'], inplace=True)
 table['Value'] = table['Value'].astype(int)
@@ -45,8 +45,13 @@ table
 
 
 # %%
-table['CORD SITC'].cat.categories = table['CORD SITC'].cat.categories.map(lambda x: x.split(' ')[0])
-table['ONS Partner Geography'].cat.categories = table['ONS Partner Geography'].cat.categories.map(lambda x: x[:2])
+product = table['Product'].str.split(' ', n=1, expand=True)
+table['Product Code'], table['Product Name'] = product[0].astype('category'), product[1].astype('category')
+
+geography = table['Geography'].str.split(' ', n=1, expand=True)
+table['Geography Code'], table['Geography Name'] = geography[0].astype('category'), geography[1].astype('category')
+
+table.drop(columns=['Product', 'Geography'], inplace=True)
 
 
 # %%
@@ -89,6 +94,6 @@ table['Flow'] = pd.Series('imports', index=table.index, dtype='category')
 
 
 # %%
-table = table[['ONS Partner Geography', 'Period','Flow','CORD SITC', 'Seasonal Adjustment', 'Measure Type','Value','Unit' ]]
+table = table[['Geography Code', 'Geography Name', 'Period', 'Flow', 'Product Code', 'Product Name', 'Seasonal Adjustment', 'Measure Type', 'Value', 'Unit']]
 table
 
