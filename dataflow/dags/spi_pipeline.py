@@ -23,7 +23,8 @@ class DataHubSPIPipeline(_PipelineDAG):
     schedule_interval = '@daily'
     catchup = False
     table_config = TableConfig(
-        table_name="datahub_spi",
+        schema="datahub",
+        table_name="spi",
         transforms=[drop_empty_string_fields],
         field_mapping=[
             ("aftercare_offered_on", sa.Column("aftercare_offered_on", sa.DateTime)),

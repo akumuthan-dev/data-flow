@@ -9,6 +9,8 @@ from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_token_authenticated_api
 from dataflow.utils import TableConfig
 
+DB_SCHEMA = 'dunandbradstreet'
+
 
 class _DNBPipeline(_PipelineDAG):
     cascade_drop_tables = True
@@ -30,7 +32,8 @@ class DNBCompanyPipeline(_DNBPipeline):
     allow_null_columns = True
     source_url = f'{config.DNB_BASE_URL}/api/workspace/companies/?page_size=1000'
     table_config = TableConfig(
-        table_name='dnb__companies',
+        schema=DB_SCHEMA,
+        table_name='companies',
         field_mapping=[
             ('last_updated', sa.Column('last_updated', sa.DateTime)),
             ('duns_number', sa.Column('duns_number', sa.Text)),
@@ -90,7 +93,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'registration_numbers',
                 TableConfig(
-                    table_name='dnb__registration_numbers',
+                    schema=DB_SCHEMA,
+                    table_name='registration_numbers',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,
@@ -110,7 +114,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'industry_codes',
                 TableConfig(
-                    table_name='dnb__industry_codes',
+                    schema=DB_SCHEMA,
+                    table_name='industry_codes',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,
@@ -130,7 +135,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'primary_industry_codes',
                 TableConfig(
-                    table_name='dnb__primary_industry_codes',
+                    schema=DB_SCHEMA,
+                    table_name='primary_industry_codes',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,

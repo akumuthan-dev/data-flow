@@ -8,6 +8,8 @@ from dataflow.operators.db_tables import insert_csv_data_into_db
 from dataflow.operators.ons import run_ipython_ons_extraction
 from dataflow.utils import TableConfig
 
+DB_SCHEMA = "ons"
+
 
 class _ONSParserPipeline(_PipelineDAG):
     ons_script_dir = "need-to-override"
@@ -30,7 +32,8 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
     ons_script_dir = 'uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
 
     table_config = TableConfig(
-        table_name="ons_uk_trade_in_services_by_country_nsa",  # dropped "partner" because of table name length limit
+        schema=DB_SCHEMA,
+        table_name="uk_trade_in_services_by_country_nsa",  # dropped "partner" because of table name length limit
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
@@ -63,7 +66,8 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
     ons_script_dir = 'uktotaltradeallcountriesnonseasonallyadjusted'
 
     table_config = TableConfig(
-        table_name="ons_uk_total_trade_all_countries_nsa",
+        schema=DB_SCHEMA,
+        table_name="uk_total_trade_all_countries_nsa",
         transforms=[
             lambda record, table_config, contexts: {
                 **record,

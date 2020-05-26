@@ -14,7 +14,6 @@ class _ConsentPipeline(_PipelineDAG):
     cascade_drop_tables = True
 
     source_url: str
-    table_config: TableConfig
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -33,7 +32,8 @@ class ConsentPipeline(_ConsentPipeline):
         config.CONSENT_BASE_URL, config.CONSENT_RESULTS_PER_PAGE
     )
     table_config = TableConfig(
-        table_name="consent_dataset",
+        schema='consentservice',
+        table_name="users",
         field_mapping=[
             ("id", sa.Column("id", sa.Integer)),
             ("key", sa.Column("key", sa.String)),

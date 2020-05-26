@@ -37,7 +37,8 @@ class CompanyExportCountryHistory(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_history_dataset',
+        schema='datahub',
+        table_name='company_export_country_history',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -59,7 +60,8 @@ class CompanyExportCountry(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_dataset',
+        schema='datahub',
+        table_name='company_export_country',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -81,7 +83,8 @@ class CountriesOfInterestServicePipeline(_DatasetPipeline):
         '?orientation=records'.format(config.COUNTRIES_OF_INTEREST_BASE_URL)
     )
     table_config = TableConfig(
-        table_name='countries_of_interest_dataset',
+        schema='datahub',
+        table_name='countries_of_interest',
         field_mapping=[
             ('serviceCompanyId', sa.Column('service_company_id', sa.Text)),
             ('companyMatchId', sa.Column('company_match_id', sa.Text)),
@@ -101,7 +104,8 @@ class OMISDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/omis-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='omis_dataset',
+        schema='datahub',
+        table_name='omis',
         field_mapping=[
             ('cancellation_reason__name', sa.Column('cancellation_reason', sa.Text)),
             ('cancelled_on', sa.Column('cancelled_date', sa.DateTime)),
@@ -139,7 +143,8 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
     )
     allow_null_columns = True
     table_config = TableConfig(
-        table_name='investment_projects_dataset',
+        schema='datahub',
+        table_name='investment_projects',
         field_mapping=[
             ('actual_land_date', sa.Column('actual_land_date', sa.Date)),
             (
@@ -260,7 +265,8 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='interactions_dataset',
+        schema='datahub',
+        table_name='interactions',
         field_mapping=[
             ('adviser_ids', sa.Column('adviser_ids', sa.ARRAY(sa.Text))),
             (
@@ -305,6 +311,7 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
+        schema='datahub',
         table_name='interactions_export_country',
         field_mapping=[
             ('country__name', sa.Column('country_name', sa.Text)),
@@ -323,7 +330,8 @@ class ContactsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='contacts_dataset',
+        schema='datahub',
+        table_name='contacts',
         field_mapping=[
             (
                 'accepts_dit_email_marketing',
@@ -362,7 +370,8 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/companies-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='companies_dataset',
+        schema='datahub',
+        table_name='companies',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -432,7 +441,8 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='advisers_dataset',
+        schema='datahub',
+        table_name='advisers',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('date_joined', sa.Column('date_joined', sa.Date)),
@@ -451,7 +461,8 @@ class TeamsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/teams-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='teams_dataset',
+        schema='datahub',
+        table_name='teams',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('name', sa.Column('name', sa.String)),
@@ -467,7 +478,8 @@ class EventsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/events-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='events_dataset',
+        schema='datahub',
+        table_name='events',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -497,7 +509,8 @@ class ExportWinsAdvisersDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/advisors'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_advisers_dataset',
+        schema='exportwins',
+        table_name='advisers',
         field_mapping=[
             ('hq_team_display', sa.Column('hq_team', sa.String)),
             ('id', sa.Column('id', sa.Integer, primary_key=True)),
@@ -514,7 +527,8 @@ class ExportWinsBreakdownsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/breakdowns'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_breakdowns_dataset',
+        schema='exportwins',
+        table_name='breakdowns',
         field_mapping=[
             ('breakdown_type', sa.Column('type', sa.String)),
             ('id', sa.Column('id', sa.Integer, primary_key=True)),
@@ -530,7 +544,8 @@ class ExportWinsHVCDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/hvc'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_hvc_dataset',
+        schema='exportwins',
+        table_name='hvc',
         field_mapping=[
             ('campaign_id', sa.Column('campaign_id', sa.String)),
             ('financial_year', sa.Column('financial_year', sa.Integer)),
@@ -546,7 +561,8 @@ class ExportWinsWinsDatasetPipeline(_DatasetPipeline):
     source_url = '{0}/datasets/wins'.format(config.EXPORT_WINS_BASE_URL)
     allow_null_columns = True
     table_config = TableConfig(
-        table_name='export_wins_wins_dataset',
+        schema='exportwins',
+        table_name='wins',
         field_mapping=[
             (
                 'associated_programme_1_display',
@@ -747,7 +763,8 @@ class ONSPostcodePipeline(_DatasetPipeline):
         config.DATA_STORE_SERVICE_BASE_URL
     )
     table_config = TableConfig(
-        table_name='ons_postcodes',
+        schema='ons',
+        table_name='postcodes',
         field_mapping=[
             ('pcd', sa.Column('pcd', sa.Text)),
             ('pcd2', sa.Column('pcd2', sa.Text)),
@@ -812,7 +829,8 @@ class RawWorldBankTariffPipeline(_DatasetPipeline):
         f'?orientation=records'
     )
     table_config = TableConfig(
-        table_name='raw_world_bank_tariffs',
+        schema='worldbank',
+        table_name='raw_tariffs',
         field_mapping=[
             ('product', sa.Column('product', sa.Integer, index=True)),
             ('partner', sa.Column('partner', sa.Integer, index=True)),
@@ -834,7 +852,8 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
         f'?orientation=records'
     )
     table_config = TableConfig(
-        table_name='raw_world_bank_bound_rates',
+        schema='worldbank',
+        table_name='raw_bound_rates',
         field_mapping=[
             ('product', sa.Column('product', sa.Integer, index=True)),
             ('reporter', sa.Column('reporter', sa.Integer, index=True)),

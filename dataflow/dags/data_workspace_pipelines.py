@@ -10,6 +10,8 @@ from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.utils import TableConfig
 
+DB_SCHEMA = 'dataworkspace'
+
 
 class _DataWorkspacePipeline(_PipelineDAG):
     cascade_drop_tables = True
@@ -34,7 +36,8 @@ class DataWorkspaceEventLogPipeline(_DataWorkspacePipeline):
 
     source_url = f'{config.DATA_WORKSPACE_BASE_URL}/api/v1/eventlog/events'
     table_config = TableConfig(
-        table_name='dataworkspace__event_log',
+        schema=DB_SCHEMA,
+        table_name='event_log',
         field_mapping=[
             ('event_type', sa.Column('event_type', sa.Text)),
             ('id', sa.Column('id', sa.Numeric, primary_key=True)),
@@ -52,7 +55,8 @@ class DataWorkspaceUserPipeline(_DataWorkspacePipeline):
 
     source_url = f'{config.DATA_WORKSPACE_BASE_URL}/api/v1/account/users'
     table_config = TableConfig(
-        table_name='dataworkspace__users',
+        schema=DB_SCHEMA,
+        table_name='users',
         field_mapping=[
             ('email', sa.Column('email', sa.Text)),
             ('first_name', sa.Column('first_name', sa.Text)),
@@ -71,7 +75,8 @@ class DataWorkspaceApplicationInstancePipeline(_DataWorkspacePipeline):
         f'{config.DATA_WORKSPACE_BASE_URL}/api/v1/application-instance/instances'
     )
     table_config = TableConfig(
-        table_name='dataworkspace__application_instances',
+        schema=DB_SCHEMA,
+        table_name='application_instances',
         field_mapping=[
             ('commit_id', sa.Column('commit_id', sa.Text)),
             ('cpu', sa.Column('cpu', sa.Text)),

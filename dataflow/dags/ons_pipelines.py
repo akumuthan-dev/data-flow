@@ -8,6 +8,8 @@ from dataflow.dags import _PipelineDAG
 from dataflow.operators.ons import fetch_from_ons_sparql
 from dataflow.utils import TableConfig
 
+DB_SCHEMA = "ons"
+
 
 class _ONSPipeline(_PipelineDAG):
     query: str
@@ -24,7 +26,8 @@ class _ONSPipeline(_PipelineDAG):
 
 class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     table_config = TableConfig(
-        table_name="ons_uk_sa_trade_in_goods",
+        schema=DB_SCHEMA,
+        table_name="uk_sa_trade_in_goods",
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("period", "value"), sa.Column("period", sa.String)),
@@ -64,7 +67,8 @@ class ONSUKTradeInGoodsPipeline(_ONSPipeline):
     schedule_interval = "@weekly"
 
     table_config = TableConfig(
-        table_name="ons_uk_trade_in_goods",
+        schema=DB_SCHEMA,
+        table_name="uk_trade_in_goods",
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             (("period", "value"), sa.Column("period", sa.String)),

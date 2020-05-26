@@ -13,12 +13,15 @@ from dataflow.dags.dataset_pipelines import (
 from dataflow.operators.company_matching import fetch_from_company_matching
 from dataflow.utils import TableConfig
 
+DB_SCHEMA = 'companymatching'
+
 
 class _CompanyMatchingPipeline(_PipelineDAG):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.table_config = TableConfig(
+            schema=DB_SCHEMA,
             table_name=f'{self.controller_pipeline.table_config.table_name}_match_ids',
             field_mapping=[
                 ("id", sa.Column("id", sa.Text, primary_key=True)),
@@ -60,8 +63,8 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
             companies.company_number as companies_house_id,
             'dit.datahub' as source,
             companies.modified_on as datetime
-        FROM {CompaniesDatasetPipeline.table_config.table_name} companies
-        LEFT JOIN {ContactsDatasetPipeline.table_config.table_name} contacts
+        FROM {CompaniesDatasetPipeline.table_config.schema}.{CompaniesDatasetPipeline.table_config.table_name} companies
+        LEFT JOIN {CompaniesDatasetPipeline.table_config.schema}.{ContactsDatasetPipeline.table_config.table_name} contacts
         ON contacts.company_id = companies.id
         ORDER BY companies.id asc, companies.modified_on desc
     """
@@ -80,6 +83,6 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
             null as copmanies_house_id,
             'dit.export-wins' as source,
             created::timestamp as datetime
-        FROM {ExportWinsWinsDatasetPipeline.table_config.table_name}
+        FROM {ExportWinsWinsDatasetPipeline.table_config.schema}{ExportWinsWinsDatasetPipeline.table_config.table_name}
         ORDER BY id asc, created::timestamp desc
     """

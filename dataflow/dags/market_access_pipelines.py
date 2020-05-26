@@ -20,7 +20,8 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
     schedule_interval = '@daily'
 
     table_config = TableConfig(
-        table_name="market_access_trade_barriers",
+        schema="marketaccess",
+        table_name="trade_barriers",
         field_mapping=[
             ("id", sa.Column("id", UUID, primary_key=True)),
             ("code", sa.Column("code", sa.Text)),

@@ -22,7 +22,6 @@ class _ActivityStreamPipeline(_PipelineDAG):
 
 class ERPPipeline(_ActivityStreamPipeline):
     index = "objects"
-    table_name = "erp_submissions"
     table_config = TableConfig(
         table_name='erp',
         field_mapping=[
@@ -332,7 +331,8 @@ class GreatGOVUKExportOpportunitiesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunitites"
     index = "objects"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunities",
+        schema="greatgovuk",
+        table_name="export_opportunities",
         field_mapping=[
             ("id", sa.Column("id", sa.String, primary_key=True)),
             ("name", sa.Column("name", sa.String, nullable=False)),
@@ -355,7 +355,8 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunity-enquiries"
     index = "activities"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunity_enquiries",
+        schema="greatgovuk",
+        table_name="export_opportunity_enquiries",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "published"), sa.Column("published", sa.DateTime)),
@@ -408,7 +409,8 @@ class LITECasesPipeline(_ActivityStreamPipeline):
     name = "lite-cases"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_cases",
+        schema="lite",
+        table_name="cases",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:caseOfficer"), sa.Column("case_officer", sa.String)),
@@ -426,7 +428,8 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
     name = "lite-case-changes"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_case_changes",
+        schema="lite",
+        table_name="case_changes",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:from"), sa.Column("case_from", sa.JSON)),
