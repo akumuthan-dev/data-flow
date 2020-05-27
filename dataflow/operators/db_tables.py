@@ -214,6 +214,7 @@ def insert_csv_data_into_db(
     )
 
     count = 0
+    done = 0
     for page, data in s3.iter_keys(json=False):
         logger.info(f'Processing page {page}')
         count += 1
@@ -221,22 +222,26 @@ def insert_csv_data_into_db(
         with engine.begin() as conn:
             reader = csv.DictReader(StringIO(data))
 
-            done = 0
             while True:
-                records = list(itertools.islice(reader, 1000))
+                records = list(itertools.islice(reader, 10000))
                 if not records:
                     break
 
                 logger.info(f"Ingesting records {done} - {done+len(records)} ...")
+                transformed_records = []
                 for record in records:
                     for transform in table_config.transforms:
                         record = transform(record, table_config, contexts)  # type: ignore
+                    transformed_records.append(record)
 
-                    conn.execute(
-                        table_config.temp_table.insert(),
-                        **_get_data_to_insert(table_config.columns, record),
-                    )
-                    done += 1
+                conn.execute(
+                    table_config.temp_table.insert(),
+                    [
+                        _get_data_to_insert(table_config.columns, record)
+                        for record in transformed_records
+                    ],
+                )
+                done += len(records)
 
         logger.info(f'File {page} ingested successfully')
 

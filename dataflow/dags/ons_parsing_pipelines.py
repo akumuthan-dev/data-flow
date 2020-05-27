@@ -86,3 +86,48 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
             ("Marker", sa.Column("marker", sa.String)),
         ],
     )
+
+
+class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
+    start_date = datetime(2020, 4, 1)
+    schedule_interval = "@monthly"
+
+    ons_script_dir = "uktradecountrybycommodity"
+
+    table_config = TableConfig(
+        table_name="ons_uk_trade_in_goods_by_country_commodity",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "Period": record["Period"].split("/")[1],
+                "Period Type": record["Period"].split("/")[0],
+                "Value": record["Value"]
+                or None,  # Convert redacted values ('') to Nones (NULL in DB).
+                "Marker": "",  # We don't have any markers in this dataset
+            },
+        ],
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            ("Geography Code", sa.Column("geography_code", sa.String)),
+            ("Geography Name", sa.Column("geography_name", sa.String)),
+            ("Product Code", sa.Column("product_code", sa.String)),
+            ("Product Name", sa.Column("product_name", sa.String)),
+            ("Period", sa.Column("period", sa.String)),
+            ("Period Type", sa.Column("period_type", sa.String)),
+            ("Flow", sa.Column("direction", sa.String)),
+            ("Value", sa.Column("total", sa.Numeric)),
+            ("Unit", sa.Column("unit", sa.String)),
+            ("Marker", sa.Column("marker", sa.String)),
+        ],
+    )
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='run-ons-parser-script',
+            python_callable=run_ipython_ons_extraction,
+            provide_context=True,
+            queue='high-memory-usage',
+            op_kwargs=dict(
+                table_name=self.table_config.table_name, script_name=self.ons_script_dir
+            ),
+        )

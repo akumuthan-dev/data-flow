@@ -1,3 +1,4 @@
+import glob
 import os
 import shutil
 import subprocess
@@ -77,11 +78,16 @@ def run_ipython_ons_extraction(table_name: str, script_name: str, **kwargs):
 
         shutil.copytree('/app/dataflow/ons_scripts', 'ons_scripts')
 
+        logger.info("ONS scraper: start")
         subprocess.call(['ipython', 'main.py'], cwd=f'ons_scripts/{script_name}')
+        logger.info("ONS scraper: completed")
 
         s3 = S3Data(table_name, kwargs['ts_nodash'])
-        s3.write_key(
-            "observations.csv",
-            open(f"ons_scripts/{script_name}/out/observations.csv", "r").read(),
-            jsonify=False,
-        )
+
+        for filename in sorted(
+            glob.glob(f"ons_scripts/{script_name}/out/observations*.csv")
+        ):
+            logger.info(f"Writing {filename} to S3.")
+            s3.write_key(
+                os.path.basename(filename), open(filename, "r").read(), jsonify=False,
+            )
