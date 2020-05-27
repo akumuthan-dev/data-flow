@@ -109,30 +109,30 @@ class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
         FROM (
             WITH export_wins AS (
                 SELECT *
-                FROM export_wins_wins_dataset
-                WHERE export_wins_wins_dataset.customer_email_date IS NOT NULL
-                AND date_trunc('year', export_wins_wins_dataset.confirmation_created) =  date_trunc('year', :run_date)
+                FROM exportwins.wins
+                WHERE wins.customer_email_date IS NOT NULL
+                AND date_trunc('year', wins.confirmation_created) =  date_trunc('year', :run_date)
             ), export_breakdowns AS (
                 SELECT win_id, year, value
-                FROM export_wins_breakdowns_dataset
+                FROM exportwins.breakdowns
                 WHERE win_id IN (select id from export_wins)
                 AND year >= EXTRACT(year FROM CURRENT_DATE)::int
-                AND export_wins_breakdowns_dataset.type = 'Export'
+                AND exportwins.breakdowns.type = 'Export'
             ), non_export_breakdowns AS (
                 SELECT win_id, year, value
-                FROM export_wins_breakdowns_dataset
+                FROM exportwins.breakdowns
                 WHERE win_id IN (select id from export_wins)
                 AND year >= EXTRACT(year FROM CURRENT_DATE)::int
-                AND export_wins_breakdowns_dataset.type = 'Non-export'
+                AND exportwins.breakdowns.type = 'Non-export'
             ), odi_breakdowns AS (
                 SELECT win_id, year, value
-                FROM export_wins_breakdowns_dataset
+                FROM exportwins.breakdowns
                 WHERE win_id IN (select id from export_wins)
                 AND year >= EXTRACT(year FROM CURRENT_DATE)::int
-                AND export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+                AND exportwins.breakdowns.type = 'Outward Direct Investment'
             ), contributing_advisers AS (
                 SELECT win_id, STRING_AGG(CONCAT('Name: ', name, ', Team: ', team_type, ' - ', hq_team, ' - ', location), ', ') as advisers
-                FROM export_wins_advisers_dataset
+                FROM exportwins.advisers
                 GROUP  BY 1
             )
             SELECT
@@ -157,7 +157,7 @@ class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
                 export_wins.goods_vs_services AS "Does the expected value relate to",
                 export_wins.sector AS "Sector",
                 COALESCE(export_wins.is_prosperity_fund_related, 'False') AS "Prosperity Fund",
-                export_wins_hvc_dataset.name AS "HVC code (if applicable)",
+                hvc.name AS "HVC code (if applicable)",
                 export_wins.hvo_programme AS "HVO Programme (if applicable)",
                 COALESCE(export_wins.has_hvo_specialist_involvement, 'False') AS "An HVO specialist was involved",
                 COALESCE(export_wins.is_e_exported, 'False') AS "E-exporting programme",
@@ -345,7 +345,7 @@ class ExportWinsYearlyCSVPipeline(_YearlyCSVPipeline):
                 AND odibd5.year = extract(year FROM CURRENT_DATE)::int + 4
             )
             LEFT JOIN contributing_advisers ON contributing_advisers.win_id = export_wins.id
-            LEFT JOIN export_wins_hvc_dataset ON export_wins.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year)
+            LEFT JOIN exportwins.hvc ON export_wins.hvc = CONCAT(hvc.campaign_id, hvc.financial_year)
             ORDER BY export_wins.confirmation_created NULLS FIRST
         ) a
         WHERE "Please confirm these details are correct" = 'Yes'

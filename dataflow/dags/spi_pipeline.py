@@ -45,7 +45,8 @@ class DataHubSPIPipeline(_PipelineDAG):
             (
                 "propositions",
                 TableConfig(
-                    table_name="datahub_spi_propositions",
+                    schema="datahub",
+                    table_name="spi_propositions",
                     transforms=[
                         drop_empty_string_fields,
                         lambda record, table_config, contexts: {

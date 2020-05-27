@@ -35,7 +35,7 @@ SELECT
     END as type,
     total as value,
     unit
-FROM ons_uk_sa_trade_in_goods
+FROM oms.uk_sa_trade_in_goods
 UNION (
     SELECT
         i.geography_code as ons_geography_code,
@@ -44,7 +44,7 @@ UNION (
         'total trade' as type,
         e.total + i.total as value,
         i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
     ON i.geography_code = e.geography_code AND i.period = e.period
     WHERE i.direction = 'Imports' AND e.direction = 'Exports'
 ) UNION (
@@ -55,7 +55,7 @@ UNION (
         'trade balance' as type,
         e.total - i.total as value,
         i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
     ON i.geography_code = e.geography_code AND i.period = e.period
     WHERE i.direction = 'Imports' AND e.direction = 'Exports'
 ) UNION (
@@ -66,7 +66,7 @@ UNION (
         'export 12 month rolling total' as type,
         sum(total) over w AS value,
         unit
-    FROM ons_uk_sa_trade_in_goods
+    FROM ons.uk_sa_trade_in_goods
     WHERE direction = 'Exports' AND char_length(period) = 7
     GROUP BY ons_geography_code, geography, period, total, unit
     WINDOW w AS (
@@ -81,7 +81,7 @@ UNION (
         'import 12 month rolling total' as type,
         sum(total) over w AS value,
         unit
-    FROM ons_uk_sa_trade_in_goods
+    FROM ons.uk_sa_trade_in_goods
     WHERE direction = 'Imports' AND char_length(period) = 7
     GROUP BY ons_geography_code, geography, period, total, unit
     WINDOW w AS (
@@ -96,7 +96,7 @@ UNION (
         'trade balance 12 month rolling total' as type,
         sum(e.total - i.total) over w AS value,
         i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
     ON i.geography_code = e.geography_code AND i.period = e.period
     WHERE i.direction = 'Imports' AND e.direction = 'Exports'
         AND char_length(i.period) = 7
@@ -113,7 +113,7 @@ UNION (
         'total trade 12 month rolling total' as type,
         sum(e.total + i.total) over w AS value,
         i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+    FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
     ON i.geography_code = e.geography_code AND i.period = e.period
     WHERE i.direction = 'Imports' AND e.direction = 'Exports'
         AND char_length(i.period) = 7
@@ -155,7 +155,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                               geography_code,
                                               product_code,
                                               period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_services_by_country_nsa
+                               FROM ons.uk_trade_in_services_by_country_nsa
                                WHERE direction = 'imports'
                                  and period_type = 'quarter'
                                GROUP BY geography_code,
@@ -174,7 +174,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                               geography_code ,
                                               product_code ,
                                               period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_services_by_country_nsa
+                               FROM ons.uk_trade_in_services_by_country_nsa
                                WHERE direction = 'exports'
                                  and period_type = 'quarter'
                                GROUP BY geography_code,
@@ -193,9 +193,9 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                                                 array [imports_t.total, exports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
                                                         imports_t.unit,
                                                         unnest(array [imports_t.marker, exports_t.marker, '', ''])                                                          as "marker"
-                                                 FROM public.ons_uk_trade_in_services_by_country_nsa as imports_t
+                                                 FROM ons.uk_trade_in_services_by_country_nsa as imports_t
                                                           INNER JOIN
-                                                      public.ons_uk_trade_in_services_by_country_nsa as exports_t
+                                                      ons.uk_trade_in_services_by_country_nsa as exports_t
                                                       ON imports_t.geography_code = exports_t.geography_code
                                                           AND imports_t.product_code = exports_t.product_code
                                                           AND imports_t.period = exports_t.period
@@ -257,7 +257,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                               geography_code,
                                               product_name,
                                               period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_total_trade_all_countries_nsa
+                               FROM ons.uk_total_trade_all_countries_nsa
                                WHERE direction = 'imports'
                                  and period_type = 'quarter'
                                GROUP BY geography_code,
@@ -276,7 +276,7 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                               geography_code,
                                               product_name,
                                               period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_total_trade_all_countries_nsa
+                               FROM ons.uk_total_trade_all_countries_nsa
                                WHERE direction = 'exports'
                                  and period_type = 'quarter'
                                GROUP BY geography_code,
@@ -294,9 +294,9 @@ WITH rolling_import_totals AS (SELECT geography_code,
                                                                 array [imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
                                                         imports_t.unit,
                                                         unnest(array [imports_t.marker, exports_t.marker, '', '', '', ''])                                                                                                                        as "marker"
-                                                 FROM public.ons_uk_total_trade_all_countries_nsa as imports_t
+                                                 FROM ons.uk_total_trade_all_countries_nsa as imports_t
                                                           INNER JOIN
-                                                      public.ons_uk_total_trade_all_countries_nsa as exports_t
+                                                      ons.uk_total_trade_all_countries_nsa as exports_t
                                                       ON imports_t.geography_code = exports_t.geography_code
                                                           AND imports_t.product_name = exports_t.product_name
                                                           AND imports_t.period = exports_t.period
