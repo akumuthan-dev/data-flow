@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Added
 
 - CSV Pipeline for ONS dataset 2 "uktradecountrybycommodity"
+- Yearly CSV pipeline reporting on export wins by financial year
 
 ## 2020-05-26
 
