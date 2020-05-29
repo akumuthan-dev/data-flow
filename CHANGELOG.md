@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - CSV Pipeline for ONS dataset 2 "uktradecountrybycommodity"
 - Yearly CSV pipeline reporting on export wins by financial year
 
+## Changed
+
+- Schedule for ONS dataset 2 pipelines - ONS refreshes source data monthly around the 13th.
+
 ## 2020-05-26
 
 ## Added
