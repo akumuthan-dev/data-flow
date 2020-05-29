@@ -90,7 +90,7 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
 
 class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
     start_date = datetime(2020, 4, 1)
-    schedule_interval = "@monthly"
+    schedule_interval = "0 0 13 * *"
 
     ons_script_dir = "uktradecountrybycommodity"
 
