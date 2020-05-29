@@ -9,7 +9,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
 
 from dataflow import config
-from dataflow.operators.csv_outputs import create_csv
+from dataflow.operators.csv_outputs import create_csv, create_compressed_csv
 from dataflow.operators.db_tables import (
     check_table_data,
     create_temp_tables,
@@ -202,6 +202,9 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
     # DB query to generate data for the CSV file
     query: str
 
+    # Should the output CSV be compressed (zip archive) before uploading to S3.
+    compress: bool = False
+
     dependencies: List[Type["_PipelineDAG"]] = []
 
     # Controls how long will the task wait for dependencies to succeed
@@ -234,7 +237,7 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
 
         _create_csv = PythonOperator(
             task_id=f'create-csv-current',
-            python_callable=create_csv,
+            python_callable=create_compressed_csv if self.compress else create_csv,
             provide_context=True,
             op_args=[
                 self.target_db,
