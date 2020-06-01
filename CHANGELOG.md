@@ -4,12 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-01
+
+## Added
+
+- Product name to ONS dataset 2.
+
 ## 2020-05-29
 
 ## Added
 
 - CSV Pipeline for ONS dataset 2 "uktradecountrybycommodity"
 - Yearly CSV pipeline reporting on export wins by financial year
+
+## Changed
+
+- Schedule for ONS dataset 2 pipelines - ONS refreshes source data monthly around the 13th.
 
 ## 2020-05-26
 
