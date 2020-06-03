@@ -1,3 +1,4 @@
+import io
 from unittest import mock
 
 import pytest
@@ -190,3 +191,41 @@ def test_token_auth_request(mocker, requests_mock):
             mock.call('0000000002.json', [{'id': 3, 'name': 'record3'}]),
         ]
     )
+
+
+@pytest.mark.parametrize(
+    'allow_empty_strings,expected_output',
+    [
+        (
+            True,
+            [
+                {'col1': 'a', 'col2': '1', 'col3': ''},
+                {'col1': 'b', 'col2': '2', 'col3': 'test'},
+            ],
+        ),
+        (
+            False,
+            [
+                {'col1': 'a', 'col2': '1', 'col3': None},
+                {'col1': 'b', 'col2': '2', 'col3': 'test'},
+            ],
+        ),
+    ],
+)
+def test_hosted_csv_request(
+    mocker, requests_mock, allow_empty_strings, expected_output
+):
+    s3_mock = mock.MagicMock()
+    mocker.patch.object(
+        common, "S3Data", return_value=s3_mock, autospec=True,
+    )
+    csvfile = io.BytesIO(b'col1,col2,col3\n"a",1,\n"b",2,"test"\n"c",3,""')
+    requests_mock.get('http://test', body=csvfile)
+    common.fetch_from_hosted_csv(
+        'test_table',
+        'http://test',
+        page_size=2,
+        allow_empty_strings=allow_empty_strings,
+        ts_nodash='task-1',
+    )
+    s3_mock.write_key.assert_has_calls([mock.call('0000000001.json', expected_output,)])

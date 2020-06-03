@@ -1,3 +1,6 @@
+import codecs
+import csv
+from contextlib import closing
 from typing import Optional
 
 import backoff
@@ -141,5 +144,31 @@ def fetch_from_token_authenticated_api(
             break
 
         page += 1
+
+    logger.info("Fetching from source completed")
+
+
+def fetch_from_hosted_csv(
+    table_name: str,
+    source_url: str,
+    page_size: int = 1000,
+    allow_empty_strings: bool = True,
+    **kwargs,
+):
+    s3 = S3Data(table_name, kwargs["ts_nodash"])
+    results = []
+    page = 1
+    with closing(requests.get(source_url, stream=True)) as request:
+        reader = csv.DictReader(codecs.iterdecode(request.iter_lines(), 'utf-8'))
+        for row in reader:
+            if not allow_empty_strings:
+                row = {k: v if v != '' else None for k, v in row.items()}  # type: ignore
+            results.append(row)
+            if len(results) >= page_size:
+                s3.write_key(f"{page:010}.json", results)
+                results = []
+                page += 1
+        if results:
+            s3.write_key(f"{page:010}.json", results)
 
     logger.info("Fetching from source completed")
