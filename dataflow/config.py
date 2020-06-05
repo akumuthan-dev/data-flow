@@ -89,3 +89,10 @@ DATA_WORKSPACE_HAWK_CREDENTIALS = {
 
 DNB_AUTH_TOKEN = os.environ.get('DNB_AUTH_TOKEN')
 DNB_BASE_URL = os.environ.get('DNB_BASE_URL')
+
+DIT_SHAREPOINT_CREDENTIALS = {
+    'tenant_id': os.environ.get('DIT_SHAREPOINT_TENANT_ID'),
+    'tenant_domain': os.environ.get('DIT_SHAREPOINT_TENANT_DOMAIN'),
+    'client_id': os.environ.get('DIT_SHAREPOINT_CLIENT_ID'),
+    'client_secret': os.environ.get('DIT_SHAREPOINT_CLIENT_SECRET'),
+}
