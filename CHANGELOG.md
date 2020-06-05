@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Use financial year rather than tax year on export wins financial year csv 
 - Fix typos in oxford covid19 dataset
+- ONS datasets 1,3,4 queries based on feedback from data team.
 
 ## 2020-06-03
 
