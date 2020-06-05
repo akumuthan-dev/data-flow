@@ -356,8 +356,8 @@ class ExportWinsByFinancialYearCSVPipeline(_YearlyCSVPipeline):
     """Pipeline meta object for export wins by financial year."""
 
     base_file_name = 'export-wins-by-financial-year'
-    start_date = datetime(2016, 4, 6)
-    schedule_interval = '0 5 6 4 *'
+    start_date = datetime(2016, 4, 1)
+    schedule_interval = '0 5 1 4 *'
 
     query = '''
         SELECT
