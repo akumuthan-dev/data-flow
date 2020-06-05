@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-05
+
+## Changed
+
+- Use financial year rather than tax year on export wins financial year csv 
+- Fix typos in oxford covid19 dataset
+
 ## 2020-06-03
 
 ## Added
