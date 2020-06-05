@@ -25,107 +25,127 @@ class ONSUKSATradeInGoodsCSV(_CSVPipelineDAG):
     timestamp_output = False
 
     query = """
-SELECT * FROM (
 SELECT
-    geography_code as ons_geography_code,
-    geography_name as geography,
+    ons_geography_code AS ons_iso_alpha_2_code,
+    geography AS ons_region_name,
     period,
+    period_type,
     CASE
-        WHEN direction = 'Imports' THEN 'import'
-        WHEN direction = 'Exports' THEN 'export'
-    END as type,
-    total as value,
-    unit
-FROM ons_uk_sa_trade_in_goods
-UNION (
-    SELECT
-        i.geography_code as ons_geography_code,
-        i.geography_name as geography,
-        i.period,
-        'total trade' as type,
-        e.total + i.total as value,
-        i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
-    ON i.geography_code = e.geography_code AND i.period = e.period
-    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
-) UNION (
-    select
-        i.geography_code as ons_geography_code,
-        i.geography_name as geography,
-        i.period,
-        'trade balance' as type,
-        e.total - i.total as value,
-        i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
-    ON i.geography_code = e.geography_code AND i.period = e.period
-    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
-) UNION (
+        WHEN direction = 'Imports' THEN 'imports'
+        WHEN direction = 'Exports' THEN 'exports'
+        ELSE direction
+    END AS direction,
+    'goods' as trade_type,
+    trade_value,
+    CASE
+        WHEN LOWER(unit) = 'gbp million' THEN 'gbp-million'
+        ELSE LOWER(unit)
+    END AS unit,
+    marker
+FROM (
     SELECT
         geography_code as ons_geography_code,
         geography_name as geography,
         period,
-        'export 12 month rolling total' as type,
-        sum(total) over w AS value,
-        unit
+        CASE
+            WHEN LENGTH(period) = 4 THEN 'year'
+            ELSE 'month'
+        END AS period_type,
+        direction,
+        total as trade_value,
+        unit,
+        '' as marker
     FROM ons_uk_sa_trade_in_goods
-    WHERE direction = 'Exports' AND char_length(period) = 7
-    GROUP BY ons_geography_code, geography, period, total, unit
-    WINDOW w AS (
-            PARTITION BY geography_name
-            ORDER BY geography_name, period ASC
-            ROWS between 11 preceding and current row)
-) UNION (
-    SELECT
-        geography_code as ons_geography_code,
-        geography_name as geography,
-        period,
-        'import 12 month rolling total' as type,
-        sum(total) over w AS value,
-        unit
-    FROM ons_uk_sa_trade_in_goods
-    WHERE direction = 'Imports' AND char_length(period) = 7
-    GROUP BY ons_geography_code, geography, period, total, unit
-    WINDOW w AS (
-            PARTITION BY geography_name
-            ORDER BY geography_name, period ASC
-            ROWS between 11 preceding and current row)
-) UNION (
-    SELECT
-        i.geography_code as ons_geography_code,
-        i.geography_name as geography,
-        i.period,
-        'trade balance 12 month rolling total' as type,
-        sum(e.total - i.total) over w AS value,
-        i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
-    ON i.geography_code = e.geography_code AND i.period = e.period
-    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
-        AND char_length(i.period) = 7
-    GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
-    WINDOW w AS (
-            PARTITION BY i.geography_name
-            ORDER BY i.geography_name, i.period ASC
-            ROWS between 11 preceding and current row)
-) UNION (
-    SELECT
-        i.geography_code as ons_geography_code,
-        i.geography_name as geography,
-        i.period,
-        'total trade 12 month rolling total' as type,
-        sum(e.total + i.total) over w AS value,
-        i.unit
-    FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
-    ON i.geography_code = e.geography_code AND i.period = e.period
-    WHERE i.direction = 'Imports' AND e.direction = 'Exports'
-        AND char_length(i.period) = 7
-    GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
-    WINDOW w AS (
-            PARTITION BY i.geography_name
-            ORDER BY i.geography_name, i.period ASC
-            ROWS between 11 preceding and current row)
-)
-ORDER BY geography, period, type
-) AS query WHERE (period > '1998-11') OR (type IN ('import', 'export', 'total trade', 'trade balance'))
+    UNION (
+        SELECT
+            i.geography_code as ons_geography_code,
+            i.geography_name as geography,
+            i.period,
+            CASE
+                WHEN LENGTH(i.period) = 4 THEN 'year'
+                ELSE 'month'
+            END AS period_type,
+            'total trade' as direction,
+            e.total + i.total as trade_value,
+            i.unit,
+            'derived' as marker
+        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        ON i.geography_code = e.geography_code AND i.period = e.period
+        WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+    ) UNION (
+        select
+            i.geography_code as ons_geography_code,
+            i.geography_name as geography,
+            i.period,
+            CASE
+                WHEN LENGTH(i.period) = 4 THEN 'year'
+                ELSE 'month'
+            END AS period_type,
+            'trade balance' as direction,
+            e.total - i.total as trade_value,
+            i.unit,
+            'derived' as marker
+        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        ON i.geography_code = e.geography_code AND i.period = e.period
+        WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+    ) UNION (
+        SELECT
+            geography_code as ons_geography_code,
+            geography_name as geography,
+            period,
+            '12 months ending' as period_type,
+            direction,
+            sum(total) over w AS trade_value,
+            unit,
+            'derived' as marker
+        FROM ons_uk_sa_trade_in_goods
+        WHERE char_length(period) = 7
+        GROUP BY ons_geography_code, geography, period, direction, total, unit
+        WINDOW w AS (
+                PARTITION BY geography_name, direction
+                ORDER BY geography_name, period ASC
+                ROWS between 11 preceding and current row)
+    ) UNION (
+        SELECT
+            i.geography_code as ons_geography_code,
+            i.geography_name as geography,
+            i.period,
+            '12 months ending' as period_type,
+            'trade balance' as direction,
+            sum(e.total - i.total) over w AS trade_value,
+            i.unit,
+            'derived' as marker
+        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        ON i.geography_code = e.geography_code AND i.period = e.period
+        WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+            AND char_length(i.period) = 7
+        GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
+        WINDOW w AS (
+                PARTITION BY i.geography_name
+                ORDER BY i.geography_name, i.period ASC
+                ROWS between 11 preceding and current row)
+    ) UNION (
+        SELECT
+            i.geography_code as ons_geography_code,
+            i.geography_name as geography,
+            i.period,
+            '12 months ending' as period_type,
+            'total trade' as direction,
+            sum(e.total + i.total) over w AS trade_value,
+            i.unit,
+            'derived' as marker
+        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        ON i.geography_code = e.geography_code AND i.period = e.period
+        WHERE i.direction = 'Imports' AND e.direction = 'Exports'
+            AND char_length(i.period) = 7
+        GROUP BY ons_geography_code, geography, i.period, i.unit, e.total, i.total
+        WINDOW w AS (
+                PARTITION BY i.geography_name
+                ORDER BY i.geography_name, i.period ASC
+                ROWS between 11 preceding and current row)
+    )
+    ORDER BY geography, period, direction
+) AS query WHERE (period > '1998-11') OR period_type != '12 months ending'
     """
 
 
@@ -144,93 +164,56 @@ class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
     timestamp_output = False
 
     query = """
-WITH rolling_import_totals AS (SELECT geography_code,
-                                      product_code,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code,
-                                          product_code
-                                          ORDER BY
-                                              geography_code,
-                                              product_code,
-                                              period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_services_by_country_nsa
-                               WHERE direction = 'imports'
-                                 and period_type = 'quarter'
-                               GROUP BY geography_code,
-                                        product_code,
-                                        period,
-                                        total),
-     rolling_export_totals AS (SELECT geography_code,
-                                      product_code,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code ,
-                                          product_code
-                                          ORDER BY
-                                              geography_code ,
-                                              product_code ,
-                                              period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_services_by_country_nsa
-                               WHERE direction = 'exports'
-                                 and period_type = 'quarter'
-                               GROUP BY geography_code,
-                                        product_code,
-                                        period,
-                                        total),
-     imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
-                                                        imports_t.geography_name,
-                                                        imports_t.product_code,
-                                                        imports_t.product_name,
-                                                        imports_t.period,
-                                                        imports_t.period_type,
-                                                        unnest(
-                                                                array ['imports', 'exports', '4-quarter rolling imports total', '4-quarter rolling exports total'])         as "measure",
-                                                        unnest(
-                                                                array [imports_t.total, exports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
-                                                        imports_t.unit,
-                                                        unnest(array [imports_t.marker, exports_t.marker, '', ''])                                                          as "marker"
-                                                 FROM public.ons_uk_trade_in_services_by_country_nsa as imports_t
-                                                          INNER JOIN
-                                                      public.ons_uk_trade_in_services_by_country_nsa as exports_t
-                                                      ON imports_t.geography_code = exports_t.geography_code
-                                                          AND imports_t.product_code = exports_t.product_code
-                                                          AND imports_t.period = exports_t.period
-                                                          LEFT JOIN
-                                                      rolling_import_totals rolling_imports_t
-                                                      ON imports_t.geography_code = rolling_imports_t.geography_code
-                                                          AND imports_t.product_code = rolling_imports_t.product_code
-                                                          AND imports_t.period = rolling_imports_t.period
-                                                          LEFT JOIN
-                                                      rolling_export_totals rolling_exports_t
-                                                      ON exports_t.geography_code = rolling_exports_t.geography_code
-                                                          AND exports_t.product_code = rolling_exports_t.product_code
-                                                          AND exports_t.period = rolling_exports_t.period
-                                                 WHERE imports_t.direction = 'imports'
-                                                   AND exports_t.direction = 'exports')
 SELECT
-    geography_code,
-    geography_name,
-    product_code,
-    product_name,
+    geography_code AS ons_iso_alpha_2_code,
+    geography_name AS ons_region_name,
     period,
     period_type,
-    measure,
-    value,
+    direction,
+    product_code,
+    product_name,
+    'services' as trade_type,
+    trade_value,
     unit,
     marker
-FROM
-    imports_and_exports_with_rolling_totals
-WHERE
-    (NOT (period_type = 'year' AND measure LIKE '4-quarter %')) AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
-ORDER BY
-    geography_name,
-    product_code,
-    period
+FROM (
+    SELECT
+        geography_code,
+        geography_name,
+        period,
+        period_type,
+        direction,
+        product_code,
+        product_name,
+        total as trade_value,
+        unit,
+        marker
+    FROM ons_uk_trade_in_services_by_country_nsa
+    UNION (
+        SELECT
+            geography_code,
+            geography_name,
+            period,
+            '4 quarters ending' as period_type,
+            direction,
+            product_code,
+            product_name,
+            sum(total) over w AS trade_value,
+            unit,
+            'derived' as marker
+        FROM ons_uk_trade_in_services_by_country_nsa
+        WHERE period_type = 'quarter'
+        GROUP BY geography_code, geography_name, period, direction, product_code, product_name, total, unit, marker
+        WINDOW w AS (
+            PARTITION BY geography_code, direction, product_code
+            ORDER BY geography_code, direction, product_code, period ASC
+            ROWS between 3 preceding and current row
+        )
+        ORDER BY geography_name, period, direction, product_code
+    )
+    ORDER BY geography_name, period, direction, product_code
+) AS query WHERE period_type != '4 quarters ending' OR period >= '2016-Q4'
+
 """
 
 
@@ -246,80 +229,117 @@ class ONSUKTotalTradeAllCountriesNSACSVPipeline(_CSVPipelineDAG):
     timestamp_output = False
 
     query = """
-WITH rolling_import_totals AS (SELECT geography_code,
-                                      product_name,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code,
-                                          product_name
-                                          ORDER BY
-                                              geography_code,
-                                              product_name,
-                                              period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_total_trade_all_countries_nsa
-                               WHERE direction = 'imports'
-                                 and period_type = 'quarter'
-                               GROUP BY geography_code,
-                                        product_name,
-                                        period,
-                                        total),
-     rolling_export_totals AS (SELECT geography_code,
-                                      product_name,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code,
-                                          product_name
-                                          ORDER BY
-                                              geography_code,
-                                              product_name,
-                                              period ASC rows between 3 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_total_trade_all_countries_nsa
-                               WHERE direction = 'exports'
-                                 and period_type = 'quarter'
-                               GROUP BY geography_code,
-                                        product_name,
-                                        period,
-                                        total),
-     imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
-                                                        imports_t.geography_name,
-                                                        imports_t.product_name,
-                                                        imports_t.period,
-                                                        imports_t.period_type,
-                                                        unnest(
-                                                                array ['imports', 'exports', 'trade balance', 'total trade', '4-quarter rolling imports total', '4-quarter rolling exports total'])                                               as "measure",
-                                                        unnest(
-                                                                array [imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
-                                                        imports_t.unit,
-                                                        unnest(array [imports_t.marker, exports_t.marker, '', '', '', ''])                                                                                                                        as "marker"
-                                                 FROM public.ons_uk_total_trade_all_countries_nsa as imports_t
-                                                          INNER JOIN
-                                                      public.ons_uk_total_trade_all_countries_nsa as exports_t
-                                                      ON imports_t.geography_code = exports_t.geography_code
-                                                          AND imports_t.product_name = exports_t.product_name
-                                                          AND imports_t.period = exports_t.period
-                                                          LEFT JOIN
-                                                      rolling_import_totals rolling_imports_t
-                                                      ON imports_t.geography_code = rolling_imports_t.geography_code
-                                                          AND imports_t.product_name = rolling_imports_t.product_name
-                                                          AND imports_t.period = rolling_imports_t.period
-                                                          LEFT JOIN
-                                                      rolling_export_totals rolling_exports_t
-                                                      ON exports_t.geography_code = rolling_exports_t.geography_code
-                                                          AND exports_t.product_name = rolling_exports_t.product_name
-                                                          AND exports_t.period = rolling_exports_t.period
-                                                 WHERE imports_t.direction = 'imports'
-                                                   AND exports_t.direction = 'exports')
-SELECT *
-FROM imports_and_exports_with_rolling_totals
-WHERE (NOT (period_type = 'year' AND measure LIKE '4-quarter %'))
-  AND NOT (measure LIKE '4-quarter %' AND (period < '2016-Q4'))
-ORDER BY geography_name,
-         product_name,
-         period;
+SELECT
+    geography_code AS ons_iso_alpha_2_code,
+    geography_name AS ons_region_name,
+    period,
+    period_type,
+    direction,
+    product_name AS trade_type,
+    total AS trade_value,
+    unit,
+    marker
+FROM (
+    SELECT
+        geography_code,
+        geography_name,
+        period,
+        period_type,
+        direction,
+        product_name,
+        total,
+        unit,
+        marker
+    FROM ons_uk_total_trade_all_countries_nsa
+    UNION (
+        SELECT
+            i.geography_code,
+            i.geography_name,
+            i.period,
+            i.period_type,
+            'total trade' AS direction,
+            i.product_name,
+            e.total + i.total AS total,
+            i.unit,
+            'derived' AS marker
+        FROM ons_uk_total_trade_all_countries_nsa e inner join ons_uk_total_trade_all_countries_nsa i
+        ON i.geography_code = e.geography_code AND i.period = e.period AND i.product_name = e.product_name
+        WHERE e.direction = 'exports' AND i.direction = 'imports'
+    ) UNION (
+        SELECT
+            i.geography_code,
+            i.geography_name,
+            i.period,
+            i.period_type,
+            'trade balance' AS direction,
+            i.product_name,
+            e.total - i.total AS total,
+            i.unit,
+            'derived' AS marker
+        FROM ons_uk_total_trade_all_countries_nsa e inner join ons_uk_total_trade_all_countries_nsa i
+        ON i.geography_code = e.geography_code AND i.period = e.period AND i.product_name = e.product_name
+        WHERE e.direction = 'exports' AND i.direction = 'imports'
+    ) UNION (
+        SELECT
+            geography_code,
+            geography_name,
+            period,
+            '4 quarters ending' AS period_type,
+            direction,
+            product_name,
+            sum(total) over w AS trade_value,
+            unit,
+            'derived' AS marker
+        FROM ons_uk_total_trade_all_countries_nsa
+        WHERE period_type = 'quarter'
+        GROUP BY geography_code, geography_name, period, direction, product_name, total, unit, marker
+        WINDOW w AS (
+            PARTITION BY geography_code, direction, product_name
+            ORDER BY geography_code, direction, product_name, period ASC
+            ROWS between 3 preceding and current row
+        )
+        ORDER BY geography_name, period, direction, product_name
+    ) UNION (
+        SELECT
+            i.geography_code,
+            i.geography_name,
+            i.period,
+            '4 quarters ending' AS period_type,
+            'trade balance' AS direction,
+            i.product_name,
+            sum(e.total - i.total) over w AS total,
+            i.unit,
+            'derived' AS marker
+        FROM ons_uk_total_trade_all_countries_nsa e inner join ons_uk_total_trade_all_countries_nsa i
+        ON i.geography_code = e.geography_code AND i.period = e.period AND i.product_name = e.product_name
+        WHERE e.direction = 'exports' AND i.direction = 'imports' AND i.period_type = 'quarter'
+        GROUP BY i.geography_code, i.geography_name, i.period, i.direction, i.product_name, e.total, i.unit, i.total
+        WINDOW w AS (
+                PARTITION BY i.geography_name, i.direction, i.product_name
+                ORDER BY i.geography_name, i.direction, i.product_name, i.period ASC
+                ROWS between 3 preceding and current row)
+    ) UNION (
+        SELECT
+            i.geography_code,
+            i.geography_name,
+            i.period,
+            '4 quarters ending' AS period_type,
+            'total trade' AS direction,
+            i.product_name,
+            sum(e.total + i.total) over w AS total,
+            i.unit,
+            'derived' AS marker
+        FROM ons_uk_total_trade_all_countries_nsa e inner join ons_uk_total_trade_all_countries_nsa i
+        ON i.geography_code = e.geography_code AND i.period = e.period AND i.product_name = e.product_name
+        WHERE e.direction = 'exports' AND i.direction = 'imports' AND i.period_type = 'quarter'
+        GROUP BY i.geography_code, i.geography_name, i.period, i.direction, i.product_name, e.total, i.unit, i.total
+        WINDOW w AS (
+                PARTITION BY i.geography_name, i.direction, i.product_name
+                ORDER BY i.geography_name, i.direction, i.product_name, i.period ASC
+                ROWS between 3 preceding and current row)
+    )
+    ORDER BY geography_name, period, period_type, direction, product_name
+) AS query WHERE period_type != '4 quarters ending' OR period >= '2016-Q4'
 """
 
 
