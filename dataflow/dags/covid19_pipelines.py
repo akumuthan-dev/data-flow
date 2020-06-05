@@ -40,7 +40,7 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
                 sa.Column('c5_close_public_transport', sa.Numeric),
             ),
             ('C5_Flag', sa.Column('c5_flag', sa.Numeric)),
-            ('C5_Notes', sa.Column('c6_notes', sa.Text)),
+            ('C5_Notes', sa.Column('c5_notes', sa.Text)),
             (
                 'C6_Stay at home requirements',
                 sa.Column('c6_stay_at_home_requirements', sa.Numeric),
@@ -60,7 +60,7 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
             ('C8_Notes', sa.Column('c8_notes', sa.Text)),
             ('E1_Income support', sa.Column('e1_income_support', sa.Numeric)),
             ('E1_Flag', sa.Column('e1_flag', sa.Numeric)),
-            ('E1_Notes', sa.Column('f1_notes', sa.Text)),
+            ('E1_Notes', sa.Column('e1_notes', sa.Text)),
             (
                 'E2_Debt/contract relief',
                 sa.Column('e2_debt_contract_relief', sa.Numeric),
