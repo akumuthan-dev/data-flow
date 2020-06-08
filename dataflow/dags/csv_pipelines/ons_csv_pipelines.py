@@ -355,80 +355,78 @@ class ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline(_CSVPipelineDAG):
     timestamp_output = False
 
     query = """
-WITH rolling_import_totals AS (SELECT geography_code,
-                                      product_code,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code,
-                                          product_code
-                                          ORDER BY
-                                              geography_code,
-                                              product_code,
-                                              period ASC rows between 11 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_goods_by_country_commodity
-                               WHERE direction = 'imports'
-                                 and period_type = 'month'
-                               GROUP BY geography_code,
-                                        product_code,
-                                        period,
-                                        total),
-     rolling_export_totals AS (SELECT geography_code,
-                                      product_code,
-                                      period,
-                                      total,
-                                      sum(total) over (PARTITION
-                                          BY
-                                          geography_code,
-                                          product_code
-                                          ORDER BY
-                                              geography_code,
-                                              product_code,
-                                              period ASC rows between 11 preceding and current row) AS rolling_total
-                               FROM public.ons_uk_trade_in_goods_by_country_commodity
-                               WHERE direction = 'exports'
-                                 and period_type = 'month'
-                               GROUP BY geography_code,
-                                        product_code,
-                                        period,
-                                        total),
-     imports_and_exports_with_rolling_totals AS (SELECT imports_t.geography_code,
-                                                        imports_t.geography_name,
-                                                        imports_t.product_code,
-                                                        imports_t.product_name,
-                                                        imports_t.period,
-                                                        imports_t.period_type,
-                                                        unnest(
-                                                                array ['imports', 'exports', 'trade balance', 'total trade', '12-month rolling imports total', '12-month rolling exports total'])                                               as "measure",
-                                                        unnest(
-                                                                array [imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total, rolling_imports_t.rolling_total, rolling_exports_t.rolling_total]) as "value",
-                                                        imports_t.unit,
-                                                        unnest(array [imports_t.marker, exports_t.marker, '', '', '', ''])                                                                                                                        as "marker"
-                                                 FROM public.ons_uk_trade_in_goods_by_country_commodity as imports_t
-                                                          INNER JOIN
-                                                      public.ons_uk_trade_in_goods_by_country_commodity as exports_t
-                                                      ON imports_t.geography_code = exports_t.geography_code
-                                                          AND imports_t.product_code = exports_t.product_code
-                                                          AND imports_t.period = exports_t.period
-                                                          LEFT JOIN
-                                                      rolling_import_totals rolling_imports_t
-                                                      ON imports_t.geography_code = rolling_imports_t.geography_code
-                                                          AND imports_t.product_code = rolling_imports_t.product_code
-                                                          AND imports_t.period = rolling_imports_t.period
-                                                          LEFT JOIN
-                                                      rolling_export_totals rolling_exports_t
-                                                      ON exports_t.geography_code = rolling_exports_t.geography_code
-                                                          AND exports_t.product_code = rolling_exports_t.product_code
-                                                          AND exports_t.period = rolling_exports_t.period
-                                                 WHERE imports_t.direction = 'imports'
-                                                   AND exports_t.direction = 'exports')
-SELECT *
-FROM imports_and_exports_with_rolling_totals
-WHERE (NOT (period_type = 'year' AND measure LIKE '12-month %'))
-  AND NOT (measure LIKE '12-month %' AND (period < '1998-12'))
-ORDER BY geography_name,
+WITH all_rows_plus_balances AS (
+    SELECT imports_t.geography_code,
+           imports_t.geography_name,
+           imports_t.product_code,
+           imports_t.product_name,
+           imports_t.period,
+           imports_t.period_type,
+           unnest(array[imports_t.direction, exports_t.direction, 'trade balance', 'total trade']) AS direction,
+           unnest(array[imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total]) AS total,
+           imports_t.unit,
+           unnest(array[imports_t.marker, exports_t.marker, 'derived', 'derived']) AS marker
+    FROM ons_uk_trade_in_goods_by_country_commodity AS imports_t
+    JOIN ons_uk_trade_in_goods_by_country_commodity AS exports_t ON imports_t.geography_code = exports_t.geography_code AND imports_t.product_code = exports_t.product_code AND imports_t.period = exports_t.period AND imports_t.direction = 'imports' AND exports_t.direction = 'exports'
+),
+     rolling_totals AS (
+     SELECT geography_code,
+         geography_name,
          product_code,
-         period;
+         product_name,
+         period,
+         '12 months ending' AS period_type,
+         direction,
+         sum(total) over (PARTITION
+             BY
+             geography_code,
+             product_code,
+             direction
+             ORDER BY
+                 geography_code,
+                 product_code,
+                 direction,
+                 period ASC rows between 11 preceding and current row) AS total,
+         unit,
+         'derived' AS marker
+     FROM all_rows_plus_balances
+     WHERE period_type = 'month'
+     GROUP BY geography_code,
+              geography_name,
+              product_code,
+              product_name,
+              direction,
+              period,
+              period_type,
+              total,
+              unit,
+              marker)
+SELECT
+    geography_code AS ons_iso_alpha_2_code,
+    geography_name AS ons_region_name,
+    period,
+    period_type,
+    direction,
+    product_code,
+    product_name,
+    'goods' AS trade_type,
+    total AS trade_value,
+    unit,
+    marker
+FROM (
+    SELECT *
+    FROM all_rows_plus_balances
+    UNION ALL
+    (
+        SELECT *
+        FROM rolling_totals
+        WHERE period >= '1998-12'
+    )
+    ORDER BY geography_name,
+             product_code,
+             period,
+             period_type,
+             direction
+) AS query
 """
     compress = True
