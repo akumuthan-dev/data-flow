@@ -13,7 +13,7 @@ valid_email = re.compile(r"[^@]+@[^@]+\.[^@]+")
 def fetch_from_company_matching(
     target_db: str, table_name: str, company_match_query: str, batch_size=str, **kwargs
 ):
-    logger.info(f"starting company matching")
+    logger.info("starting company matching")
 
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     next_batch = 1

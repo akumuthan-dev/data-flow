@@ -236,7 +236,7 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
         )
 
         _create_csv = PythonOperator(
-            task_id=f'create-csv-current',
+            task_id='create-csv-current',
             python_callable=create_compressed_csv if self.compress else create_csv,
             provide_context=True,
             op_args=[

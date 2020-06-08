@@ -13,7 +13,7 @@ class _ActivityStreamPipeline(_PipelineDAG):
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
-            task_id=f"fetch-activity-stream-data",
+            task_id="fetch-activity-stream-data",
             python_callable=fetch_from_activity_stream,
             provide_context=True,
             op_args=[self.table_config.table_name, self.index, self.query],
