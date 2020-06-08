@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-08
+
+### Changed
+
+- ONS dataset 2 query based on feedback from data team.
+
 ## 2020-06-05
 
-## Changed
+### Changed
 
 - Use financial year rather than tax year on export wins financial year csv 
 - Fix typos in oxford covid19 dataset
@@ -14,30 +20,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-06-03
 
-## Added
+### Added
 
 - Added Oxford covid-19 government response tracker pipeline 
 
 ## 2020-06-01
 
-## Added
+### Added
 
 - Product name to ONS dataset 2.
 
 ## 2020-05-29
 
-## Added
+### Added
 
 - CSV Pipeline for ONS dataset 2 "uktradecountrybycommodity"
 - Yearly CSV pipeline reporting on export wins by financial year
 
-## Changed
+### Changed
 
 - Schedule for ONS dataset 2 pipelines - ONS refreshes source data monthly around the 13th.
 
 ## 2020-05-26
 
-## Added
+### Added
 
 - Pipeline for ONS dataset 2 "uktradecountrybycommodity"
 
