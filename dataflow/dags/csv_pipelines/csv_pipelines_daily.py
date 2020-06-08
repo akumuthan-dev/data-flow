@@ -1,6 +1,19 @@
 from datetime import datetime
 
 from dataflow.dags import _CSVPipelineDAG
+from dataflow.dags.dataset_pipelines import (
+    AdvisersDatasetPipeline,
+    CompaniesDatasetPipeline,
+    ContactsDatasetPipeline,
+    EventsDatasetPipeline,
+    ExportWinsAdvisersDatasetPipeline,
+    ExportWinsBreakdownsDatasetPipeline,
+    ExportWinsHVCDatasetPipeline,
+    ExportWinsWinsDatasetPipeline,
+    InteractionsDatasetPipeline,
+    InvestmentProjectsDatasetPipeline,
+    TeamsDatasetPipeline,
+)
 
 
 class _DailyCSVPipeline(_CSVPipelineDAG):
@@ -8,7 +21,7 @@ class _DailyCSVPipeline(_CSVPipelineDAG):
     Base DAG to allow subclasses to be picked up by airflow
     """
 
-    schedule_interval = '0 5 * * *'
+    schedule_interval = "@daily"
     start_date = datetime(2020, 2, 11)
     timestamp_output = False
     static = True
@@ -17,6 +30,15 @@ class _DailyCSVPipeline(_CSVPipelineDAG):
 
 class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
+
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        InvestmentProjectsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-foreign-direct-investment-daily'
     query = '''
@@ -207,6 +229,15 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated service deliveries report"""
 
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-service-deliveries-current-calendar-year'
     query = '''
         WITH interactions AS (
@@ -285,6 +316,15 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
 
 class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated interactions report"""
+
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-interactions-current-calendar-year'
     query = '''
@@ -365,6 +405,15 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated service deliveries report for previous calendar year"""
 
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-service-deliveries-previous-calendar-year'
     query = '''
         WITH interactions AS (
@@ -444,6 +493,15 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
 class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated interactions report for previous calendar year"""
 
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-interactions-previous-calendar-year'
     query = '''
         WITH interactions AS (
@@ -521,6 +579,13 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
 
 class ExportWinsCurrentFinancialYearDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated export wins for current financial year"""
+
+    dependencies = [
+        ExportWinsAdvisersDatasetPipeline,
+        ExportWinsBreakdownsDatasetPipeline,
+        ExportWinsHVCDatasetPipeline,
+        ExportWinsWinsDatasetPipeline,
+    ]
 
     base_file_name = 'export-wins-current-financial-year'
     query = '''
