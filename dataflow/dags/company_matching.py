@@ -35,7 +35,7 @@ class _CompanyMatchingPipeline(_PipelineDAG):
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
-            task_id=f'company-match-data',
+            task_id='company-match-data',
             python_callable=fetch_from_company_matching,
             provide_context=True,
             op_args=[
