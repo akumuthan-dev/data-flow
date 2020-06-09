@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-09
+
+### Changed
+
+- Added the column 'were_countries_discussed' to the Interactions dataset.
+
 ## 2020-06-08
 
 ### Changed

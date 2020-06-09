@@ -295,6 +295,10 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
                 'policy_issue_type_names',
                 sa.Column('policy_issue_types', sa.ARRAY(sa.Text)),
             ),
+            (
+                'were_countries_discussed',
+                sa.Column('were_countries_discussed', sa.Boolean),
+            ),
         ],
     )
     fetch_retries = 3
