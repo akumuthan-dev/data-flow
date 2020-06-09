@@ -2,9 +2,11 @@ import io
 import logging
 import zipfile
 from datetime import timedelta
+from typing import cast
 
 import backoff
 import requests
+from typing.io import IO
 
 from dataflow import config
 from dataflow.utils import logger, S3Data
@@ -27,7 +29,9 @@ def fetch_uktradeinfo_non_eu_data(table_name: str, base_filename: str, **kwargs)
         with archive.open(archive.namelist()[0], "r") as f:
             data = [
                 r.strip().split("|")
-                for r in io.TextIOWrapper(f, encoding='utf-8').readlines()
+                for r in io.TextIOWrapper(
+                    cast(IO[bytes], f), encoding='utf-8'
+                ).readlines()
             ]
 
     s3.write_key(f"{filename}.json", data[1:-1])
