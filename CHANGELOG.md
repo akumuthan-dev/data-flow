@@ -14,6 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Generic pipeline to ingest DSS datasets
+
+## 2020-07-16
+
+### Added
+
 - Permitted applications for SSO Users
 
 ### Changed
