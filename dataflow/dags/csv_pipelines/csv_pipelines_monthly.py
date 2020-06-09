@@ -1,6 +1,16 @@
 from datetime import datetime
 
 from dataflow.dags import _CSVPipelineDAG
+from dataflow.dags.dataset_pipelines import (
+    AdvisersDatasetPipeline,
+    CompaniesDatasetPipeline,
+    ContactsDatasetPipeline,
+    EventsDatasetPipeline,
+    InteractionsDatasetPipeline,
+    InvestmentProjectsDatasetPipeline,
+    OMISDatasetPipeline,
+    TeamsDatasetPipeline,
+)
 
 
 class _MonthlyCSVPipeline(_CSVPipelineDAG):
@@ -8,12 +18,18 @@ class _MonthlyCSVPipeline(_CSVPipelineDAG):
     Base DAG to allow subclasses to be picked up by airflow
     """
 
-    schedule_interval = '0 5 1 * *'
+    schedule_interval = '@monthly'
     start_date = datetime(2019, 10, 1)
 
 
 class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Completed OMIS Order CSV."""
+
+    dependencies = [
+        CompaniesDatasetPipeline,
+        OMISDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-omis-completed-orders'
     query = '''
@@ -48,6 +64,12 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
 
 class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for Cancelled OMIS Order CSV."""
+
+    dependencies = [
+        CompaniesDatasetPipeline,
+        OMISDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-omis-cancelled-orders'
     query = '''
@@ -91,6 +113,12 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
      of the last calendar month"""
 
+    dependencies = [
+        CompaniesDatasetPipeline,
+        OMISDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-omis-all-orders'
     start_date = datetime(2019, 12, 1)
     query = '''
@@ -124,6 +152,12 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
 
 class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for monthly OMIS Client Survey report."""
+
+    dependencies = [
+        CompaniesDatasetPipeline,
+        OMISDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-omis-client-survey'
     static = True
@@ -162,9 +196,18 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
 class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub service deliveries and interactions report."""
 
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-service-deliveries-and-interactions'
     start_date = datetime(2019, 11, 15)
-    schedule_interval = '0 5 15 * *'
+    schedule_interval = '0 0 15 * *'
     query = '''
         WITH interactions AS (
             SELECT *
@@ -254,9 +297,18 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
 class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Pipeline meta object for the data hub export client survey report."""
 
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        ContactsDatasetPipeline,
+        EventsDatasetPipeline,
+        InteractionsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
+
     base_file_name = 'datahub-export-client-survey'
     start_date = datetime(2019, 11, 15)
-    schedule_interval = '0 5 15 * *'
+    schedule_interval = '0 0 15 * *'
     static = True
     query = '''
         WITH service_deliveries AS (
@@ -348,6 +400,14 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
 
 class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
     """Static monthly view of the FDI (investment projects) report"""
+
+    dependencies = [
+        AdvisersDatasetPipeline,
+        CompaniesDatasetPipeline,
+        InteractionsDatasetPipeline,
+        InvestmentProjectsDatasetPipeline,
+        TeamsDatasetPipeline,
+    ]
 
     base_file_name = 'datahub-foreign-direct-investment-monthly'
     start_date = datetime(2020, 1, 1)
