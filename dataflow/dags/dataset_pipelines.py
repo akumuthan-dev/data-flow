@@ -127,6 +127,7 @@ class OMISDatasetPipeline(_DatasetPipeline):
             ('total_cost', sa.Column('total_cost', sa.Integer)),
             ('uk_region__name', sa.Column('uk_region', sa.Text)),
             ('vat_cost', sa.Column('vat_cost', sa.Integer)),
+            ('created_by_id', sa.Column('created_by_id', UUID)),
         ],
     )
 
@@ -357,6 +358,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('primary', sa.Column('is_primary', sa.Boolean)),
             ('telephone_alternative', sa.Column('telephone_alternative', sa.String)),
             ('telephone_number', sa.Column('phone', sa.String)),
+            ('created_by_id', sa.Column('created_by_id', UUID)),
         ],
     )
 
@@ -427,6 +429,8 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
             ('uk_region__name', sa.Column('uk_region', sa.String)),
             ('vat_number', sa.Column('vat_number', sa.String)),
             ('website', sa.Column('website', sa.String)),
+            ('archived_reason', sa.Column('archived_reason', sa.Text)),
+            ('created_by_id', sa.Column('created_by_id', UUID)),
         ],
     )
 
@@ -446,6 +450,7 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
             ('contact_email', sa.Column('contact_email', sa.String)),
             ('dit_team_id', sa.Column('team_id', UUID)),
             ('is_active', sa.Column('is_active', sa.Boolean)),
+            ('last_login', sa.Column('last_login', sa.DateTime)),
         ],
     )
 
@@ -462,6 +467,7 @@ class TeamsDatasetPipeline(_DatasetPipeline):
             ('role__name', sa.Column('role', sa.String)),
             ('uk_region__name', sa.Column('uk_region', sa.String)),
             ('country__name', sa.Column('country', sa.String)),
+            ('disabled_on', sa.Column('disabled_on', sa.DateTime)),
         ],
     )
 
@@ -492,6 +498,8 @@ class EventsDatasetPipeline(_DatasetPipeline):
             ('start_date', sa.Column('start_date', sa.Date)),
             ('team_ids', sa.Column('team_ids', sa.ARRAY(sa.Text))),
             ('uk_region__name', sa.Column('uk_region', sa.String)),
+            ('created_by_id', sa.Column('created_by_id', UUID)),
+            ('disabled_on', sa.Column('disabled_on', sa.DateTime)),
         ],
     )
 
