@@ -104,11 +104,11 @@ def fetch_from_hawk_api(
     logger.info("Fetching from source completed")
 
 
-def fetch_from_token_authenticated_api(
+def fetch_from_api_endpoint(
     table_name: str,
     source_url: str,
-    token: str,
-    results_key: str = "results",
+    auth_token: Optional[str] = None,
+    results_key: Optional[str] = "results",
     next_key: Optional[str] = "next",
     **kwargs,
 ):
@@ -117,7 +117,10 @@ def fetch_from_token_authenticated_api(
     page = 1
 
     while True:
-        response = requests.get(source_url, headers={'Authorization': f'Token {token}'})
+        response = requests.get(
+            source_url,
+            headers={'Authorization': f'Token {auth_token}'} if auth_token else None,
+        )
 
         try:
             response.raise_for_status()
@@ -132,7 +135,10 @@ def fetch_from_token_authenticated_api(
         ):
             raise ValueError("Unexpected response structure")
 
-        results = get_nested_key(response_json, results_key)
+        if results_key is not None:
+            results = get_nested_key(response_json, results_key)
+        else:
+            results = response_json
 
         s3.write_key(f"{page:010}.json", results)
 

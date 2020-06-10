@@ -6,7 +6,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.common import fetch_from_token_authenticated_api
+from dataflow.operators.common import fetch_from_api_endpoint
 from dataflow.utils import TableConfig
 
 
@@ -18,7 +18,9 @@ class _DNBPipeline(_PipelineDAG):
         return PythonOperator(
             task_id='run-fetch',
             python_callable=partial(
-                fetch_from_token_authenticated_api, token=config.DNB_AUTH_TOKEN
+                fetch_from_api_endpoint,
+                auth_token=config.DNB_AUTH_TOKEN,
+                results_key='results',
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],

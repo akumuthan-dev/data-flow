@@ -137,7 +137,7 @@ def test_token_auth_invalid_response(mocker, requests_mock):
     )
 
     with pytest.raises(ValueError):
-        common.fetch_from_token_authenticated_api(
+        common.fetch_from_api_endpoint(
             'test_table',
             'http://test',
             'test-token',
@@ -151,7 +151,7 @@ def test_token_auth_request_fail(mocker, mock_sender, requests_mock):
     mocker.patch("time.sleep")  # skip backoff retry delay
     requests_mock.get('http://test', headers={'token': 'test-token'}, status_code=404)
     with pytest.raises(HTTPError):
-        common.fetch_from_token_authenticated_api(
+        common.fetch_from_api_endpoint(
             'test_table', 'http://test', 'test-token', ts_nodash='token-auth-test'
         )
 
@@ -178,8 +178,8 @@ def test_token_auth_request(mocker, requests_mock):
             },
         ],
     )
-    common.fetch_from_token_authenticated_api(
-        'test_table', 'http://test', token='test-token', ts_nodash='task-1'
+    common.fetch_from_api_endpoint(
+        'test_table', 'http://test', auth_token='test-token', ts_nodash='task-1'
     )
     assert requests_mock.call_count == 2
     s3_mock.write_key.assert_has_calls(
