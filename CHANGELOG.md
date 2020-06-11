@@ -13,7 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - New dataset for global uk tariff data 
-
+- New sharepoint integration and 2 sharepoint datasets
+  - Information Asset Register
+  - Public Information Asset Register
+  
 ## 2020-06-09
 
 ### Changed
