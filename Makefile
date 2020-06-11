@@ -6,7 +6,7 @@ check:
 
 .PHONY: format
 format:
-	black --check --exclude='/(venv|dataflow\/ons_scripts)/' --skip-string-normalization .
+	black --exclude='/(venv|dataflow\/ons_scripts)/' --skip-string-normalization .
 
 .PHONY: test
 test:
