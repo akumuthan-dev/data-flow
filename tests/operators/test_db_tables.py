@@ -268,7 +268,7 @@ def test_swap_dataset_tables(mock_db_conn, table):
                 ALTER TABLE QUOTED<public>.QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
                 '''
             ),
-            call('GRANT SELECT ON QUOTED<test_table> TO testuser'),
+            call('GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO testuser'),
         ]
     )
 

@@ -390,7 +390,8 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
             )
             for grantee in grantees:
                 conn.execute(
-                    'GRANT SELECT ON {table_name} TO {grantee}'.format(
+                    'GRANT SELECT ON {schema}.{table_name} TO {grantee}'.format(
+                        schema=engine.dialect.identifier_preparer.quote(table.schema),
                         table_name=engine.dialect.identifier_preparer.quote(table.name),
                         grantee=grantee[0],
                     )
