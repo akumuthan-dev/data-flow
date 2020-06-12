@@ -1,10 +1,12 @@
 from functools import partial
 
+import pandas as pd
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_hosted_csv
+from dataflow.operators.csv_inputs import fetch_mapped_hosted_csvs
 from dataflow.utils import TableConfig
 
 
@@ -134,4 +136,48 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
             python_callable=partial(fetch_from_hosted_csv, allow_empty_strings=False),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
+        )
+
+
+class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
+    source_urls = {
+        "confirmed": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+        "recovered": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
+        "deaths": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+    }
+
+    table_config = TableConfig(
+        table_name="csse_covid19_time_series_global",
+        field_mapping=[
+            ("Province/State", sa.Column("province_or_state", sa.String)),
+            ("Country/Region", sa.Column("country_or_region", sa.String)),
+            ("Lat", sa.Column("lat", sa.Numeric)),
+            ("Long", sa.Column("long", sa.Numeric)),
+            ("source_url_key", sa.Column("type", sa.String)),
+            ("Date", sa.Column("date", sa.Date)),
+            ("Value", sa.Column("value", sa.Numeric)),
+        ],
+    )
+
+    def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.melt(
+            id_vars=["Province/State", "Country/Region", "Lat", "Long"],
+            var_name="Date",
+            value_name="Value",
+        )
+
+        df["Date"] = pd.to_datetime(df['Date'])
+
+        return df
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id="run-fetch",
+            python_callable=fetch_mapped_hosted_csvs,
+            provide_context=True,
+            op_args=[
+                self.table_config.table_name,
+                self.source_urls,
+                self.transform_dataframe,
+            ],
         )

@@ -32,7 +32,7 @@ services:
           airflow initdb
           ./bin/airflow-scheduler.sh &
           airflow worker &
-          airflow worker --queues high-memory-usage --concurrency 1
+          airflow worker --queues high-memory-usage --concurrency 1 &
           airflow webserver --pid /tmp/airflow-webserver.pid -p 8080
     links:
       - "data-flow-db"
