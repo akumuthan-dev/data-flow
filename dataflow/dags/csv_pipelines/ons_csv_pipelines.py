@@ -165,8 +165,8 @@ class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
 
     query = """
 SELECT
-    geography_code AS ons_iso_alpha_2_code,
-    geography_name AS ons_region_name,
+    ons_iso_alpha_2_code,
+    ons_region_name,
     period,
     period_type,
     direction,
@@ -178,42 +178,41 @@ SELECT
     marker
 FROM (
     SELECT
-        geography_code,
-        geography_name,
-        period,
-        period_type,
-        direction,
-        product_code,
-        product_name,
-        total as trade_value,
-        unit,
-        marker
+        og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
+        og_ons_region_name as ons_region_name,
+        norm_period as period,
+        norm_period_type as period_type,
+        og_direction as direction,
+        og_product_code as product_code,
+        og_product_name as product_name,
+        norm_total as trade_value,
+        og_unit as unit,
+        og_marker as marker
     FROM ons_uk_trade_in_services_by_country_nsa
     UNION (
         SELECT
-            geography_code,
-            geography_name,
-            period,
+            og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
+            og_ons_region_name as ons_region_name,
+            norm_period as period,
             '4 quarters ending' as period_type,
-            direction,
-            product_code,
-            product_name,
-            sum(total) over w AS trade_value,
-            unit,
+            og_direction as direction,
+            og_product_code as product_code,
+            og_product_name as product_name,
+            sum(norm_total) over w AS trade_value,
+            og_unit as unit,
             'derived' as marker
         FROM ons_uk_trade_in_services_by_country_nsa
-        WHERE period_type = 'quarter'
-        GROUP BY geography_code, geography_name, period, direction, product_code, product_name, total, unit, marker
+        WHERE norm_period_type = 'quarter'
+        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, norm_total, unit, marker
         WINDOW w AS (
-            PARTITION BY geography_code, direction, product_code
-            ORDER BY geography_code, direction, product_code, period ASC
+            PARTITION BY og_ons_iso_alpha_2_code, og_direction, og_product_code
+            ORDER BY og_ons_iso_alpha_2_code, og_direction, og_product_code, norm_period ASC
             ROWS between 3 preceding and current row
         )
-        ORDER BY geography_name, period, direction, product_code
+        ORDER BY ons_region_name, period, direction, product_code
     )
-    ORDER BY geography_name, period, direction, product_code
+    ORDER BY ons_region_name, period, direction, product_code
 ) AS query WHERE period_type != '4 quarters ending' OR period >= '2016-Q4'
-
 """
 
 
