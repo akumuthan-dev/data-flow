@@ -140,6 +140,9 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
 
 
 class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
+    # Run after the daily update of data ~4am
+    schedule_interval = '0 7 * * *'
+
     source_urls = {
         "confirmed": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
         "recovered": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
