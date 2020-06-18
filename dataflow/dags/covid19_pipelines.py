@@ -7,6 +7,7 @@ from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_hosted_csv
 from dataflow.operators.csv_inputs import fetch_mapped_hosted_csvs
+from dataflow.operators.db_tables import query_database
 from dataflow.utils import TableConfig
 
 
@@ -184,3 +185,82 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
                 self.transform_dataframe,
             ],
         )
+
+
+class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
+    schedule_interval = '0 7 * * *'
+
+    dependencies = [CSSECovid19TimeSeriesGlobal]
+
+    query = """
+    WITH unmatched_codes (country, iso2, iso3) AS (VALUES
+        ('Bahamas', 'BS', 'BSS'),
+        ('Bonaire, Sint Eustatius and Saba', 'BQ', NULL),
+        ('Burma', 'MM', 'MMR'),
+        ('Cabo Verde', 'CV', 'CPV'),
+        ('Congo (Brazzaville)', 'CG', 'COG'),
+        ('Congo (Kinshasa)', 'CD', 'COD'),
+        ('Cote d''Ivoire', 'CI', 'CIV'),
+        ('Curacao', 'CW', 'CUW'),
+        ('Falkland Islands (Malvinas)', 'FK', 'FLK'),
+        ('Gambia', 'GM', 'GMB'),
+        ('Holy See', 'VA', 'VAT'),
+        ('Korea, South', 'KR', 'KOR'),
+        ('Saint Kitts and Nevis', 'KN', 'KNA'),
+        ('Saint Lucia', 'LC', 'LCA'),
+        ('Saint Vincent and the Grenadines', 'VC', 'VCT'),
+        ('Sint Maarten', 'SX', 'SXM'),
+        ('Taiwan*', 'TW', 'TWN'),
+        ('Timor-Leste', 'TL', 'TLS'),
+        ('US', 'US', 'USA')
+    )
+    SELECT
+        COALESCE(country_or_territory_id, unmatched_codes.iso2) AS iso2_code,
+        COALESCE(country_or_territory_id3, unmatched_codes.iso3) AS iso3_code,
+        country_or_region,
+        CASE
+           WHEN type = 'confirmed' THEN 'cases'
+           ELSE type
+        END AS type,
+        date,
+        sum(value) as value,
+        sum(daily_value) as daily_value
+    FROM
+        (SELECT
+            province_or_state,
+            CASE
+                WHEN country_or_region IN ('Denmark', 'United Kingdom', 'France', 'Netherlands') AND province_or_state IS NOT NULL then province_or_state
+                ELSE country_or_region
+            END AS country_or_region,
+            type,
+            date,
+            value,
+            value - lag(value) OVER (PARTITION BY country_or_region, province_or_state, type ORDER BY date) as daily_value
+        FROM csse_covid19_time_series_global) AS csse_data
+        LEFT JOIN ref_countries_and_territories ON csse_data.country_or_region = country_or_territory_name
+        LEFT JOIN unmatched_codes ON csse_data.country_or_region = unmatched_codes.country
+    GROUP BY (date, country_or_region, country_or_territory_id, country_or_territory_id3, unmatched_codes.iso2, unmatched_codes.iso3, type)
+    ORDER BY date desc, country_or_region asc, type;
+    """
+
+    table_config = TableConfig(
+        table_name="csse_covid19_time_series_global_by_country",
+        field_mapping=[
+            ("iso2_code", sa.Column("iso2_code", sa.String)),
+            ("iso3_code", sa.Column("iso3_code", sa.String)),
+            ("country_or_region", sa.Column("country_or_region", sa.String)),
+            ("type", sa.Column("type", sa.String)),
+            ("date", sa.Column("date", sa.Date)),
+            ("value", sa.Column("value", sa.Numeric)),
+            ("daily_value", sa.Column("daily_value", sa.Numeric)),
+        ],
+    )
+
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_config.table_name],
+        )
+        return op
