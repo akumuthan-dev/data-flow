@@ -14,6 +14,7 @@ from dataflow.dags.dataset_pipelines import (
     InvestmentProjectsDatasetPipeline,
     TeamsDatasetPipeline,
 )
+from dataflow.dags.people_finder_pipelines import PeopleFinderPeoplePipeline
 
 
 class _DailyCSVPipeline(_CSVPipelineDAG):
@@ -937,6 +938,7 @@ class PeopleFinderPeopleDailyCSVPipeline(_DailyCSVPipeline):
     """Daily updated People Finder people report"""
 
     base_file_name = 'people-finder-people'
+    dependencies = [PeopleFinderPeoplePipeline]
     query = '''
     SELECT
         people_finder_id AS "People Finder user ID",
