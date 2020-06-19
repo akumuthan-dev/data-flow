@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
+from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.db_tables import insert_csv_data_into_db
@@ -34,24 +36,32 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
-                "Period": record["Period"].split("/")[1],
-                "Period Type": record["Period"].split("/")[0],
-                "Value": record["Value"]
+                "norm_period": record["Period"].split("/")[1],
+                "norm_period_type": record["Period"].split("/")[0],
+                "norm_value": record["Value"]
                 or None,  # Convert redacted values ('') to Nones (NULL in DB).
             },
         ],
         field_mapping=[
-            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-            ("Geography Code", sa.Column("geography_code", sa.String)),
-            ("Geography Name", sa.Column("geography_name", sa.String)),
-            ("Period", sa.Column("period", sa.String)),
-            ("Period Type", sa.Column("period_type", sa.String)),
-            ("Flow", sa.Column("direction", sa.String)),
-            ("Trade Services Code", sa.Column("product_code", sa.String)),
-            ("Trade Services Name", sa.Column("product_name", sa.String)),
-            ("Value", sa.Column("total", sa.Numeric)),
-            ("Unit", sa.Column("unit", sa.String)),
-            ("Marker", sa.Column("marker", sa.String)),
+            (
+                None,
+                sa.Column(
+                    "id", UUID, primary_key=True, default=lambda: str(uuid.uuid4())
+                ),
+            ),
+            (None, sa.Column("import_time", sa.DateTime, default=datetime.utcnow)),
+            ("Geography Code", sa.Column("og_ons_iso_alpha_2_code", sa.String)),
+            ("Geography Name", sa.Column("og_ons_region_name", sa.String)),
+            ("Period", sa.Column("og_period", sa.String)),
+            ("norm_period", sa.Column("norm_period", sa.String)),
+            ("norm_period_type", sa.Column("norm_period_type", sa.String)),
+            ("Flow", sa.Column("og_direction", sa.String)),
+            ("Trade Services Code", sa.Column("og_product_code", sa.String)),
+            ("Trade Services Name", sa.Column("og_product_name", sa.String)),
+            ("Value", sa.Column("og_total", sa.String)),
+            ("norm_value", sa.Column("norm_total", sa.Numeric)),
+            ("Unit", sa.Column("og_unit", sa.String)),
+            ("Marker", sa.Column("og_marker", sa.String)),
         ],
     )
 
