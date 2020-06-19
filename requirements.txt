@@ -104,7 +104,7 @@ pyexcel-xls==0.5.8        # via gssutils
 pyexcel==0.6.1            # via gssutils
 pygments==2.5.1           # via apache-airflow, ipython
 pyhamcrest==2.0.2         # via databaker
-pyjwt[crypto]==1.7.1      # via flask-appbuilder, flask-jwt-extended, msal
+pyjwt[crypto]==1.7.1      # via -r requirements.in, flask-appbuilder, flask-jwt-extended, msal
 pyparsing==2.4.7          # via rdflib
 pyrsistent==0.15.6        # via jsonschema
 python-daemon==2.1.2      # via apache-airflow
