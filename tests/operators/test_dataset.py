@@ -1,6 +1,7 @@
 import io
 from unittest import mock
 
+import jwt
 import pytest
 from mohawk.exc import HawkFail
 from requests import HTTPError
@@ -190,6 +191,20 @@ def test_token_auth_request(mocker, requests_mock):
             ),
             mock.call('0000000002.json', [{'id': 3, 'name': 'record3'}]),
         ]
+    )
+
+
+def test_fetch_from_jwt_api(mocker):
+    token_api_fetch_method = mocker.patch.object(
+        common, 'fetch_from_api_endpoint', autospec=True,
+    )
+    mocker.patch.object(jwt, "encode", return_value=b"jwt-token")
+
+    common.fetch_from_jwt_api(
+        'test_table', 'http://test', {"foo": "bar"}, "s3cr3t", "FAKE123"
+    )
+    token_api_fetch_method.assert_called_once_with(
+        'test_table', 'http://test', 'jwt-token', 'results', 'next'
     )
 
 
