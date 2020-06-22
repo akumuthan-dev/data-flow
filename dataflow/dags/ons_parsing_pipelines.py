@@ -32,7 +32,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
     ons_script_dir = 'uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
 
     table_config = TableConfig(
-        table_name="ons_uk_trade_in_services_by_country_nsa",  # dropped "partner" because of table name length limit
+        table_name="ons__uk_trade_in_services_by_country_nsa",  # dropped "partner" because of table name length limit
         transforms=[
             lambda record, table_config, contexts: {
                 **record,

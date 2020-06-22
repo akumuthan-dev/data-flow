@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-22
+
+### Changed
+
+- Table name for ONS dataset 3 to include double-underscore separate between the data source (ONS) and the data description.
+
 ## 2020-06-18
 
 ### Added
