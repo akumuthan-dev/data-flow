@@ -160,7 +160,7 @@ class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
 
     dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPipeline]
 
-    base_file_name = "ons_uk_trade_in_services_by_country_nsa"
+    base_file_name = "ons__uk_trade_in_services_by_country_nsa"
     timestamp_output = False
 
     query = """
@@ -188,7 +188,7 @@ FROM (
         norm_total as trade_value,
         og_unit as unit,
         og_marker as marker
-    FROM ons_uk_trade_in_services_by_country_nsa
+    FROM ons__uk_trade_in_services_by_country_nsa
     UNION (
         SELECT
             og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
@@ -201,7 +201,7 @@ FROM (
             sum(norm_total) over w AS trade_value,
             og_unit as unit,
             'derived' as marker
-        FROM ons_uk_trade_in_services_by_country_nsa
+        FROM ons__uk_trade_in_services_by_country_nsa
         WHERE norm_period_type = 'quarter'
         GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, norm_total, unit, marker
         WINDOW w AS (
