@@ -45,7 +45,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - New sharepoint integration and 2 sharepoint datasets
   - Information Asset Register
   - Public Information Asset Register
-  
+- Added `archived_reason` and `created_by_id` fields to companies dataset
+- Added `last_login` field to advisers dataset
+- Added `created_by_id` field to contacts dataset
+- Added `created_by_id` field to omis dataset
+- Added `created_by_id` and `disabled_on` fields to events dataset
+- Added `disabled_on` field to teams dataset
+
 ## 2020-06-09
 
 ### Changed
