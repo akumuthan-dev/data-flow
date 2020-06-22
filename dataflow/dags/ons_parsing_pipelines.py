@@ -38,7 +38,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
                 **record,
                 "norm_period": record["Period"].split("/")[1],
                 "norm_period_type": record["Period"].split("/")[0],
-                "norm_value": record["Value"]
+                "norm_total": record["Value"]
                 or None,  # Convert redacted values ('') to Nones (NULL in DB).
             },
         ],
@@ -59,7 +59,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
             ("Trade Services Code", sa.Column("og_product_code", sa.String)),
             ("Trade Services Name", sa.Column("og_product_name", sa.String)),
             ("Value", sa.Column("og_total", sa.String)),
-            ("norm_value", sa.Column("norm_total", sa.Numeric)),
+            ("norm_total", sa.Column("norm_total", sa.Numeric)),
             ("Unit", sa.Column("og_unit", sa.String)),
             ("Marker", sa.Column("og_marker", sa.String)),
         ],

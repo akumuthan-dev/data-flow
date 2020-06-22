@@ -160,7 +160,7 @@ class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
 
     dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPipeline]
 
-    base_file_name = "ons__uk_trade_in_services_by_country_nsa"
+    base_file_name = "ons_uk_trade_in_services_by_country_nsa"
     timestamp_output = False
 
     query = """
