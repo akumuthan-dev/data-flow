@@ -355,22 +355,22 @@ class ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline(_CSVPipelineDAG):
 
     query = """
 WITH all_rows_plus_balances AS (
-    SELECT imports_t.geography_code,
-           imports_t.geography_name,
-           imports_t.product_code,
-           imports_t.product_name,
-           imports_t.period,
-           imports_t.period_type,
-           unnest(array[imports_t.direction, exports_t.direction, 'trade balance', 'total trade']) AS direction,
-           unnest(array[imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total]) AS total,
-           imports_t.unit,
-           unnest(array[imports_t.marker, exports_t.marker, 'derived', 'derived']) AS marker
-    FROM ons_uk_trade_in_goods_by_country_commodity AS imports_t
-    JOIN ons_uk_trade_in_goods_by_country_commodity AS exports_t ON imports_t.geography_code = exports_t.geography_code AND imports_t.product_code = exports_t.product_code AND imports_t.period = exports_t.period AND imports_t.direction = 'imports' AND exports_t.direction = 'exports'
+    SELECT imports_t.og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
+           imports_t.og_ons_region_name as ons_region_name,
+           imports_t.og_product_code as product_code,
+           imports_t.og_product_name as product_name,
+           imports_t.norm_period as period,
+           imports_t.norm_period_type as period_type,
+           unnest(array[imports_t.og_direction, exports_t.og_direction, 'trade balance', 'total trade']) AS direction,
+           unnest(array[imports_t.norm_total, exports_t.norm_total, exports_t.norm_total - imports_t.norm_total, exports_t.norm_total + imports_t.norm_total]) AS total,
+           imports_t.og_unit as unit,
+           unnest(array[imports_t.og_marker, exports_t.og_marker, 'derived', 'derived']) AS marker
+    FROM ons__uk_trade_goods_by_country_commodity AS imports_t
+    JOIN ons__uk_trade_goods_by_country_commodity AS exports_t ON imports_t.og_ons_iso_alpha_2_code = exports_t.og_ons_iso_alpha_2_code AND imports_t.og_product_code = exports_t.og_product_code AND imports_t.og_period = exports_t.og_period AND imports_t.og_direction = 'imports' AND exports_t.og_direction = 'exports'
 ),
      rolling_totals AS (
-     SELECT geography_code,
-         geography_name,
+     SELECT ons_iso_alpha_2_code,
+         ons_region_name,
          product_code,
          product_name,
          period,
@@ -378,11 +378,11 @@ WITH all_rows_plus_balances AS (
          direction,
          sum(total) over (PARTITION
              BY
-             geography_code,
+             ons_iso_alpha_2_code,
              product_code,
              direction
              ORDER BY
-                 geography_code,
+                 ons_iso_alpha_2_code,
                  product_code,
                  direction,
                  period ASC rows between 11 preceding and current row) AS total,
@@ -390,8 +390,8 @@ WITH all_rows_plus_balances AS (
          'derived' AS marker
      FROM all_rows_plus_balances
      WHERE period_type = 'month'
-     GROUP BY geography_code,
-              geography_name,
+     GROUP BY ons_iso_alpha_2_code,
+              ons_region_name,
               product_code,
               product_name,
               direction,
@@ -401,8 +401,8 @@ WITH all_rows_plus_balances AS (
               unit,
               marker)
 SELECT
-    geography_code AS ons_iso_alpha_2_code,
-    geography_name AS ons_region_name,
+    ons_iso_alpha_2_code,
+    ons_region_name,
     period,
     period_type,
     direction,
@@ -421,7 +421,7 @@ FROM (
         FROM rolling_totals
         WHERE period >= '1998-12'
     )
-    ORDER BY geography_name,
+    ORDER BY ons_region_name,
              product_code,
              period,
              period_type,
