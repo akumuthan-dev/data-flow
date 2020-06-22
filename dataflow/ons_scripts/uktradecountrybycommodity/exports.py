@@ -32,18 +32,15 @@ with ZipFile(BytesIO(scraper.session.get(distribution.downloadURL).content)) as 
                              }, na_values=['','N/A'], keep_default_na=False)
 data
 
-
 # %%
-pd.set_option('display.float_format', lambda x: '%.0f' % x)
-
 table = data.drop(columns='DIRECTION')
 table.rename(columns={
     'COMMODITY': 'Product',
     'COUNTRY': 'Geography'}, inplace=True)
 table = pd.melt(table, id_vars=['Product','Geography'], var_name='Period', value_name='Value')
 table['Period'] = table['Period'].astype('category')
-table.dropna(subset=['Value'], inplace=True)
-table['Value'] = table['Value'].astype(int)
+# table.dropna(subset=['Value'], inplace=True)
+# table['Value'] = table['Value'].astype(int)
 table
 
 
@@ -97,6 +94,21 @@ table['Flow'] = pd.Series('exports', index=table.index, dtype='category')
 
 
 # %%
-table = table[['Geography Code', 'Geography Name', 'Period', 'Flow', 'Product Code', 'Product Name', 'Seasonal Adjustment', 'Measure Type', 'Value', 'Unit']]
+
+def user_perc(x):
+    if pd.isna(x):
+        return 'N/A'
+    elif type(x) == str:
+        return x
+    else:
+        return ''
+
+table['Marker'] = table.apply(lambda row: user_perc(row['Value']), axis=1)
+table['Marker'] = table['Marker'].astype('category')
+table['Value'] = pd.to_numeric(table['Value'], errors='coerce')
+
+
+# %%
+table = table[['Geography Code', 'Geography Name', 'Period', 'Flow', 'Product Code', 'Product Name', 'Seasonal Adjustment', 'Measure Type', 'Value', 'Unit', 'Marker']]
 table
 

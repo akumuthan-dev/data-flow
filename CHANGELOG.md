@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Table name for ONS dataset 3 to include double-underscore separate between the data source (ONS) and the data description.
+- Update ONS dataset 2+4 to include double-underscore separator, and change column names to match our data standards document.
 
 ## 2020-06-18
 
