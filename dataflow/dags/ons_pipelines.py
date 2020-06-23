@@ -28,6 +28,14 @@ class _ONSPipeline(_PipelineDAG):
 class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     table_config = TableConfig(
         table_name="ons__uk_sa_trade_in_goods",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "norm_period_type": "year"
+                if len(record["period"]["value"]) == 4
+                else "month",
+            },
+        ],
         field_mapping=[
             (
                 None,
@@ -42,8 +50,10 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
             ),
             (("geography_name", "value"), sa.Column("og_ons_region_name", sa.String)),
             (("period", "value"), sa.Column("og_period", sa.String)),
+            (("norm_period_type"), sa.Column("norm_period_type", sa.String)),
             (("direction", "value"), sa.Column("og_direction", sa.String)),
-            (("total", "value"), sa.Column("og_total", sa.Numeric)),
+            (("total", "value"), sa.Column("og_total", sa.String)),
+            (("total", "value"), sa.Column("norm_total", sa.Numeric)),
             (("unit", "value"), sa.Column("og_unit", sa.String)),
             (("marker", "value"), sa.Column("og_marker", sa.String)),
         ],
