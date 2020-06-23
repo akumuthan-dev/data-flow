@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 
@@ -27,12 +28,17 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
         table_name="ons_uk_sa_trade_in_goods",
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
-            (("period", "value"), sa.Column("period", sa.String)),
-            (("geography_name", "value"), sa.Column("geography_name", sa.String)),
-            (("geography_code", "value"), sa.Column("geography_code", sa.String)),
-            (("direction", "value"), sa.Column("direction", sa.String)),
-            (("total", "value"), sa.Column("total", sa.Numeric)),
-            (("unit", "value"), sa.Column("unit", sa.String)),
+            (None, sa.Column("import_time", sa.DateTime, default=datetime.utcnow)),
+            (
+                ("geography_code", "value"),
+                sa.Column("og_ons_iso_alpha_2_code", sa.String),
+            ),
+            (("geography_name", "value"), sa.Column("og_ons_region_name", sa.String)),
+            (("period", "value"), sa.Column("og_period", sa.String)),
+            (("direction", "value"), sa.Column("og_direction", sa.String)),
+            (("total", "value"), sa.Column("og_total", sa.Numeric)),
+            (("unit", "value"), sa.Column("og_unit", sa.String)),
+            (("marker", "value"), sa.Column("og_marker", sa.String)),
         ],
     )
 
@@ -40,12 +46,11 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-    SELECT ?period ?geography_name ?geography_code ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit
+    SELECT ?period ?geography_name ?geography_code ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit ?marker
     WHERE {
         ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-sa-trade-in-goods> ;
             <http://gss-data.org.uk/def/dimension/flow-directions> ?direction_s ;
             <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
-            <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total ;
             <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
             <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
 
@@ -54,6 +59,15 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
         ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
         ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
         ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
+
+        OPTIONAL {
+            ?s <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total .
+        }
+
+        OPTIONAL {
+            ?s <http://purl.org/linked-data/sdmx/2009/attribute#obsStatus> ?marker_s .
+            ?marker_s <http://www.w3.org/2004/02/skos/core#notation> ?marker .
+        }
 
     }
     ORDER BY ?period ?geography_s
