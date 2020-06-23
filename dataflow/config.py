@@ -96,3 +96,6 @@ DIT_SHAREPOINT_CREDENTIALS = {
     'client_id': os.environ.get('DIT_SHAREPOINT_CLIENT_ID'),
     'client_secret': os.environ.get('DIT_SHAREPOINT_CLIENT_SECRET'),
 }
+
+PEOPLE_FINDER_BASE_URL = os.environ.get('PEOPLE_FINDER_BASE_URL')
+PEOPLE_FINDER_PRIVATE_KEY = os.environ.get('PEOPLE_FINDER_PRIVATE_KEY')

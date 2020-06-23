@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-23
+
+### Changed
+
+- S3 maintenance job will always retain data files from the latest run of each pipeline.
+
+## 2020-06-22
+
+### Changed
+
+- Table name for ONS dataset 3 to include double-underscore separate between the data source (ONS) and the data description.
+- Update ONS dataset 2+4 to include double-underscore separator, and change column names to match our data standards document.
+
+## 2020-06-18
+
+### Added
+
+- Ability to fetch data from client-generated JWT authenticated API
+- DIT People Finder ("Digital Workspace") people data
+
+### Changed
+
+- Updated ONS dataset 3 master dataset to follow our data standards.
+
 ## 2020-06-12
 
 ### Changed
@@ -28,7 +52,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - New sharepoint integration and 2 sharepoint datasets
   - Information Asset Register
   - Public Information Asset Register
-  
+- Added `archived_reason` and `created_by_id` fields to companies dataset
+- Added `last_login` field to advisers dataset
+- Added `created_by_id` field to contacts dataset
+- Added `created_by_id` field to omis dataset
+- Added `created_by_id` and `disabled_on` fields to events dataset
+- Added `disabled_on` field to teams dataset
+
 ## 2020-06-09
 
 ### Changed

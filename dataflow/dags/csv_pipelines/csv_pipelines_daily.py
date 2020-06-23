@@ -14,6 +14,7 @@ from dataflow.dags.dataset_pipelines import (
     InvestmentProjectsDatasetPipeline,
     TeamsDatasetPipeline,
 )
+from dataflow.dags.people_finder_pipelines import PeopleFinderPeoplePipeline
 
 
 class _DailyCSVPipeline(_CSVPipelineDAG):
@@ -931,3 +932,50 @@ class ExportWinsCurrentFinancialYearDailyCSVPipeline(_DailyCSVPipeline):
         ) a
         WHERE (confirmation_created_financial_year IS NULL OR confirmation_created_financial_year = current_financial_year)
 '''
+
+
+class PeopleFinderPeopleDailyCSVPipeline(_DailyCSVPipeline):
+    """Daily updated People Finder people report"""
+
+    base_file_name = 'people-finder-people'
+    dependencies = [PeopleFinderPeoplePipeline]
+    query = '''
+    SELECT
+        people_finder_id AS "People Finder user ID",
+        staff_sso_id AS "Staff SSO user ID",
+        email AS "Preferred email",
+        full_name AS "Full name",
+        first_name AS "First name",
+        last_name AS "Last name",
+        profile_url AS "Profile URL",
+        roles AS "Roles",
+        manager_people_finder_id AS "Manager's People Finder user ID",
+        completion_score AS "Profile completion score",
+        works_monday AS "Works Monday",
+        works_tuesday AS "Works Tuesday",
+        works_wednesday AS "Works Wednesday",
+        works_thursday AS "Works Thursday",
+        works_friday AS "Works Friday",
+        works_saturday AS "Works Saturday",
+        works_sunday AS "Works Sunday",
+        primary_phone_number AS "Preferred contact number",
+        secondary_phone_number AS "Additional phone number",
+        skype_name AS "Skype name",
+        place_of_work AS "Place(s) I usually work",
+        city AS "City",
+        country AS "Country",
+        location_in_building AS "Locations in building",
+        location_other_uk AS "Other location - UK regional",
+        location_other_overseas AS "Other location - overseas",
+        key_skills AS "Key skills",
+        learning_and_development AS "Learning and development interests",
+        networks AS "Networks I belong to",
+        professions AS "Professions I belong to",
+        additional_responsibilities AS "My additional roles and responsibilities",
+        language_fluent AS "Fluent languages",
+        language_intermediate AS "Intermediate languages",
+        created_at AS "First created at",
+        last_edited_or_confirmed_at AS "Last edited/confirmed by user action at"
+    FROM people_finder__people
+    ORDER BY created_at ASC
+    '''
