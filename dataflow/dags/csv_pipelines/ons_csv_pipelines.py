@@ -55,7 +55,7 @@ FROM (
         og_total as trade_value,
         og_unit,
         og_marker AS marker
-    FROM ons_uk_sa_trade_in_goods
+    FROM ons__uk_sa_trade_in_goods
     UNION (
         SELECT
             i.og_ons_iso_alpha_2_code as ons_geography_code,
@@ -69,7 +69,7 @@ FROM (
             e.og_total + i.og_total as trade_value,
             i.og_unit,
             'derived' as marker
-        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
         ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
         WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
     ) UNION (
@@ -85,7 +85,7 @@ FROM (
             e.og_total - i.og_total as trade_value,
             i.og_unit,
             'derived' as marker
-        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
         ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
         WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
     ) UNION (
@@ -98,7 +98,7 @@ FROM (
             sum(og_total) over w AS trade_value,
             og_unit,
             'derived' as marker
-        FROM ons_uk_sa_trade_in_goods
+        FROM ons__uk_sa_trade_in_goods
         WHERE char_length(og_period) = 7
         GROUP BY ons_geography_code, geography, og_period, og_direction, og_total, og_unit
         WINDOW w AS (
@@ -115,7 +115,7 @@ FROM (
             sum(e.og_total - i.og_total) over w AS trade_value,
             i.og_unit,
             'derived' as marker
-        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
         ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
         WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
             AND char_length(i.og_period) = 7
@@ -134,7 +134,7 @@ FROM (
             sum(e.og_total + i.og_total) over w AS trade_value,
             i.og_unit,
             'derived' as marker
-        FROM ons_uk_sa_trade_in_goods e inner join ons_uk_sa_trade_in_goods i
+        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
         ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
         WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
             AND char_length(i.og_period) = 7

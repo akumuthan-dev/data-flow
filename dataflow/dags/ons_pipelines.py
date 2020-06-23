@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime
 from typing import Optional
 
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import UUID
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
@@ -25,9 +27,14 @@ class _ONSPipeline(_PipelineDAG):
 
 class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     table_config = TableConfig(
-        table_name="ons_uk_sa_trade_in_goods",
+        table_name="ons__uk_sa_trade_in_goods",
         field_mapping=[
-            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (
+                None,
+                sa.Column(
+                    "id", UUID, primary_key=True, default=lambda: str(uuid.uuid4())
+                ),
+            ),
             (None, sa.Column("import_time", sa.DateTime, default=datetime.utcnow)),
             (
                 ("geography_code", "value"),
