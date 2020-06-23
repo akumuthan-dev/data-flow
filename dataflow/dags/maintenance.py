@@ -27,13 +27,21 @@ def cleanup_old_s3_files(*args, **kwargs):
     )
 
     for pipeline in pipelines:
-        run_ids = s3.list_prefixes(
-            config.S3_IMPORT_DATA_BUCKET, prefix=pipeline, delimiter="/"
+        run_ids = sorted(
+            s3.list_prefixes(
+                config.S3_IMPORT_DATA_BUCKET, prefix=pipeline, delimiter="/"
+            )
         )
 
         for run_id in run_ids:
             run_dt = datetime.strptime(run_id.split("/")[-2], "%Y%m%dT%H%M%S")
-            if current_time - run_dt >= timedelta(days=config.S3_RETENTION_PERIOD_DAYS):
+            if run_id == run_ids[-1]:
+                logger.info(
+                    f"Keeping {pipeline} run {run_id} ({run_dt}) - always retain the last run."
+                )
+            elif current_time - run_dt >= timedelta(
+                days=config.S3_RETENTION_PERIOD_DAYS
+            ):
                 logger.info(
                     f"Deleting {pipeline} run {run_id} ({run_dt}) older than retention period"
                 )

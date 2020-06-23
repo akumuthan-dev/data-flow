@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-06-23
+
+### Changed
+
+- S3 maintenance job will always retain data files from the latest run of each pipeline.
+
 ## 2020-06-22
 
 ### Changed
