@@ -20,9 +20,10 @@ def postgres_hook(mocker):
 
 def test_cleanup_old_s3_files(s3):
     s3.list_prefixes.side_effect = [
-        ['pipeline1/', 'pipeline2/'],
+        ['pipeline1/', 'pipeline2/', 'pipeline3/'],
         ['pipeline1/20000101T000000/', 'pipeline1/20000104T000000/'],
         ['pipeline2/20000101T000000/', 'pipeline2/20000104T000000/'],
+        ['pipeline3/20000101T000000/'],
     ]
 
     maintenance.cleanup_old_s3_files(ts_nodash="20000110T000000")
