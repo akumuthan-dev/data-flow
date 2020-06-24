@@ -59,7 +59,7 @@ FROM (
             i.og_ons_region_name as geography,
             i.og_period,
             i.norm_period_type,
-            'norm_total trade' as og_direction,
+            'total trade' as og_direction,
             e.norm_total + i.norm_total as trade_value,
             i.og_unit,
             'derived' as marker
@@ -121,7 +121,7 @@ FROM (
             i.og_ons_region_name as geography,
             i.og_period,
             '12 months ending' as norm_period_type,
-            'norm_total trade' as og_direction,
+            'total trade' as og_direction,
             sum(e.norm_total + i.norm_total) over w AS trade_value,
             i.og_unit,
             'derived' as marker
