@@ -23,6 +23,13 @@ class GlobalUKTariffPipeline(_PipelineDAG):
             ('change', sa.Column('change', sa.String)),
             ('trade_remedy_applies', sa.Column('trade_remedy_applies', sa.Boolean)),
             ('dumping_margin_applies', sa.Column('dumping_margin_applies', sa.Boolean)),
+            (
+                'cet_applies_until_trade_remedy_transition_reviews_concluded',
+                sa.Column(
+                    'cet_applies_until_trade_remedy_transition_reviews_concluded',
+                    sa.Boolean,
+                ),
+            ),
             ('suspension_applies', sa.Column('suspension_applies', sa.Boolean)),
             ('atq_applies', sa.Column('atq_applies', sa.Boolean)),
         ],
