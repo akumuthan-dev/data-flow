@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Remove field `dumping_margin_applies` from global tariff dataset
+
+## 2020-06-29
+
+### Changed
+
 - New field `cet_applies_until_trade_remedy_transition_reviews_concluded` added to tariff dataset
 
 ## 2020-06-23
