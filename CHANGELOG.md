@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-07-02
+
+### Changed
+
+- Install wheel before requirements file to fix circle ci build issue
+- Remove Alexey from depndabot config
+
+## 2020-07-01
+
+### Changed
+
+- Changed People Finder pipeline to support new/updated fields
 ## 2020-07-01
 
 ### Changed
