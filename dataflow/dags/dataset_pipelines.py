@@ -855,3 +855,29 @@ class RawWorldBankBoundRatePipeline(_DatasetPipeline):
             ('totalNumberOfLines', sa.Column('number_of_total_lines', sa.Numeric)),
         ],
     )
+
+
+class DataHubCompanyReferralsDatasetPipeline(_DatasetPipeline):
+    """Pipeline meta object for data hub referrals."""
+
+    source_url = '{0}/v4/dataset/company-referrals-dataset'.format(
+        config.DATAHUB_BASE_URL
+    )
+    table_config = TableConfig(
+        schema='datahub',
+        table_name='company_referrals',
+        field_mapping=[
+            ('company_id', sa.Column('company_id', UUID)),
+            ('completed_by_id', sa.Column('completed_by_id', UUID)),
+            ('completed_on', sa.Column('completed_on', sa.DateTime)),
+            ('contact_id', sa.Column('contact_id', UUID)),
+            ('created_by_id', sa.Column('created_by_id', UUID)),
+            ('created_on', sa.Column('created_on', sa.DateTime)),
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('interaction_id', sa.Column('interaction_id', UUID)),
+            ('notes', sa.Column('notes', sa.Text)),
+            ('recipient_id', sa.Column('recipient_id', UUID)),
+            ('status', sa.Column('status', sa.String)),
+            ('subject', sa.Column('subject', sa.String)),
+        ],
+    )
