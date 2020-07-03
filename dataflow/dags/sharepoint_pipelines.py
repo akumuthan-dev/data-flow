@@ -1,6 +1,4 @@
 """A module that defines Airflow DAGS for sharepoint pipelines."""
-from typing import List
-
 import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
@@ -11,7 +9,7 @@ from dataflow.utils import TableConfig
 
 
 class _SharepointPipeline(_PipelineDAG):
-    site_path: List[str]
+    sub_site_id: str
     list_id: str
 
     def get_fetch_operator(self) -> PythonOperator:
@@ -19,12 +17,12 @@ class _SharepointPipeline(_PipelineDAG):
             task_id='run-fetch',
             python_callable=fetch_from_sharepoint_list,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.site_path, self.list_id],
+            op_args=[self.table_config.table_name, self.sub_site_id, self.list_id],
         )
 
 
 class InformationAssetRegisterPipeline(_SharepointPipeline):
-    site_path = ['dit', '12379a42-3eff-442a-9929-d912cf194c86']
+    sub_site_id = '12379a42-3eff-442a-9929-d912cf194c86'
     list_id = '7b861c2a-e536-4ffe-8c40-c926955a9f49'
     allow_null_columns = True
     table_config = TableConfig(
@@ -101,7 +99,7 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
 
 
 class PublicInformationAssetRegisterPipeline(_SharepointPipeline):
-    site_path = ['dit', '12379a42-3eff-442a-9929-d912cf194c86']
+    sub_site_id = '12379a42-3eff-442a-9929-d912cf194c86'
     list_id = '5ea54279-98c9-4902-a820-008fd5fbc5b7'
     allow_null_columns = True
     table_config = TableConfig(

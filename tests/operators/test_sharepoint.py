@@ -24,19 +24,20 @@ def test_sharepoint_request_auth_fail(mock_msal_app):
     }
     with pytest.raises(sharepoint.InvalidAuthCredentialsError):
         sharepoint.fetch_from_sharepoint_list(
-            'test_table', ['test_site1', 'test_site2'], 'test_list', ts_nodash='test',
+            'test_table', 'test-site-2', 'test-list', ts_nodash='test',
         )
 
 
 def test_sharepoint_request_fail(mock_msal_app, requests_mock):
     sharepoint.DIT_SHAREPOINT_CREDENTIALS['tenant_domain'] = 'tenant.sharepoint.com'
+    sharepoint.DIT_SHAREPOINT_CREDENTIALS['site_name'] = 'test-site-1'
     requests_mock.get(
-        'https://graph.microsoft.com/v1.0/sites/tenant.sharepoint.com:/sites/test_site1:/sites/test_site2/lists/test_list',
+        'https://graph.microsoft.com/v1.0/sites/tenant.sharepoint.com:/sites/test-site-1:/sites/test-site-2/lists/test-list',
         status_code=403,
     )
     with pytest.raises(HTTPError):
         sharepoint.fetch_from_sharepoint_list(
-            'test_table', ['test_site1', 'test_site2'], 'test_list', ts_nodash='test',
+            'test_table', 'test-site-2', 'test-list', ts_nodash='test',
         )
 
 
@@ -46,8 +47,9 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
         sharepoint, "S3Data", return_value=s3_mock, autospec=True,
     )
     sharepoint.DIT_SHAREPOINT_CREDENTIALS['tenant_domain'] = 'tenant.sharepoint.com'
+    sharepoint.DIT_SHAREPOINT_CREDENTIALS['site_name'] = 'test-site-1'
     requests_mock.get(
-        'https://graph.microsoft.com/v1.0/sites/tenant.sharepoint.com:/sites/test_site1:/sites/test_site2/lists/test_list',
+        'https://graph.microsoft.com/v1.0/sites/tenant.sharepoint.com:/sites/test-site-1:/sites/test-site-2/lists/test-list',
         status_code=200,
         json={
             'columns': [
@@ -69,7 +71,7 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
         },
     )
     sharepoint.fetch_from_sharepoint_list(
-        'test_table', ['test_site1', 'test_site2'], 'test_list', ts_nodash='test',
+        'test_table', 'test-site-2', 'test-list', ts_nodash='test',
     )
     s3_mock.write_key.assert_has_calls(
         [

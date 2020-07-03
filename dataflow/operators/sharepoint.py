@@ -1,5 +1,3 @@
-from typing import List
-
 import requests
 from msal import ConfidentialClientApplication
 
@@ -12,7 +10,7 @@ class InvalidAuthCredentialsError(ValueError):
 
 
 def fetch_from_sharepoint_list(
-    table_name: str, site_path: List[str], list_id: str, **kwargs
+    table_name: str, sub_site_id: str, list_id: str, **kwargs
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     app = ConfidentialClientApplication(
@@ -29,9 +27,11 @@ def fetch_from_sharepoint_list(
         )
 
     tenant = DIT_SHAREPOINT_CREDENTIALS["tenant_domain"]
-    full_site_path = f':/sites/{":/sites/".join(site_path)}'
+    full_path = (
+        f':/sites/{DIT_SHAREPOINT_CREDENTIALS["site_name"]}:/sites/{sub_site_id}'
+    )
     response = requests.get(
-        f'https://graph.microsoft.com/v1.0/sites/{tenant}{full_site_path}/lists/{list_id}',
+        f'https://graph.microsoft.com/v1.0/sites/{tenant}{full_path}/lists/{list_id}',
         params={'expand': 'columns,items(expand=fields)'},
         headers={'Authorization': f'Bearer {token_response["access_token"]}'},
     )
