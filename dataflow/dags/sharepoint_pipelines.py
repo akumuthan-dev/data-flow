@@ -26,6 +26,7 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
     list_id = '7b861c2a-e536-4ffe-8c40-c926955a9f49'
     allow_null_columns = True
     table_config = TableConfig(
+        schema='dit',
         table_name='information_asset_register',
         field_mapping=[
             ('ID', sa.Column('id', sa.String)),
@@ -103,6 +104,7 @@ class PublicInformationAssetRegisterPipeline(_SharepointPipeline):
     list_id = '5ea54279-98c9-4902-a820-008fd5fbc5b7'
     allow_null_columns = True
     table_config = TableConfig(
+        schema='dit',
         table_name='public_information_asset_register',
         field_mapping=[
             ('#', sa.Column('id', sa.String)),
