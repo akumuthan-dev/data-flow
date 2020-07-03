@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-07-02
 
+### Added
+
+- New data hub dataset for company referrals
+
 ### Changed
 
 - Install wheel before requirements file to fix circle ci build issue
@@ -16,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Changed People Finder pipeline to support new/updated fields
+
 ## 2020-07-01
 
 ### Changed
