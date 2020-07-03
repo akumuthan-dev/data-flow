@@ -2,6 +2,7 @@ import codecs
 import csv
 import io
 import zipfile
+from datetime import datetime
 
 import backoff
 import requests
@@ -36,11 +37,12 @@ def fetch_companies_house_companies(
     s3 = S3Data(table_name, kwargs['ts_nodash'])
     page = 1
     results = []
+    publish_date = datetime(
+        kwargs['next_execution_date'].year, kwargs['next_execution_date'].month, 1
+    ).strftime('%Y-%m-01')
     for file_num in range(1, number_of_files + 1):
         url = source_url.format(
-            file_date=kwargs['next_execution_date'].strftime('%Y-%m-01'),
-            file_num=file_num,
-            num_files=number_of_files,
+            file_date=publish_date, file_num=file_num, num_files=number_of_files,
         )
         logger.info(f'Fetching zip file from {url}')
         with zipfile.ZipFile(io.BytesIO(_download(url))) as archive:
@@ -49,6 +51,7 @@ def fetch_companies_house_companies(
                 if reader.fieldnames is not None:
                     reader.fieldnames = [x.strip() for x in reader.fieldnames]
                 for row in reader:
+                    row['publish_date'] = publish_date
                     results.append(row)
                     if len(results) >= page_size:
                         s3.write_key(f'{page:010}.json', results)

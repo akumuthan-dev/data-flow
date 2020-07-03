@@ -124,6 +124,7 @@ class CompaniesHouseCompaniesPipeline(_PipelineDAG):
                 'ConfStmtLastMadeUpDate',
                 sa.Column('conf_statement_last_made_up_date', sa.String),
             ),
+            ('publish_date', sa.Column('publish_date', sa.Date)),
         ],
     )
 
