@@ -46,9 +46,24 @@ def test_fetch_companies(mocker, requests_mock):
             mock.call(
                 '0000000001.json',
                 [
-                    {'field1': 'text1', 'field2': '010121000', 'field3': '00150'},
-                    {'field1': 'text2', 'field2': '010121000', 'field3': '00150'},
-                    {'field1': 'text3', 'field2': '010121000', 'field3': '00150'},
+                    {
+                        'field1': 'text1',
+                        'field2': '010121000',
+                        'field3': '00150',
+                        'publish_date': '2020-01-01',
+                    },
+                    {
+                        'field1': 'text2',
+                        'field2': '010121000',
+                        'field3': '00150',
+                        'publish_date': '2020-01-01',
+                    },
+                    {
+                        'field1': 'text3',
+                        'field2': '010121000',
+                        'field3': '00150',
+                        'publish_date': '2020-01-01',
+                    },
                 ],
             ),
             mock.call(
@@ -58,8 +73,14 @@ def test_fetch_companies(mocker, requests_mock):
                         'field1': 'text3',
                         'field2': '000000000',
                         'field3': '0000000195241',
+                        'publish_date': '2020-01-01',
                     },
-                    {'field1': 'text4', 'field2': '999999999', 'field3': '00000'},
+                    {
+                        'field1': 'text4',
+                        'field2': '999999999',
+                        'field3': '00000',
+                        'publish_date': '2020-01-01',
+                    },
                 ],
             ),
         ]
