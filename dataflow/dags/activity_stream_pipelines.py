@@ -437,3 +437,27 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
     )
 
     query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case:change"}}]}}
+
+
+class StaffSSOUsersPipeline(_ActivityStreamPipeline):
+    name = "staff-sso-users"
+    index = "objects"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="staff_sso__users",
+        field_mapping=[
+            (
+                "dit:StaffSSO:User:userId",
+                sa.Column("user_id", UUID(as_uuid=True), primary_key=True),
+            ),
+            ("dit:emailAddress", sa.Column("email", sa.ARRAY(sa.String), index=True)),
+            (
+                "dit:StaffSSO:User:contactEmailAddress",
+                sa.Column("contact_email", sa.String, index=True),
+            ),
+            ("dit:firstName", sa.Column("first_name", sa.String)),
+            ("dit:lastName", sa.Column("last_name", sa.String)),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"type": "dit:StaffSSO:User"}}]}}
