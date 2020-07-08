@@ -51,7 +51,7 @@ FROM (
         og_direction,
         norm_total as trade_value,
         og_unit,
-        og_marker AS marker
+        norm_marker AS marker
     FROM ons__uk_sa_trade_in_goods
     UNION (
         SELECT
@@ -178,7 +178,7 @@ FROM (
         og_product_name as product_name,
         norm_total as trade_value,
         og_unit as unit,
-        og_marker as marker
+        norm_marker as marker
     FROM ons__uk_trade_in_services_by_country_nsa
     UNION (
         SELECT
@@ -239,7 +239,7 @@ FROM (
         og_product_name as product_name,
         norm_total as total,
         og_unit as unit,
-        og_marker as marker
+        norm_marker as marker
     FROM ons__uk_total_trade_all_countries_nsa
     UNION (
         SELECT
@@ -354,7 +354,7 @@ WITH all_rows_plus_balances AS (
            unnest(array[imports_t.og_direction, exports_t.og_direction, 'trade balance', 'total trade']) AS direction,
            unnest(array[imports_t.norm_total, exports_t.norm_total, exports_t.norm_total - imports_t.norm_total, exports_t.norm_total + imports_t.norm_total]) AS total,
            imports_t.og_unit as unit,
-           unnest(array[imports_t.og_marker, exports_t.og_marker, 'derived', 'derived']) AS marker
+           unnest(array[imports_t.norm_marker, exports_t.norm_marker, 'derived', 'derived']) AS marker
     FROM ons__uk_trade_goods_by_country_commodity AS imports_t
     JOIN ons__uk_trade_goods_by_country_commodity AS exports_t ON imports_t.og_ons_iso_alpha_2_code = exports_t.og_ons_iso_alpha_2_code AND imports_t.og_product_code = exports_t.og_product_code AND imports_t.og_period = exports_t.og_period AND imports_t.og_direction = 'imports' AND exports_t.og_direction = 'exports'
 ),

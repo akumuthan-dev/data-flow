@@ -9,6 +9,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.ons import fetch_from_ons_sparql
+from dataflow.transforms import transform_ons_marker_field
 from dataflow.utils import TableConfig
 
 
@@ -34,7 +35,11 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
                 "norm_period_type": "year"
                 if len(record["period"]["value"]) == 4
                 else "month",
+                "norm_total": int(float(record["total"]["value"]))
+                if "total" in record
+                else None,
             },
+            transform_ons_marker_field,
         ],
         field_mapping=[
             (
@@ -53,9 +58,10 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
             (("norm_period_type"), sa.Column("norm_period_type", sa.String)),
             (("direction", "value"), sa.Column("og_direction", sa.String)),
             (("total", "value"), sa.Column("og_total", sa.String)),
-            (("total", "value"), sa.Column("norm_total", sa.Numeric)),
+            ("norm_total", sa.Column("norm_total", sa.Integer)),
             (("unit", "value"), sa.Column("og_unit", sa.String)),
             (("marker", "value"), sa.Column("og_marker", sa.String)),
+            ("norm_marker", sa.Column("norm_marker", sa.String)),
         ],
     )
 
