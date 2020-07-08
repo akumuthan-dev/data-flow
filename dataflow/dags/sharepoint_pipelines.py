@@ -1,16 +1,19 @@
 """A module that defines Airflow DAGS for sharepoint pipelines."""
+from typing import Optional
+
 import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
 
+from dataflow import config
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.sharepoint import fetch_from_sharepoint_list
 from dataflow.utils import TableConfig
 
 
 class _SharepointPipeline(_PipelineDAG):
-    sub_site_id: str
-    list_id: str
+    sub_site_id: Optional[str]
+    list_id: Optional[str]
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -22,8 +25,8 @@ class _SharepointPipeline(_PipelineDAG):
 
 
 class InformationAssetRegisterPipeline(_SharepointPipeline):
-    sub_site_id = '12379a42-3eff-442a-9929-d912cf194c86'
-    list_id = '7b861c2a-e536-4ffe-8c40-c926955a9f49'
+    sub_site_id = config.SHAREPOINT_KIM_SITE_ID
+    list_id = config.SHAREPOINT_IAR_LIST_ID
     allow_null_columns = True
     table_config = TableConfig(
         schema='dit',
@@ -100,8 +103,8 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
 
 
 class PublicInformationAssetRegisterPipeline(_SharepointPipeline):
-    sub_site_id = '12379a42-3eff-442a-9929-d912cf194c86'
-    list_id = '5ea54279-98c9-4902-a820-008fd5fbc5b7'
+    sub_site_id = config.SHAREPOINT_KIM_SITE_ID
+    list_id = config.SHAREPOINT_PUBLIC_IAR_LIST_ID
     allow_null_columns = True
     table_config = TableConfig(
         schema='dit',
