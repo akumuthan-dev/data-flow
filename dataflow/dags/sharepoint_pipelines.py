@@ -100,20 +100,3 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
             ('Path', sa.Column('path', sa.String)),
         ],
     )
-
-
-class PublicInformationAssetRegisterPipeline(_SharepointPipeline):
-    sub_site_id = config.SHAREPOINT_KIM_SITE_ID
-    list_id = config.SHAREPOINT_PUBLIC_IAR_LIST_ID
-    allow_null_columns = True
-    table_config = TableConfig(
-        schema='dit',
-        table_name='public_information_asset_register',
-        field_mapping=[
-            ('#', sa.Column('id', sa.String)),
-            ('Information Asset', sa.Column('information_asset', sa.String)),
-            ('Description', sa.Column('description', sa.String)),
-            ('Item Type', sa.Column('item_type', sa.String)),
-            ('Path', sa.Column('path', sa.String)),
-        ],
-    )
