@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Remove public information asset register DAG
 
+### Changed
+
+- Update fdi dashboard pipeline to take into account stage and status of projects
+
 ## 2020-07-03
 
 ### Added
