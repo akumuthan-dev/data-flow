@@ -39,16 +39,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Removed People Finder CSV pipeline (this will be handled as data cuts in Data Workspace instead)
 
+## 2020-06-30
+
+### Changed
+
+- Update sharepoint iar pipelines to take into account prod site layout
+
 ## 2020-06-29
 
 ### Changed
 
 - Remove field `dumping_margin_applies` from global tariff dataset
-
-## 2020-06-29
-
-### Changed
-
 - New field `cet_applies_until_trade_remedy_transition_reviews_concluded` added to tariff dataset
 
 ## 2020-06-26

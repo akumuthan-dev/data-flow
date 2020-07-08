@@ -1,31 +1,35 @@
 """A module that defines Airflow DAGS for sharepoint pipelines."""
+from typing import Optional
+
 import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
 
+from dataflow import config
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.sharepoint import fetch_from_sharepoint_list
 from dataflow.utils import TableConfig
 
 
 class _SharepointPipeline(_PipelineDAG):
-    site_name: str
-    list_name: str
+    sub_site_id: Optional[str]
+    list_id: Optional[str]
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='run-fetch',
             python_callable=fetch_from_sharepoint_list,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.site_name, self.list_name],
+            op_args=[self.table_config.table_name, self.sub_site_id, self.list_id],
         )
 
 
 class InformationAssetRegisterPipeline(_SharepointPipeline):
-    site_name = 'DataWorkspaceIntegrationTesting'
-    list_name = 'Information Asset Register'
+    sub_site_id = config.SHAREPOINT_KIM_SITE_ID
+    list_id = config.SHAREPOINT_IAR_LIST_ID
     allow_null_columns = True
     table_config = TableConfig(
+        schema='dit',
         table_name='information_asset_register',
         field_mapping=[
             ('ID', sa.Column('id', sa.String)),
@@ -47,12 +51,11 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
             ('Asset Format', sa.Column('asset_format', sa.String)),
             ('Who has access?', sa.Column('who_has_access', sa.String)),
             ('Who is it shared with?', sa.Column('who_is_it_shared_with', sa.String)),
-            ('Location', sa.Column('location', sa.String)),
             ('Date the asset was created', sa.Column('date_asset_created', sa.Date),),
             ('Retention Period', sa.Column('retention_period', sa.String)),
             (
                 'Is a sharing agreement in place?',
-                sa.Column('is_sharing_agreement_in_place', sa.Boolean),
+                sa.Column('is_sharing_agreement_in_place', sa.String),
             ),
             ('Sharing agreement link', sa.Column('sharing_agreement_link', sa.String)),
             (
@@ -85,11 +88,6 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
             ('IAM Approved', sa.Column('is_iam_approved', sa.Date)),
             ('KIM Validated', sa.Column('is_kim_validated', sa.Date)),
             ('IAO Approved', sa.Column('is_iao_approved', sa.Date)),
-            ('Public IAR entry', sa.Column('public_iar_entry', sa.String)),
-            (
-                'Public IAR entry:Information Asset',
-                sa.Column('public_iar_entry_information_asset', sa.String),
-            ),
             ('Next Review Deadline', sa.Column('next_review_deadline', sa.Date)),
             ('Modified', sa.Column('modified', sa.DateTime)),
             (('lastModifiedBy', 'email'), sa.Column('modified_by', sa.String)),
@@ -105,9 +103,11 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
 
 
 class PublicInformationAssetRegisterPipeline(_SharepointPipeline):
-    site_name = 'DataWorkspaceIntegrationTesting'
-    list_name = 'Public Information Asset Register'
+    sub_site_id = config.SHAREPOINT_KIM_SITE_ID
+    list_id = config.SHAREPOINT_PUBLIC_IAR_LIST_ID
+    allow_null_columns = True
     table_config = TableConfig(
+        schema='dit',
         table_name='public_information_asset_register',
         field_mapping=[
             ('#', sa.Column('id', sa.String)),
