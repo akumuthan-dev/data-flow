@@ -39,64 +39,62 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
     table_config = TableConfig(
         table_name="fdi_dashboard_data",
         field_mapping=[
-            ("actual_land_date", sa.Column("actual_land_date", sa.Date)),
-            ("actual_uk_regions", sa.Column("actual_uk_regions", sa.ARRAY(sa.Text))),
-            ("id", sa.Column("id", UUID, primary_key=True)),
-            ("estimated_land_date", sa.Column("estimated_land_date", sa.Date)),
-            ("investment_type", sa.Column("investment_type", sa.Text)),
-            ("level_of_involvement", sa.Column("level_of_involvement", sa.Text)),
-            ("number_new_jobs", sa.Column("number_new_jobs", sa.Integer)),
+            ('fdi_value', sa.Column('fdi_value', sa.Text)),
+            ('id', sa.Column('id', UUID, primary_key=True)),
             (
-                "number_safeguarded_jobs",
-                sa.Column("number_safeguarded_jobs", sa.Integer),
+                'investor_company_country',
+                sa.Column('investor_company_country', sa.String),
             ),
+            ('number_new_jobs', sa.Column('number_new_jobs', sa.Integer)),
             (
-                "possible_uk_regions",
-                sa.Column("possible_uk_regions", sa.ARRAY(sa.Text)),
+                'number_safeguarded_jobs',
+                sa.Column('number_safeguarded_jobs', sa.Integer),
             ),
-            ("fdi_value", sa.Column("fdi_value", sa.Text)),
-            ("project_reference", sa.Column("project_reference", sa.Text)),
-            (
-                "investor_company_sector",
-                sa.Column("investor_company_sector", sa.String),
-            ),
-            ("stage", sa.Column("stage", sa.Text)),
-            ("status", sa.Column("status", sa.Text)),
-            (
-                "foreign_equity_investment",
-                sa.Column("foreign_equity_investment", sa.Float),
-            ),
-            ("address_postcode", sa.Column("address_postcode", sa.String)),
-            ("investor_company_id", sa.Column("investor_company_id", UUID)),
-            ("address_country", sa.Column("address_country", sa.String)),
+            ('overseas_region', sa.Column('overseas_region', sa.String)),
+            ('project_end_date', sa.Column('project_end_date', sa.Date)),
+            ('project_link', sa.Column('project_link', sa.String)),
+            ('project_reference', sa.Column('project_reference', sa.String)),
+            ('project_sector', sa.Column('project_sector', sa.String)),
+            ('sector_cluster', sa.Column('sector_cluster', sa.String)),
+            ('stage', sa.Column('stage', sa.String)),
+            ('status', sa.Column('status', sa.String)),
+            ('total_investment', sa.Column('total_investment', sa.Numeric)),
         ],
     )
     query = '''
         SELECT
-          investment_projects_dataset.actual_land_date,
-          investment_projects_dataset.actual_uk_regions,
-          investment_projects_dataset.id,
-          investment_projects_dataset.estimated_land_date,
-          investment_projects_dataset.investment_type,
-          investment_projects_dataset.level_of_involvement,
-          investment_projects_dataset.number_new_jobs,
-          investment_projects_dataset.number_safeguarded_jobs,
-          investment_projects_dataset.possible_uk_regions,
-          investment_projects_dataset.fdi_value,
-          investment_projects_dataset.project_reference,
-          investment_projects_dataset.investor_company_sector,
-          investment_projects_dataset.stage,
-          investment_projects_dataset.status,
-          investment_projects_dataset.foreign_equity_investment,
-          investment_projects_dataset.address_postcode,
-          investment_projects_dataset.investor_company_id,
-          address_country
+            investment_projects_dataset.id,
+            investment_projects_dataset.project_reference,
+            CONCAT('https://datahub.trade.gov.uk/investments/projects/', investment_projects_dataset.id, '/details') AS project_link,
+            investment_projects_dataset.total_investment,
+            investment_projects_dataset.number_new_jobs,
+            investment_projects_dataset.number_safeguarded_jobs,
+            investment_projects_dataset.stage,
+            investment_projects_dataset.status::TEXT,
+            investment_projects_dataset.fdi_value,
+            companies_dataset.address_country::TEXT AS investor_company_country,
+            ref_hmtc_overseas_regions.overseas_region_name::TEXT as overseas_region,
+            SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
+            ref_dit_sectors.field_03::TEXT AS sector_cluster,
+            CASE
+                WHEN investment_projects_dataset.stage IN ('Prospect', 'Assign PM', 'Active')
+                THEN investment_projects_dataset.estimated_land_date
+                ELSE investment_projects_dataset.actual_land_date
+            END AS project_end_date
         FROM investment_projects_dataset
         JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
-        WHERE investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
-        AND investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
+        LEFT JOIN ref_countries_and_territories ON ref_countries_and_territories.country_or_territory_name = companies_dataset.address_country
+        LEFT JOIN ref_countries_territories_overseas_regions ON ref_countries_territories_overseas_regions.field_02_id = ref_countries_and_territories.id
+        LEFT JOIN ref_hmtc_overseas_regions ON ref_hmtc_overseas_regions.id = ref_countries_territories_overseas_regions.field_03_id
+        WHERE (
+            investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+            OR
+            investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+        )
         AND investment_projects_dataset.investment_type = 'FDI'
-        AND investment_projects_dataset.status = 'ongoing'
+        AND investment_projects_dataset.level_of_involvement != 'No Involvement'
+        AND (investment_projects_dataset.status = 'ongoing' OR investment_projects_dataset.status = 'won')
     '''
 
 
