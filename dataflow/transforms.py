@@ -24,7 +24,7 @@ def drop_empty_string_fields(
 
 def transform_ons_marker_field(
     record: dict, table_config: TableConfig, contexts: Tuple[Dict, ...]
-) -> Optional[dict]:
+) -> dict:
     """
     Formats the ons trade marker field for consumption by analysts, specifically:
 
