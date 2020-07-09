@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Remove public information asset register DAG
+- New data set for Staff SSO users
 
 ### Changed
 
