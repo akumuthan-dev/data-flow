@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.db_tables import insert_csv_data_into_db
 from dataflow.operators.ons import run_ipython_ons_extraction
+from dataflow.transforms import transform_ons_marker_field
 from dataflow.utils import TableConfig
 
 
@@ -41,9 +42,11 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
                 **record,
                 "norm_period": record["Period"].split("/")[1],
                 "norm_period_type": record["Period"].split("/")[0],
-                "norm_total": record["Value"]
-                or None,  # Convert redacted values ('') to Nones (NULL in DB).
+                "norm_total": int(float(record["Value"]))
+                if "Value" in record and record["Value"] != ""
+                else None,  # Convert redacted values ('') to Nones (NULL in DB)
             },
+            transform_ons_marker_field,
         ],
         field_mapping=[
             (
@@ -62,9 +65,10 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
             ("Trade Services Code", sa.Column("og_product_code", sa.String)),
             ("Trade Services Name", sa.Column("og_product_name", sa.String)),
             ("Value", sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Numeric)),
+            ("norm_total", sa.Column("norm_total", sa.Integer)),
             ("Unit", sa.Column("og_unit", sa.String)),
             ("Marker", sa.Column("og_marker", sa.String)),
+            ("norm_marker", sa.Column("norm_marker", sa.String)),
         ],
     )
 
@@ -82,9 +86,11 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
                 **record,
                 "norm_period": record["Period"].split("/")[1],
                 "norm_period_type": record["Period"].split("/")[0],
-                "norm_total": record["Value"]
-                or None,  # Convert redacted values ('') to Nones (NULL in DB).
+                "norm_total": int(float(record["Value"]))
+                if "Value" in record and record["Value"] != ""
+                else None,  # Convert redacted values ('') to Nones (NULL in DB)
             },
+            transform_ons_marker_field,
         ],
         field_mapping=[
             (
@@ -102,9 +108,10 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
             ("norm_period_type", sa.Column("norm_period_type", sa.String)),
             ("Flow", sa.Column("og_direction", sa.String)),
             ("Value", sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Numeric)),
+            ("norm_total", sa.Column("norm_total", sa.Integer)),
             ("Unit", sa.Column("og_unit", sa.String)),
             ("Marker", sa.Column("og_marker", sa.String)),
+            ("norm_marker", sa.Column("norm_marker", sa.String)),
         ],
     )
 
@@ -122,9 +129,11 @@ class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
                 **record,
                 "norm_period": record["Period"].split("/")[1],
                 "norm_period_type": record["Period"].split("/")[0],
-                "norm_total": record["Value"]
-                or None,  # Convert redacted values ('') to Nones (NULL in DB).
+                "norm_total": int(float(record["Value"]))
+                if "Value" in record and record["Value"] != ""
+                else None,  # Convert redacted values ('') to Nones (NULL in DB)
             },
+            transform_ons_marker_field,
         ],
         field_mapping=[
             (
@@ -143,9 +152,10 @@ class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
             ("norm_period_type", sa.Column("norm_period_type", sa.String)),
             ("Flow", sa.Column("og_direction", sa.String)),
             ("Value", sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Numeric)),
+            ("norm_total", sa.Column("norm_total", sa.BigInteger)),
             ("Unit", sa.Column("og_unit", sa.String)),
             ("Marker", sa.Column("og_marker", sa.String)),
+            ("norm_marker", sa.Column("norm_marker", sa.String)),
         ],
     )
 

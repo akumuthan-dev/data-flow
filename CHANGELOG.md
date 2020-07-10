@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-07-09
+
+### Changed
+
+- Updates to normalised fields across ons datasets
+    - Normalise totals fields to int as all values are rounded to millions
+    - Replace empty strings with nulls on marker fields
+    - Replace 'N/A' and 'not-applicable' with 'not-available' on marker fields
+
 ## 2020-07-08
 
 ### Added

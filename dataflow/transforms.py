@@ -20,3 +20,29 @@ def drop_empty_string_fields(
         return obj
 
     return _drop_keys_with_empty_string_values(record)
+
+
+def transform_ons_marker_field(
+    record: dict, table_config: TableConfig, contexts: Tuple[Dict, ...]
+) -> dict:
+    """
+    Formats the ons trade marker field for consumption by analysts, specifically:
+
+    1. transform empty string to null
+    2. replaces 'not-applicable' with 'not-available'
+    """
+    marker = None
+    if 'marker' in record:
+        marker = record['marker']['value']
+    elif 'Marker' in record:
+        marker = record['Marker']
+
+    if marker == '':
+        marker = None
+    elif marker == 'not-applicable' or marker == 'N/A':
+        marker = 'not-available'
+
+    return {
+        **record,
+        'norm_marker': marker,
+    }
