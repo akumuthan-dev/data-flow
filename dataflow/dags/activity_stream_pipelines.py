@@ -457,6 +457,7 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
             ),
             ("dit:firstName", sa.Column("first_name", sa.String)),
             ("dit:lastName", sa.Column("last_name", sa.String)),
+            ("dit:StaffSSO:User:lastAccessed", sa.Column("last_accessed", sa.DateTime)),
         ],
     )
 
