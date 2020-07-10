@@ -152,7 +152,7 @@ class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
             ("norm_period_type", sa.Column("norm_period_type", sa.String)),
             ("Flow", sa.Column("og_direction", sa.String)),
             ("Value", sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Integer)),
+            ("norm_total", sa.Column("norm_total", sa.BigInteger)),
             ("Unit", sa.Column("og_unit", sa.String)),
             ("Marker", sa.Column("og_marker", sa.String)),
             ("norm_marker", sa.Column("norm_marker", sa.String)),
