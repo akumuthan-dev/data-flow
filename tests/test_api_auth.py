@@ -24,7 +24,7 @@ def test_invalid_hawk_id(mocker):
     mocker.patch.object(
         api_auth_backend.config,
         'AIRFLOW_API_HAWK_CREDENTIALS',
-        ((TEST_CLIENT_ID, TEST_CLIENT_KEY),),
+        {TEST_CLIENT_ID: TEST_CLIENT_KEY},
     )
     credentials = {'id': 'invalid-id', 'key': TEST_CLIENT_KEY, 'algorithm': 'sha256'}
     sender = mohawk.Sender(
@@ -43,7 +43,7 @@ def test_invalid_hawk_key(mocker):
     mocker.patch.object(
         api_auth_backend.config,
         'AIRFLOW_API_HAWK_CREDENTIALS',
-        ((TEST_CLIENT_ID, TEST_CLIENT_KEY),),
+        {TEST_CLIENT_ID: TEST_CLIENT_KEY},
     )
     credentials = {'id': TEST_CLIENT_ID, 'key': 'invalid-key', 'algorithm': 'sha256'}
     sender = mohawk.Sender(
@@ -61,7 +61,7 @@ def test_valid_credentials(mocker):
     mocker.patch.object(
         api_auth_backend.config,
         'AIRFLOW_API_HAWK_CREDENTIALS',
-        ((TEST_CLIENT_ID, TEST_CLIENT_KEY),),
+        {TEST_CLIENT_ID: TEST_CLIENT_KEY},
     )
     credentials = {'id': TEST_CLIENT_ID, 'key': TEST_CLIENT_KEY, 'algorithm': 'sha256'}
     sender = mohawk.Sender(

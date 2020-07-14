@@ -27,11 +27,10 @@ def lookup_credentials(sender_id):
     """
     Look up hawk credentials from data flow config
     """
-    allowed_senders = {x[0]: x[1] for x in config.AIRFLOW_API_HAWK_CREDENTIALS}
-    if sender_id in allowed_senders:
+    if sender_id in config.AIRFLOW_API_HAWK_CREDENTIALS:
         return {
             'id': sender_id,
-            'key': allowed_senders[sender_id],
+            'key': config.AIRFLOW_API_HAWK_CREDENTIALS[sender_id],
             'algorithm': 'sha256',
         }
 
