@@ -5,6 +5,7 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Install requirements
           command: |
@@ -18,7 +19,12 @@ jobs:
             . venv/bin/activate
             make check
       - run:
-          name: Run tests
+          name: Run unit tests
           command: |
             . venv/bin/activate
             make test
+      - run:
+          name: Run integration tests
+          command: |
+            . venv/bin/activate
+            make test-integration

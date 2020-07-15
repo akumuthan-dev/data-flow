@@ -1,0 +1,23 @@
+version: '3.4'
+
+services:
+  data-flow-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: data-flow-test
+    env_file: .env.test
+    links:
+      - "data-flow-db-test"
+
+  data-flow-db-test:
+    build:
+      context: .
+      dockerfile: ./postgres/Dockerfile
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+
