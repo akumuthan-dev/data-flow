@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-07-14
+
+### Added
+
+- Ensure fdi projects with estimated or actual land dates are included in fdi dashboard query
+
 ## 2020-07-10
 
 ### Added

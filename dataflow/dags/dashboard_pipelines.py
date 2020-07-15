@@ -51,7 +51,7 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
                 sa.Column('number_safeguarded_jobs', sa.Integer),
             ),
             ('overseas_region', sa.Column('overseas_region', sa.String)),
-            ('project_end_date', sa.Column('project_end_date', sa.Date)),
+            ('project_land_date', sa.Column('project_land_date', sa.Date)),
             ('project_link', sa.Column('project_link', sa.String)),
             ('project_reference', sa.Column('project_reference', sa.String)),
             ('project_sector', sa.Column('project_sector', sa.String)),
@@ -62,39 +62,42 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
         ],
     )
     query = '''
+        WITH projects_with_single_land_date AS (
+            SELECT
+                investment_projects_dataset.*,
+                CASE
+                    WHEN investment_projects_dataset.stage IN ('Prospect', 'Assign PM', 'Active')
+                        THEN investment_projects_dataset.estimated_land_date
+                    ELSE investment_projects_dataset.actual_land_date
+                END AS project_land_date
+            FROM investment_projects_dataset
+        )
         SELECT
-            investment_projects_dataset.id,
-            investment_projects_dataset.project_reference,
-            CONCAT('https://datahub.trade.gov.uk/investments/projects/', investment_projects_dataset.id, '/details') AS project_link,
-            investment_projects_dataset.total_investment,
-            investment_projects_dataset.number_new_jobs,
-            investment_projects_dataset.number_safeguarded_jobs,
-            investment_projects_dataset.stage,
-            investment_projects_dataset.status::TEXT,
-            investment_projects_dataset.fdi_value,
+            projects_with_single_land_date.id,
+            projects_with_single_land_date.project_reference,
+            CONCAT('https://datahub.trade.gov.uk/investments/projects/', projects_with_single_land_date.id, '/details') AS project_link,
+            projects_with_single_land_date.total_investment,
+            projects_with_single_land_date.number_new_jobs,
+            projects_with_single_land_date.number_safeguarded_jobs,
+            projects_with_single_land_date.stage,
+            projects_with_single_land_date.status::TEXT,
+            projects_with_single_land_date.fdi_value,
             companies_dataset.address_country::TEXT AS investor_company_country,
-            ref_hmtc_overseas_regions.overseas_region_name::TEXT as overseas_region,
-            SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
+            ref_hmtc_overseas_regions.overseas_region_name::TEXT AS overseas_region,
+            SPLIT_PART(projects_with_single_land_date.sector, ' : ', 1) AS project_sector,
             ref_dit_sectors.field_03::TEXT AS sector_cluster,
-            CASE
-                WHEN investment_projects_dataset.stage IN ('Prospect', 'Assign PM', 'Active')
-                THEN investment_projects_dataset.estimated_land_date
-                ELSE investment_projects_dataset.actual_land_date
-            END AS project_end_date
-        FROM investment_projects_dataset
-        JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
-        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
+            projects_with_single_land_date.project_land_date
+        FROM projects_with_single_land_date
+        JOIN companies_dataset ON companies_dataset.id = projects_with_single_land_date.investor_company_id
+        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = projects_with_single_land_date.sector
         LEFT JOIN ref_countries_and_territories ON ref_countries_and_territories.country_or_territory_name = companies_dataset.address_country
         LEFT JOIN ref_countries_territories_overseas_regions ON ref_countries_territories_overseas_regions.field_02_id = ref_countries_and_territories.id
         LEFT JOIN ref_hmtc_overseas_regions ON ref_hmtc_overseas_regions.id = ref_countries_territories_overseas_regions.field_03_id
-        WHERE (
-            investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
-            OR
-            investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
-        )
-        AND investment_projects_dataset.investment_type = 'FDI'
-        AND investment_projects_dataset.level_of_involvement != 'No Involvement'
-        AND (investment_projects_dataset.status = 'ongoing' OR investment_projects_dataset.status = 'won')
+        WHERE projects_with_single_land_date.project_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+        AND projects_with_single_land_date.investment_type = 'FDI'
+        AND projects_with_single_land_date.level_of_involvement != 'No Involvement'
+        AND (projects_with_single_land_date.status = 'ongoing' OR projects_with_single_land_date.status = 'won')
+
     '''
 
 
