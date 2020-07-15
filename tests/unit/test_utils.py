@@ -17,6 +17,7 @@ from dataflow.utils import TableConfig
         ("e", True, 5),
         (("e",), True, 5),
         (("a", "b", "c"), True, 1),
+        (("a", lambda data: data['b'], "c"), True, 1),
         (("a", "l", 0), True, 2),
         ("f", False, None),
         (("g", "h", "i"), False, None),
