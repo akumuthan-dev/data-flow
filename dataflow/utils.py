@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from itertools import chain
 from json import JSONEncoder
-from typing import Any, Tuple, Union, Iterable, Dict, Optional, Sequence
+from typing import Any, Tuple, Union, Iterable, Dict, Optional, Sequence, Callable, List
 
 import backoff
 import botocore.exceptions
@@ -21,13 +21,16 @@ from dataflow import config
 
 logger = logging.getLogger('dataflow')
 
+# There apparently isn't a perfect JSON type definition possible at the time of writing
+JSONType = Union[str, int, float, bool, None, Dict[str, Any], List[Any]]
+JSONGetter = Callable[[JSONType], JSONType]
 
 # This describes how a blob of data relates to our desired DB structure. This is generally just in a single table,
 # but if the response contains nested records then the FieldMapping can also include further `TableConfig` instances
 # to describe the shape of the related tables.
 FieldMapping = Sequence[
     Tuple[
-        Union[str, int, Tuple[Union[str, int], ...], None],
+        Union[str, int, Tuple[Union[str, int, JSONGetter], ...], None],
         Union[sqlalchemy.Column, "TableConfig"],
     ]
 ]
@@ -35,11 +38,14 @@ FieldMapping = Sequence[
 # The below SingleTableFieldMapping describes only a single table, so only contains columns. It should not have
 # any other `TableConfig`s.
 SingleTableFieldMapping = Sequence[
-    Tuple[Union[str, int, Tuple[Union[str, int], ...], None], sqlalchemy.Column]
+    Tuple[
+        Union[str, int, Tuple[Union[str, int, JSONGetter], ...], None],
+        sqlalchemy.Column,
+    ]
 ]
 
 TableMapping = Sequence[
-    Tuple[Union[str, int, Tuple[Union[str, int], ...], None], "TableConfig"]
+    Tuple[Union[str, int, Tuple[Union[str, int, JSONGetter], ...], None], "TableConfig"]
 ]
 
 
@@ -240,7 +246,7 @@ def get_nested_key(
 
     for key in path:
         try:
-            data = data[key]
+            data = key(data) if callable(key) else data[key]
         except (KeyError, IndexError, TypeError):
             if required:
                 raise

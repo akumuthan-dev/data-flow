@@ -1,10 +1,12 @@
+from typing import Dict, List, cast
+
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.activity_stream import fetch_from_activity_stream
-from dataflow.utils import TableConfig
+from dataflow.utils import TableConfig, JSONType
 
 
 class _ActivityStreamPipeline(_PipelineDAG):
@@ -439,6 +441,12 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
     query = {"bool": {"filter": [{"term": {"object.type": "dit:lite:case:change"}}]}}
 
 
+def staff_sso_users_get_app_names(apps: JSONType) -> JSONType:
+    # Happy with a runtime error if apps is is not a list, since the data would not
+    # be of the expected structure
+    return [app['name'] for app in cast(List[Dict[str, str]], apps)]
+
+
 class StaffSSOUsersPipeline(_ActivityStreamPipeline):
     name = "staff-sso-users"
     index = "objects"
@@ -458,6 +466,13 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
             ("dit:firstName", sa.Column("first_name", sa.String)),
             ("dit:lastName", sa.Column("last_name", sa.String)),
             ("dit:StaffSSO:User:lastAccessed", sa.Column("last_accessed", sa.DateTime)),
+            (
+                (
+                    "dit:StaffSSO:User:permittedApplications",
+                    staff_sso_users_get_app_names,
+                ),
+                sa.Column("permitted_applications", sa.ARRAY(sa.String)),
+            ),
         ],
     )
 
