@@ -23,18 +23,19 @@ def test_no_hawk_auth(auth_backend, expected_status):
         assert response.status_code == expected_status
 
 
-def test_hawk_auth(mocker):
+@pytest.mark.parametrize(
+    'key, expected_status', (('validkey', 200), ('invalidkey', 401),),
+)
+def test_hawk_auth(key, expected_status, mocker):
     os.environ['AIRFLOW__API__AUTH_BACKEND'] = 'dataflow.api_auth_backend'
     url = 'http://0.0.0.0:8000/api/experimental/test'
-    hawk_id = 'hawktest'
-    hawk_key = 'testkey'
     mocker.patch.object(
-        api_auth_backend.config, 'AIRFLOW_API_HAWK_CREDENTIALS', {hawk_id: hawk_key},
+        api_auth_backend.config, 'AIRFLOW_API_HAWK_CREDENTIALS', {'hawkid': 'validkey'},
     )
     app = create_app(testing=True)
     with app.test_client() as client:
         sender = mohawk.Sender(
-            credentials={'id': hawk_id, 'key': hawk_key, 'algorithm': 'sha256'},
+            credentials={'id': 'hawkid', 'key': key, 'algorithm': 'sha256'},
             url=url,
             method='GET',
             content='',
@@ -43,4 +44,4 @@ def test_hawk_auth(mocker):
         response = client.get(
             url, headers={'Authorization': sender.request_header, 'Content-Type': ''}
         )
-        assert response.status_code == 200
+        assert response.status_code == expected_status
