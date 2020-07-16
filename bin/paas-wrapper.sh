@@ -15,7 +15,7 @@ export PYTHONPATH=/app:${PYTHONPATH}
 export AIRFLOW_HOME=/home/vcap/app/airflow
 export DEBUG=False
 
-export AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.deny_all
+export AIRFLOW__API__AUTH_BACKEND=dataflow.api_auth_backend
 
 export AIRFLOW__CORE__DAGS_FOLDER=/home/vcap/app/dataflow/dags
 export AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
