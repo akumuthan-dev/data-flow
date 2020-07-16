@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Permitted applications for SSO Users
 
+### Changed
+
+- Add lead adviser details to service delivery csv pipelines
+
 ## 2020-07-15
 
 ### Added
