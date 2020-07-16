@@ -303,13 +303,16 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             events_dataset.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
-            interactions.interaction_link AS "Interaction Link"
+            interactions.interaction_link AS "Interaction Link",
+            CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
+            CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
         JOIN companies_dataset ON interactions.company_id = companies_dataset.id
         JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
+        LEFT JOIN advisers_dataset lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -479,13 +482,16 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             events_dataset.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
-            interactions.interaction_link AS "Interaction Link"
+            interactions.interaction_link AS "Interaction Link",
+            CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
+            CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
         JOIN companies_dataset ON interactions.company_id = companies_dataset.id
         JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
+        LEFT JOIN advisers_dataset lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
