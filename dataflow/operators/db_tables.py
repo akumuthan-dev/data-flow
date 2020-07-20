@@ -62,6 +62,8 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
             table = _get_temp_table(table, kwargs["ts_nodash"])
+            logger.info(f"Creating schema {table.schema} if not exists")
+            conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table.schema}")
             logger.info(f"Creating {table.name}")
             table.create(conn, checkfirst=True)
 
