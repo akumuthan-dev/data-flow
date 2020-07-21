@@ -45,6 +45,10 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             ('team_count', sa.Column('team_count', sa.Integer)),
             ('company_names', sa.Column('company_names', sa.ARRAY(sa.Text))),
             ('company_ids', sa.Column('company_ids', sa.ARRAY(sa.Text))),
+            (
+                'commercial_value_explanation',
+                sa.Column('commercial_value_explanation', sa.Text),
+            ),
         ],
     )
 
