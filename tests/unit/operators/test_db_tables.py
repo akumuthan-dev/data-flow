@@ -245,8 +245,13 @@ def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook
     connection.close.assert_called_once_with()
 
 
-def test_swap_dataset_tables(mock_db_conn, table):
+def test_swap_dataset_tables(mock_db_conn, table, mocker):
     mock_db_conn.execute().fetchall.return_value = (('testuser',),)
+    mocker.patch.object(
+        db_tables.config,
+        'DEFAULT_DATABASE_GRANTEES',
+        ['default-grantee-1', 'default-grantee-2'],
+    )
     db_tables.swap_dataset_tables("test-db", table, ts_nodash="123")
     mock_db_conn.execute.assert_has_calls(
         [
@@ -269,6 +274,12 @@ def test_swap_dataset_tables(mock_db_conn, table):
                 '''
             ),
             call('GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO testuser'),
+            call(
+                'GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO default-grantee-1'
+            ),
+            call(
+                'GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO default-grantee-2'
+            ),
         ]
     )
 

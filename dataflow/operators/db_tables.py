@@ -361,17 +361,20 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
         logger.info(f"Moving {temp_table.name} to {table.name}")
         with engine.begin() as conn:
             conn.execute("SET statement_timeout = 600000")
-            grantees = conn.execute(
-                """
+            grantees = [
+                grantee[0]
+                for grantee in conn.execute(
+                    """
                 SELECT grantee
                 FROM information_schema.role_table_grants
                 WHERE table_name='{table_name}'
                 AND privilege_type = 'SELECT'
                 AND grantor != grantee
                 """.format(
-                    table_name=engine.dialect.identifier_preparer.quote(table.name)
-                )
-            ).fetchall()
+                        table_name=engine.dialect.identifier_preparer.quote(table.name)
+                    )
+                ).fetchall()
+            ]
 
             conn.execute(
                 """
@@ -390,12 +393,12 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
                     ),
                 )
             )
-            for grantee in grantees:
+            for grantee in grantees + config.DEFAULT_DATABASE_GRANTEES:
                 conn.execute(
                     'GRANT SELECT ON {schema}.{table_name} TO {grantee}'.format(
                         schema=engine.dialect.identifier_preparer.quote(table.schema),
                         table_name=engine.dialect.identifier_preparer.quote(table.name),
-                        grantee=grantee[0],
+                        grantee=grantee,
                     )
                 )
 
