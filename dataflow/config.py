@@ -116,7 +116,7 @@ AIRFLOW_API_HAWK_CREDENTIALS = {
 }
 
 DEFAULT_DATABASE_GRANTEES = (
-    os.environ.get('DEFAULT_DATABASE_GRANTEES').split(',')
+    os.environ.get('DEFAULT_DATABASE_GRANTEES', '').split(',')
     if os.environ.get('DEFAULT_DATABASE_GRANTEES') is not None
     else []
 )
