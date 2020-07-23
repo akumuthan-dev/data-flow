@@ -22,7 +22,6 @@ class _ConsentPipeline(_PipelineDAG):
             python_callable=partial(
                 fetch_from_hawk_api,
                 hawk_credentials=config.CONSENT_HAWK_CREDENTIALS,
-                force_http=True,
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
