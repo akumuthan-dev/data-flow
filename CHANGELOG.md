@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-07-23
+
+### Changed
+
+- Disable `force_http` when making api calls to Consent Service
+
 ## 2020-07-22
 
 ### Changed
