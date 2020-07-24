@@ -5,7 +5,9 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
-from dataflow.dags.activity_stream_pipelines import GreatGOVUKExportOpportunityEnquiriesPipeline
+from dataflow.dags.activity_stream_pipelines import (
+    GreatGOVUKExportOpportunityEnquiriesPipeline,
+)
 from dataflow.dags.companies_house_pipelines import CompaniesHouseCompaniesPipeline
 from dataflow.dags.dataset_pipelines import (
     ContactsDatasetPipeline,
@@ -40,14 +42,6 @@ class _CompanyMatchingPipeline(_PipelineDAG):
     def table_name(self):
         return f'{self.controller_pipeline.table_config.table_name}_match_ids'
 
-    @classmethod
-    def fq_table_name(cls, pipeline):
-        return (
-            f'"{pipeline.table_config.schema}"'
-            f'.'
-            f'"{pipeline.table_config.table_name}"'
-        )
-
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='company-match-data',
@@ -75,8 +69,8 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
             companies.company_number as companies_house_id,
             'dit.datahub' as source,
             companies.modified_on as datetime
-        FROM {_CompanyMatchingPipeline.fq_table_name(CompaniesDatasetPipeline)} companies
-        LEFT JOIN {_CompanyMatchingPipeline.fq_table_name(ContactsDatasetPipeline)} contacts
+        FROM {CompaniesDatasetPipeline.fq_table_name()} companies
+        LEFT JOIN {ContactsDatasetPipeline.fq_table_name()} contacts
         ON contacts.company_id = companies.id
         ORDER BY companies.id asc, companies.modified_on desc
     """
@@ -95,7 +89,7 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
             null as companies_house_id,
             'dit.export-wins' as source,
             created::timestamp as datetime
-        FROM {_CompanyMatchingPipeline.fq_table_name(ExportWinsWinsDatasetPipeline)}
+        FROM {ExportWinsWinsDatasetPipeline.fq_table_name()}
         ORDER BY id asc, created::timestamp desc
     """
 
@@ -114,7 +108,7 @@ class GreatGOVUKExportOpportunityEnquiriesMatchingPipeline(_CompanyMatchingPipel
             company_number as companies_house_id,
             'dit.export-opps-enquiries' as source,
             published as datetime
-        FROM {_CompanyMatchingPipeline.fq_table_name(GreatGOVUKExportOpportunityEnquiriesPipeline)}
+        FROM {GreatGOVUKExportOpportunityEnquiriesPipeline.fq_table_name()}
         ORDER BY id asc, published desc
     """
 
@@ -132,6 +126,6 @@ class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
             company_number as companies_house_id,
             'companies_house.companies' as source,
             publish_date::timestamp as datetime
-        FROM {_CompanyMatchingPipeline.fq_table_name(CompaniesHouseCompaniesPipeline)}
+        FROM {CompaniesHouseCompaniesPipeline.fq_table_name()}
         ORDER BY id asc, publish_date::timestamp desc
     """

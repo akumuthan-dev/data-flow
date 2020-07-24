@@ -285,17 +285,34 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
             ("iso_3166_2_code", sa.Column("iso_3166_2_code", sa.String)),
             ("census_fips_code", sa.Column("census_fips_code", sa.String)),
             ("date", sa.Column("date", sa.Date)),
-            ("retail_and_recreation_percent_change_from_baseline",
-                sa.Column("retail_and_recreation_percent_change_from_baseline", sa.Numeric)),
-            ("grocery_and_pharmacy_percent_change_from_baseline",
-                sa.Column("grocery_and_pharmacy_percent_change_from_baseline", sa.Numeric)),
-            ("parks_percent_change_from_baseline", sa.Column("parks_percent_change_from_baseline", sa.Numeric)),
-            ("transit_stations_percent_change_from_baseline",
-                sa.Column("transit_stations_percent_change_from_baseline", sa.Numeric)),
-            ("workplaces_percent_change_from_baseline",
-                sa.Column("workplaces_percent_change_from_baseline", sa.Numeric)),
-            ("residential_percent_change_from_baseline",
-                sa.Column("residential_percent_change_from_baseline", sa.Numeric)),
+            (
+                "retail_and_recreation_percent_change_from_baseline",
+                sa.Column(
+                    "retail_and_recreation_percent_change_from_baseline", sa.Numeric
+                ),
+            ),
+            (
+                "grocery_and_pharmacy_percent_change_from_baseline",
+                sa.Column(
+                    "grocery_and_pharmacy_percent_change_from_baseline", sa.Numeric
+                ),
+            ),
+            (
+                "parks_percent_change_from_baseline",
+                sa.Column("parks_percent_change_from_baseline", sa.Numeric),
+            ),
+            (
+                "transit_stations_percent_change_from_baseline",
+                sa.Column("transit_stations_percent_change_from_baseline", sa.Numeric),
+            ),
+            (
+                "workplaces_percent_change_from_baseline",
+                sa.Column("workplaces_percent_change_from_baseline", sa.Numeric),
+            ),
+            (
+                "residential_percent_change_from_baseline",
+                sa.Column("residential_percent_change_from_baseline", sa.Numeric),
+            ),
         ],
     )
 

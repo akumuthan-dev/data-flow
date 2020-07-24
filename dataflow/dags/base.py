@@ -80,6 +80,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
     def get_insert_data_callable(self):
         return insert_data_into_db
 
+    @classmethod
+    def fq_table_name(cls):
+        return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
+
     def get_dag(self) -> DAG:
         dag = DAG(
             self.__class__.__name__,
