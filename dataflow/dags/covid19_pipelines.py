@@ -264,3 +264,53 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
             op_args=[self.query, self.target_db, self.table_config.table_name],
         )
         return op
+
+
+class GoogleCovid19MobilityReports(_PipelineDAG):
+
+    schedule_interval = '0 1 * * 0'
+
+    source_urls = {
+        'global': 'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+    }
+
+    table_config = TableConfig(
+        table_name="covid19_global_mobility_report",
+        schema='google',
+        field_mapping=[
+            ("country_region_code", sa.Column("country_region_code", sa.String)),
+            ("country_region", sa.Column("country_region", sa.String)),
+            ("sub_region_1", sa.Column("sub_region_1", sa.String)),
+            ("sub_region_2", sa.Column("sub_region_2", sa.String)),
+            ("iso_3166_2_code", sa.Column("iso_3166_2_code", sa.String)),
+            ("census_fips_code", sa.Column("census_fips_code", sa.String)),
+            ("date", sa.Column("date", sa.Date)),
+            ("retail_and_recreation_percent_change_from_baseline",
+                sa.Column("retail_and_recreation_percent_change_from_baseline", sa.Numeric)),
+            ("grocery_and_pharmacy_percent_change_from_baseline",
+                sa.Column("grocery_and_pharmacy_percent_change_from_baseline", sa.Numeric)),
+            ("parks_percent_change_from_baseline", sa.Column("parks_percent_change_from_baseline", sa.Numeric)),
+            ("transit_stations_percent_change_from_baseline",
+                sa.Column("transit_stations_percent_change_from_baseline", sa.Numeric)),
+            ("workplaces_percent_change_from_baseline",
+                sa.Column("workplaces_percent_change_from_baseline", sa.Numeric)),
+            ("residential_percent_change_from_baseline",
+                sa.Column("residential_percent_change_from_baseline", sa.Numeric)),
+        ],
+    )
+
+    def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df['date'] = pd.to_datetime(df['date'])
+        return df
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='run-fetch',
+            python_callable=fetch_mapped_hosted_csvs,
+            provide_context=True,
+            op_args=[
+                self.table_config.table_name,
+                self.source_urls,
+                self.transform_dataframe,
+            ],
+        )
