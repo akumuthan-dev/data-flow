@@ -37,9 +37,10 @@ def drop_swap_tables(*args, **context):
 
 def drop_temp_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
-    return dataflow.operators.db_tables.drop_temp_tables(
-        DATASETS_DB_NAME, *table_config.tables, *args, **context,
-    )
+    if table_config:
+        return dataflow.operators.db_tables.drop_temp_tables(
+            DATASETS_DB_NAME, *table_config.tables, *args, **context,
+        )
 
 
 def fetch_data(*args, **context):
