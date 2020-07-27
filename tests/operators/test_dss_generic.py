@@ -42,6 +42,23 @@ def test_get_table_config(mocker):
     )
 
 
+def test_get_table_config_quotes_schema_and_table_name(mocker):
+    api_response = {'columns': []}
+    config = {
+        'data_uploader_table_name': 'L0',
+        'data_uploader_schema_name': 'bad schema.name',
+    }
+    request, context = _patch_get_table_config(mocker, api_response, config)
+    dss_generic.get_table_config(**context)
+
+    request.assert_called_once_with(
+        credentials={'id': 'test_id', 'key': 'test_key', 'algorithm': 'sha256'},
+        next_key=None,
+        results_key='columns',
+        url='http://test/api/v1/table-structure/bad%20schema.name/L0',
+    )
+
+
 def test_get_table_config_invalid_schema(mocker):
     api_response = {
         'columns': [
