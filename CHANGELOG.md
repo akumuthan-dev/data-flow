@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-07-28
 
+### Added
+
+- Google covid19 mobility report pipeline
+
+## 2020-07-28
+
+### Added
+
+- Export opps enquiries and companies house matching pipeline
+
+## 2020-07-28
+
+### Changed
+
+- Remove checks from DSSGenericPipeline
+
+## 2020-07-28
+
 ### Changed
 
 - `consent_dataset` schema and table name were altered to match our new standards. It will be `dit`.`consent_service__current_consents` now.

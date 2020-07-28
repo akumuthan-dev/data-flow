@@ -10,7 +10,6 @@ from dataflow.operators.dss_generic import (
     fetch_data,
     create_temp_tables,
     insert_into_temp_table,
-    check_tables,
     swap_dataset_tables,
     drop_temp_tables,
     drop_swap_tables,
@@ -50,10 +49,6 @@ class DSSGenericPipeline(metaclass=PipelineMeta):
             task_id='insert-into-temp-table',
         )
 
-        _check_tables = PythonOperator(
-            provide_context=True, python_callable=check_tables, task_id='check-tables'
-        )
-
         _swap_dataset_tables = PythonOperator(
             execution_timeout=datetime.timedelta(minutes=10),
             provide_context=True,
@@ -82,7 +77,6 @@ class DSSGenericPipeline(metaclass=PipelineMeta):
         (
             [_create_temp_tables, _fetch]
             >> _insert_into_temp_table
-            >> _check_tables
             >> _swap_dataset_tables
         )
 

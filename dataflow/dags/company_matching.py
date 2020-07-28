@@ -5,6 +5,10 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.activity_stream_pipelines import (
+    GreatGOVUKExportOpportunityEnquiriesPipeline,
+)
+from dataflow.dags.companies_house_pipelines import CompaniesHouseCompaniesPipeline
 from dataflow.dags.dataset_pipelines import (
     ContactsDatasetPipeline,
     CompaniesDatasetPipeline,
@@ -19,7 +23,8 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         super().__init__(*args, **kwargs)
 
         self.table_config = TableConfig(
-            table_name=f'{self.controller_pipeline.table_config.table_name}_match_ids',
+            schema=self.controller_pipeline.table_config.schema,
+            table_name=self.table_name,
             field_mapping=[
                 ("id", sa.Column("id", sa.Text, primary_key=True)),
                 ("match_id", sa.Column("match_id", sa.Integer)),
@@ -32,6 +37,10 @@ class _CompanyMatchingPipeline(_PipelineDAG):
 
     company_match_query: str
     controller_pipeline: Type[_PipelineDAG]
+
+    @property
+    def table_name(self):
+        return f'{self.controller_pipeline.table_config.table_name}_match_ids'
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -60,8 +69,8 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
             companies.company_number as companies_house_id,
             'dit.datahub' as source,
             companies.modified_on as datetime
-        FROM {CompaniesDatasetPipeline.table_config.table_name} companies
-        LEFT JOIN {ContactsDatasetPipeline.table_config.table_name} contacts
+        FROM {CompaniesDatasetPipeline.fq_table_name()} companies
+        LEFT JOIN {ContactsDatasetPipeline.fq_table_name()} contacts
         ON contacts.company_id = companies.id
         ORDER BY companies.id asc, companies.modified_on desc
     """
@@ -77,9 +86,46 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
             customer_email_address as contact_email,
             NULLIF(cdms_reference, '') AS cdms_ref,
             null as postcode,
-            null as copmanies_house_id,
+            null as companies_house_id,
             'dit.export-wins' as source,
             created::timestamp as datetime
-        FROM {ExportWinsWinsDatasetPipeline.table_config.table_name}
+        FROM {ExportWinsWinsDatasetPipeline.fq_table_name()}
         ORDER BY id asc, created::timestamp desc
+    """
+
+
+class GreatGOVUKExportOpportunityEnquiriesMatchingPipeline(_CompanyMatchingPipeline):
+    table_name = 'great_gov_uk_ex_opps_enquiries_match_ids'
+    controller_pipeline = GreatGOVUKExportOpportunityEnquiriesPipeline
+    dependencies = [GreatGOVUKExportOpportunityEnquiriesPipeline]
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            contact_email_address as contact_email,
+            null AS cdms_ref,
+            upper(replace(trim("postcode"), ' ', '')) as postcode,
+            company_number as companies_house_id,
+            'dit.export-opps-enquiries' as source,
+            published as datetime
+        FROM {GreatGOVUKExportOpportunityEnquiriesPipeline.fq_table_name()}
+        ORDER BY id asc, published desc
+    """
+
+
+class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
+    controller_pipeline = CompaniesHouseCompaniesPipeline
+    dependencies = [CompaniesHouseCompaniesPipeline]
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            null as contact_email,
+            null as cdms_ref,
+            upper(replace(trim("postcode"), ' ', '')) as postcode,
+            company_number as companies_house_id,
+            'companies_house.companies' as source,
+            publish_date::timestamp as datetime
+        FROM {CompaniesHouseCompaniesPipeline.fq_table_name()}
+        ORDER BY id asc, publish_date::timestamp desc
     """

@@ -12,17 +12,6 @@ from dataflow.operators.common import _hawk_api_request, fetch_from_hawk_api
 from dataflow.utils import TableConfig
 
 
-def check_tables(*args, **context):
-    table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
-    return dataflow.operators.db_tables.check_table_data(
-        DATASETS_DB_NAME,
-        *table_config.tables,
-        *args,
-        **{'allow_null_columns': True},
-        **context,
-    )
-
-
 def create_temp_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     return dataflow.operators.db_tables.create_temp_tables(
