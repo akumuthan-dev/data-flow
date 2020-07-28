@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-07-28
+
+### Changed
+
+- `consent_dataset` schema and table name were altered to match our new standards. It will be `dit`.`consent_service__current_consents` now.
+
 ## 2020-07-23
 
 ### Changed
