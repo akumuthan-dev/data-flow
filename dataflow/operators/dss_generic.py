@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import sqlalchemy as sa
 
 import dataflow.operators.db_tables
@@ -77,7 +79,7 @@ def get_table_config(**context):
         return sa.Column(column_name, sa_data_type)
 
     schema_name, table_name = _get_schema_and_table(context)
-    source_url = f'{DATA_STORE_SERVICE_BASE_URL}/api/v1/table-structure/{schema_name}/{table_name}'
+    source_url = f'{DATA_STORE_SERVICE_BASE_URL}/api/v1/table-structure/{quote(schema_name)}/{quote(table_name)}'
 
     # transform schema and table in line with dataflow conventions
     schema_parts = schema_name.split('.')
