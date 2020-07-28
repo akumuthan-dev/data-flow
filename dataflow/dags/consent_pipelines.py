@@ -33,7 +33,8 @@ class ConsentPipeline(_ConsentPipeline):
         config.CONSENT_BASE_URL, config.CONSENT_RESULTS_PER_PAGE
     )
     table_config = TableConfig(
-        table_name="consent_dataset",
+        schema="dit",
+        table_name="consent_service__current_consents",
         field_mapping=[
             ("id", sa.Column("id", sa.Integer)),
             ("key", sa.Column("key", sa.String)),
