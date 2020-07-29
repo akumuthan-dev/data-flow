@@ -117,7 +117,7 @@ class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
             companies_house_id as copmanies_house_id,
             'companies_house.companies.L1' as source,  
             last_made_up_date as datetime
-        FROM {None.table_config.table_name}
+        FROM {CompaniesHouseCompaniesPipeline.table_config.table_name}
         ORDER BY id asc,  desc
     """
     # IS this fomat correct is L1 correct given CompaniesHouseCompaniesPipeline definition
