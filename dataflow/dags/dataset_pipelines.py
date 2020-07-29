@@ -330,10 +330,6 @@ class ContactsDatasetPipeline(_DatasetPipeline):
     table_config = TableConfig(
         table_name='contacts_dataset',
         field_mapping=[
-            (
-                'accepts_dit_email_marketing',
-                sa.Column('accepts_dit_email_marketing', sa.Boolean),
-            ),
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
             ('address_country__name', sa.Column('address_country', sa.Text)),
