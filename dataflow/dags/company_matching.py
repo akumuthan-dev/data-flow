@@ -85,6 +85,7 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
         ORDER BY id asc, created::timestamp desc
     """
 
+
 # # My addtions # TODO for non eu only? where is eu? pipeline?
 # class HMRCMatchingPipeline(_CompanyMatchingPipeline):
 #     # HMRCDatasetPipeline nothing existis. THere is a mapping seperately in hmrc_pipelines.py
@@ -104,8 +105,11 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
 #         ORDER BY id asc, created::timestamp desc
 #     """
 
+
 class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
-    controller_pipeline = CompaniesHouseCompaniesPipeline # looks correct although no L1
+    controller_pipeline = (
+        CompaniesHouseCompaniesPipeline  # looks correct although no L1
+    )
     dependencies = [CompaniesHouseCompaniesPipeline]
     company_match_query = f"""
         SELECT distinct on (id)
@@ -117,7 +121,7 @@ class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
             companies_house_id as copmanies_house_id,
             'companies_house.companies.L1' as source,  
             last_made_up_date as datetime
-        FROM {None.table_config.table_name}
+        FROM {CompaniesHouseCompaniesPipeline.table_config.table_name}
         ORDER BY id asc,  desc
     """
     # IS this fomat correct is L1 correct given CompaniesHouseCompaniesPipeline definition
