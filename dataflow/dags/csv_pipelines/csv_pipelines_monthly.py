@@ -429,10 +429,8 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                             is_primary,
                             phone AS contact_phone,
                             email AS contact_email,
-                            consent_dataset.email_marketing_consent AS contact_accepts_dit_email_marketing
+                            accepts_dit_email_marketing AS contact_accepts_dit_email_marketing
                         FROM contacts_dataset
-                        JOIN dit.consent_service__current_consents AS consent_dataset
-                            ON contacts_dataset.email = consent_dataset.email
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
                 ON companies_dataset.id = contacts.joined_id
