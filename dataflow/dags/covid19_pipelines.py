@@ -6,6 +6,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_hosted_csv
+from dataflow.operators.covid19 import fetch_apple_mobility_data
 from dataflow.operators.csv_inputs import fetch_mapped_hosted_csvs
 from dataflow.operators.db_tables import query_database
 from dataflow.utils import TableConfig
@@ -328,6 +329,121 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
             op_args=[
                 self.table_config.table_name,
                 self.source_urls,
+                self.transform_dataframe,
+            ],
+        )
+
+
+class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
+    base_url = 'https://covid19-static.cdn-apple.com'
+    config_path = '/covid19-mobility-data/current/v3/index.json'
+    table_config = TableConfig(
+        schema='apple',
+        table_name='covid19_mobility_data',
+        field_mapping=[
+            ('geo_type', sa.Column('geo_type', sa.String)),
+            ('country', sa.Column('country', sa.String)),
+            ('region', sa.Column('region', sa.String)),
+            ('sub-region', sa.Column('sub_region', sa.String)),
+            ('adm_area_1', sa.Column('adm_area_1', sa.String)),
+            ('adm_area_2', sa.Column('adm_area_2', sa.String)),
+            ('date', sa.Column('date', sa.Date)),
+            ('driving', sa.Column('driving', sa.Numeric)),
+            ('transit', sa.Column('transit', sa.Numeric)),
+            ('walking', sa.Column('walking', sa.Numeric)),
+        ],
+    )
+
+    def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df.drop(columns=['alternative_name'], inplace=True)
+
+        # Unpivot dates columns into a single date column
+        df = df.melt(
+            id_vars=[
+                'geo_type',
+                'region',
+                'sub-region',
+                'transportation_type',
+                'country',
+            ],
+            var_name='date',
+        )
+        df['value'] = df['value'] - 100
+
+        # Separate values out by transportation transportation type (driving, transit, walking)
+        df = (
+            df.set_index(
+                [
+                    'geo_type',
+                    'region',
+                    'sub-region',
+                    'country',
+                    'date',
+                    'transportation_type',
+                ]
+            )
+            .unstack('transportation_type')
+            .reset_index()
+        )
+
+        # Clean up transportation type field names
+        df.columns = [t + (v if v != 'value' else '') for v, t in df.columns]
+
+        # Set country to region name if geo type is "country/region"
+        df.loc[df.geo_type == 'country/region', 'country'] = df.loc[
+            df.geo_type == 'country/region', 'region'
+        ]
+
+        # Create administrative areas
+        df['adm_area_1'] = None
+        df['adm_area_2'] = None
+
+        # Clean administrative area for records with a geo type of "sub-region"
+        df.loc[df.geo_type == 'sub-region', 'adm_area_1'] = df.loc[
+            df.geo_type == 'sub-region', 'region'
+        ]
+        df.loc[df.geo_type == 'sub-region', 'adm_area_1'] = (
+            df.loc[df.geo_type == 'sub-region', 'adm_area_1']
+            .replace(
+                r'\s*County\s*|\s*Region\s*|\s*Province\s*|\s*Prefecture\s*',
+                '',
+                regex=True,
+            )
+            .str.strip()
+        )
+
+        # Clean administrative area for records with a geo type of "county"
+        df.loc[df.geo_type == 'county', 'adm_area_1'] = df.loc[
+            df.geo_type == 'county', 'sub-region'
+        ]
+        df.loc[df.geo_type == 'county', 'adm_area_2'] = df.loc[
+            df.geo_type == 'county', 'region'
+        ]
+        df.loc[df.geo_type == 'county', 'adm_area_2'] = (
+            df.loc[df.geo_type == 'county', 'adm_area_2']
+            .replace(r'\s*County\s*|\s*Parish\s*', '', regex=True)
+            .replace(r'St\.', 'Saint', regex=True)
+            .str.strip()
+        )
+
+        # Fix country name
+        df['country'] = df['country'].replace('Republic of Korea', 'South Korea')
+
+        df = df.sort_values(
+            by=['country', 'region', 'sub-region', 'adm_area_1', 'adm_area_2', 'date']
+        ).reset_index(drop=True)
+
+        return df
+
+    def get_fetch_operator(self):
+        return PythonOperator(
+            task_id='run-fetch-apple-mobility-data',
+            provide_context=True,
+            python_callable=fetch_apple_mobility_data,
+            op_args=[
+                self.table_config.table_name,
+                self.base_url,
+                self.config_path,
                 self.transform_dataframe,
             ],
         )
