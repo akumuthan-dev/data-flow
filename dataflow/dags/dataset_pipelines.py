@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow import config
 from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.operators.contact_consent import update_datahub_contact_consent
 from dataflow.utils import TableConfig
@@ -327,6 +328,9 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
 class ContactsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
+    dependencies = [
+        ConsentPipeline,
+    ]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
         table_name='contacts_dataset',
@@ -369,7 +373,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             task_id='update-contact-email-consent',
             python_callable=update_datahub_contact_consent,
             provide_context=True,
-            op_args=[self.target_db, self.table_config.tables[0],],
+            op_args=[self.target_db, self.table_config.tables[0]],
         )
 
 

@@ -5,7 +5,7 @@ import pytest
 import sqlalchemy
 
 from dataflow.operators import db_tables
-from dataflow.utils import TableConfig
+from dataflow.utils import get_temp_table, TableConfig
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ def postgres_hook(mocker):
 
 
 def test_get_temp_table(table):
-    assert db_tables._get_temp_table(table, "temp").name == "test_table_temp"
+    assert get_temp_table(table, "temp").name == "test_table_temp"
     assert table.name == "test_table"
 
 
@@ -45,7 +45,7 @@ def test_create_temp_tables(mocker):
     mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
 
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     db_tables.create_temp_tables("test-db", mock.Mock(), ts_nodash="123")
 
@@ -54,7 +54,7 @@ def test_create_temp_tables(mocker):
 
 def test_insert_data_into_db(mocker, mock_db_conn, s3):
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     s3.iter_keys.return_value = [
         ('1', [{"id": 1, "extra": "ignored", "data": "text"}]),
@@ -114,7 +114,7 @@ def test_insert_data_into_db_using_db_config(mocker, mock_db_conn, s3):
 
 def test_insert_data_into_db_required_field_missing(mocker, mock_db_conn, s3):
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     s3.iter_keys.return_value = [('1', [{"data": "text"}])]
 
@@ -288,7 +288,7 @@ def test_drop_temp_tables(mocker, mock_db_conn):
     tables = [mock.Mock()]
     tables[0].name = "test_table"
 
-    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+    target = mocker.patch.object(db_tables, "get_temp_table", side_effect=tables)
 
     db_tables.drop_temp_tables("test-db", mock.Mock(), ts_nodash="123")
 
@@ -302,7 +302,7 @@ def test_drop_swap_tables(mocker, mock_db_conn):
     tables = [mock.Mock()]
     tables[0].name = "test_table_swap"
 
-    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+    target = mocker.patch.object(db_tables, "get_temp_table", side_effect=tables)
 
     db_tables.drop_swap_tables("test-db", mock.Mock(), ts_nodash="123")
 
