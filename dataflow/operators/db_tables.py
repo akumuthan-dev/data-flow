@@ -4,13 +4,13 @@ import warnings
 from io import StringIO
 from typing import Tuple, Dict, Optional
 
-import sqlalchemy
 import sqlalchemy as sa
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
 from dataflow.utils import (
     get_nested_key,
+    get_temp_table,
     S3Data,
     TableConfig,
     SingleTableFieldMapping,
@@ -24,22 +24,6 @@ class MissingDataError(ValueError):
 
 class UnusedColumnError(ValueError):
     pass
-
-
-def _get_temp_table(table, suffix):
-    """Get a Table object for the temporary dataset table.
-
-    Given a dataset `table` instance creates a new table with
-    a unique temporary name for the given DAG run and the same
-    columns as the dataset table.
-
-    """
-    return sa.Table(
-        f"{table.name}_{suffix}".lower(),
-        table.metadata,
-        *[column.copy() for column in table.columns],
-        schema=table.schema,
-    )
 
 
 def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
@@ -61,7 +45,7 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            table = _get_temp_table(table, kwargs["ts_nodash"])
+            table = get_temp_table(table, kwargs["ts_nodash"])
             logger.info(f"Creating schema {table.schema} if not exists")
             conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table.schema}")
             logger.info(f"Creating {table.name}")
@@ -85,9 +69,7 @@ def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
 
 
 def _insert_related_records(
-    conn: sqlalchemy.engine.Connection,
-    table_config: TableConfig,
-    contexts: Tuple[Dict, ...],
+    conn: sa.engine.Connection, table_config: TableConfig, contexts: Tuple[Dict, ...],
 ):
     for key, related_table in table_config.related_table_configs:
         related_records = get_nested_key(contexts[-1], key) or []
@@ -147,7 +129,7 @@ def insert_data_into_db(
         )
 
         s3 = S3Data(table.name, kwargs["ts_nodash"])
-        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+        temp_table = get_temp_table(table, kwargs["ts_nodash"])
 
     else:
         raise RuntimeError(
@@ -302,7 +284,7 @@ def check_table_data(
 
     with engine.begin() as conn:
         for table in tables:
-            temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+            temp_table = get_temp_table(table, kwargs["ts_nodash"])
             _check_table(engine, conn, temp_table, table, allow_null_columns)
 
 
@@ -356,7 +338,7 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
     for table in tables:
-        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+        temp_table = get_temp_table(table, kwargs["ts_nodash"])
 
         logger.info(f"Moving {temp_table.name} to {table.name}")
         with engine.begin() as conn:
@@ -417,7 +399,7 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+            temp_table = get_temp_table(table, kwargs["ts_nodash"])
             logger.info(f"Removing {temp_table.name}")
             temp_table.drop(conn, checkfirst=True)
 
@@ -436,6 +418,6 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
+            swap_table = get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logger.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)

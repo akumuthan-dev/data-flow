@@ -8,7 +8,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow import config
 from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
+from dataflow.operators.contact_consent import update_datahub_contact_consent
 from dataflow.utils import TableConfig
 
 
@@ -326,6 +328,7 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
 class ContactsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
+    dependencies = [ConsentPipeline]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
         table_name='contacts_dataset',
@@ -350,6 +353,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('created_on', sa.Column('date_added_to_datahub', sa.Date)),
             ('email', sa.Column('email', sa.String)),
             ('email_alternative', sa.Column('email_alternative', sa.String)),
+            (None, sa.Column("email_marketing_consent", sa.Boolean)),
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('job_title', sa.Column('job_title', sa.String)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
@@ -361,6 +365,14 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('created_by_id', sa.Column('created_by_id', UUID)),
         ],
     )
+
+    def get_transform_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='update-contact-email-consent',
+            python_callable=update_datahub_contact_consent,
+            provide_context=True,
+            op_args=[self.target_db, self.table_config.tables[0]],
+        )
 
 
 class CompaniesDatasetPipeline(_DatasetPipeline):

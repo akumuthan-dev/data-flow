@@ -80,6 +80,13 @@ class _PipelineDAG(metaclass=PipelineMeta):
     def get_insert_data_callable(self):
         return insert_data_into_db
 
+    def get_transform_operator(self):
+        """
+        Optional overridable task to transform/manipulate data
+        between insert-into-temp-table task and check-temp-table-data task
+        """
+        return None
+
     @classmethod
     def fq_table_name(cls):
         return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
@@ -161,10 +168,18 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
+        _transform_tables = self.get_transform_operator()
+        if _transform_tables:
+            _transform_tables.dag = dag
+
         (
             [_fetch, _create_tables]
             >> _insert_into_temp_table
-            >> _check_tables
+            >> (
+                _check_tables << _transform_tables
+                if _transform_tables
+                else _check_tables
+            )
             >> _swap_dataset_tables
             >> _drop_swap_tables
         )
