@@ -5,6 +5,7 @@ from functools import partial
 from typing import List, Optional, Type
 
 from airflow import DAG
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
 
@@ -80,6 +81,13 @@ class _PipelineDAG(metaclass=PipelineMeta):
     def get_insert_data_callable(self):
         return insert_data_into_db
 
+    def get_transform_operator(self):
+        """
+        Optional overridable task to transform/manipulate data
+        between check-temp-table-data task and swap-dataset-table task
+        """
+        return DummyOperator(task_id='transform-data')
+
     @classmethod
     def fq_table_name(cls):
         return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
@@ -136,6 +144,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs={'allow_null_columns': self.allow_null_columns},
         )
 
+        _transform_data = self.get_transform_operator()
+        _transform_data.dag = dag
+
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             python_callable=swap_dataset_tables,
@@ -165,6 +176,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
             [_fetch, _create_tables]
             >> _insert_into_temp_table
             >> _check_tables
+            >> _transform_data
             >> _swap_dataset_tables
             >> _drop_swap_tables
         )

@@ -253,3 +253,19 @@ def get_nested_key(
             else:
                 return None
     return data
+
+
+def get_temp_table(table, suffix):
+    """Get a Table object for the temporary dataset table.
+
+    Given a dataset `table` instance creates a new table with
+    a unique temporary name for the given DAG run and the same
+    columns as the dataset table.
+
+    """
+    return sqlalchemy.Table(
+        f"{table.name}_{suffix}".lower(),
+        table.metadata,
+        *[column.copy() for column in table.columns],
+        schema=table.schema,
+    )
