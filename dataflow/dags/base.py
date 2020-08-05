@@ -5,9 +5,9 @@ from functools import partial
 from typing import List, Optional, Type
 
 from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
+from airflow.utils.helpers import chain
 
 from dataflow import config
 from dataflow.operators.csv_outputs import create_csv, create_compressed_csv
@@ -86,7 +86,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         Optional overridable task to transform/manipulate data
         between check-temp-table-data task and swap-dataset-table task
         """
-        return DummyOperator(task_id='transform-data')
+        return None
 
     @classmethod
     def fq_table_name(cls):
@@ -144,9 +144,6 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs={'allow_null_columns': self.allow_null_columns},
         )
 
-        _transform_data = self.get_transform_operator()
-        _transform_data.dag = dag
-
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             python_callable=swap_dataset_tables,
@@ -172,14 +169,13 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
-        (
-            [_fetch, _create_tables]
-            >> _insert_into_temp_table
-            >> _check_tables
-            >> _transform_data
-            >> _swap_dataset_tables
-            >> _drop_swap_tables
-        )
+        tasks = [[_fetch, _create_tables], _insert_into_temp_table]
+        transform_operator = self.get_transform_operator()
+        if transform_operator is not None:
+            transform_operator.dag = dag
+            tasks.append(transform_operator)
+        tasks += [_check_tables, _swap_dataset_tables, _drop_swap_tables]
+        chain(*tasks)
 
         _insert_into_temp_table >> _drop_temp_tables
 
