@@ -369,10 +369,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             task_id='update-contact-email-consent',
             python_callable=update_datahub_contact_consent,
             provide_context=True,
-            op_args=[
-                self.target_db,
-                self.table_config.tables[0],
-            ],
+            op_args=[self.target_db, self.table_config.tables[0],],
         )
 
 
