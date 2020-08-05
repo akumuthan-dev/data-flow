@@ -175,7 +175,11 @@ class _PipelineDAG(metaclass=PipelineMeta):
         (
             [_fetch, _create_tables]
             >> _insert_into_temp_table
-            >> (_check_tables << _transform_tables if _transform_tables else _check_tables)
+            >> (
+                _check_tables << _transform_tables
+                if _transform_tables
+                else _check_tables
+            )
             >> _swap_dataset_tables
             >> _drop_swap_tables
         )
