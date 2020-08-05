@@ -7,7 +7,6 @@ from typing import List, Optional, Type
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
-from airflow.utils.helpers import chain
 
 from dataflow import config
 from dataflow.operators.csv_outputs import create_csv, create_compressed_csv
@@ -84,7 +83,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
     def get_transform_operator(self):
         """
         Optional overridable task to transform/manipulate data
-        between check-temp-table-data task and swap-dataset-table task
+        between insert-into-temp-table task and check-temp-table-data task
         """
         return None
 
@@ -169,15 +168,20 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
-        tasks = [[_fetch, _create_tables], _insert_into_temp_table]
-        transform_operator = self.get_transform_operator()
-        if transform_operator is not None:
-            transform_operator.dag = dag
-            tasks.append(transform_operator)
-        tasks += [_check_tables, _swap_dataset_tables, _drop_swap_tables]
-        chain(*tasks)
+        (
+            [_fetch, _create_tables]
+            >> _insert_into_temp_table
+            >> _check_tables
+            >> _swap_dataset_tables
+            >> _drop_swap_tables
+        )
 
         _insert_into_temp_table >> _drop_temp_tables
+
+        _transform_operator = self.get_transform_operator()
+        if _transform_operator:
+            _transform_operator.dag = dag
+            _insert_into_temp_table >> _transform_operator >> _check_tables
 
         for dependency in self.dependencies:
             sensor = ExternalTaskSensor(
