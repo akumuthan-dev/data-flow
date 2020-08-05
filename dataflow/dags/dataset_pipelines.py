@@ -328,9 +328,7 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
 class ContactsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
-    dependencies = [
-        ConsentPipeline,
-    ]
+    dependencies = [ConsentPipeline]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
         table_name='contacts_dataset',
