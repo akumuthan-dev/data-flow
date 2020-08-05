@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-08-05
+
+### Added
+
+- A new pipeline task between `check-temp-table-data` task and `swap-dataset-table` task for transforming data before making public.
+- A new field `email_marketing_consent` to Contacts dataset to hold Email consent data joined from Consent dataset.
+
 ## 2020-08-03
 
 ### Added
