@@ -168,20 +168,19 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
+        _transform_tables = self.get_transform_operator()
+        if _transform_tables:
+            _transform_tables.dag = dag
+
         (
             [_fetch, _create_tables]
             >> _insert_into_temp_table
-            >> _check_tables
+            >> (_check_tables << _transform_tables if _transform_tables else _check_tables)
             >> _swap_dataset_tables
             >> _drop_swap_tables
         )
 
         _insert_into_temp_table >> _drop_temp_tables
-
-        _transform_operator = self.get_transform_operator()
-        if _transform_operator:
-            _transform_operator.dag = dag
-            _insert_into_temp_table >> _transform_operator >> _check_tables
 
         for dependency in self.dependencies:
             sensor = ExternalTaskSensor(
