@@ -353,7 +353,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('created_on', sa.Column('date_added_to_datahub', sa.Date)),
             ('email', sa.Column('email', sa.String)),
             ('email_alternative', sa.Column('email_alternative', sa.String)),
-            (None, sa.Column("email_marketing_consent", sa.Boolean)),
+            (False, sa.Column("email_marketing_consent", sa.Boolean)),
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('job_title', sa.Column('job_title', sa.String)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
