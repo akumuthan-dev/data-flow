@@ -145,6 +145,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
 
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
+            retries=2,
             python_callable=swap_dataset_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
