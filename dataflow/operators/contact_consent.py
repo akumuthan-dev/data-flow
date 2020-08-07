@@ -17,7 +17,7 @@ def update_datahub_contact_consent(
         UPDATE {table.name} AS contacts_temp
         SET email_marketing_consent = consent.email_marketing_consent
         FROM {ConsentPipeline.fq_table_name()} AS consent
-        WHERE contacts_temp.email = consent.email
+        WHERE lower(contacts_temp.email) = lower(consent.email)
     """
     engine = sqlalchemy.create_engine(
         'postgresql+psycopg2://',
