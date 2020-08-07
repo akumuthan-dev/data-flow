@@ -135,6 +135,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
         )
 
+        _transform_tables = self.get_transform_operator()
+        if _transform_tables:
+            _transform_tables.dag = dag
+
         _check_tables = PythonOperator(
             task_id="check-temp-table-data",
             python_callable=check_table_data,
@@ -168,23 +172,14 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
-        _transform_tables = self.get_transform_operator()
+        [_fetch, _create_tables] >> _insert_into_temp_table >> _drop_temp_tables
+
         if _transform_tables:
-            _transform_tables.dag = dag
+            _insert_into_temp_table >> _transform_tables >> _check_tables
+        else:
+            _insert_into_temp_table >> _check_tables
 
-        (
-            [_fetch, _create_tables]
-            >> _insert_into_temp_table
-            >> (
-                _check_tables << _transform_tables
-                if _transform_tables
-                else _check_tables
-            )
-            >> _swap_dataset_tables
-            >> _drop_swap_tables
-        )
-
-        _insert_into_temp_table >> _drop_temp_tables
+        _check_tables >> _swap_dataset_tables >> _drop_swap_tables
 
         for dependency in self.dependencies:
             sensor = ExternalTaskSensor(
