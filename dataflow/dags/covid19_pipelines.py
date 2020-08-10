@@ -283,42 +283,81 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
             ("country_region", sa.Column("country_region", sa.String)),
             ("sub_region_1", sa.Column("sub_region_1", sa.String)),
             ("sub_region_2", sa.Column("sub_region_2", sa.String)),
+            ("adm_area_1", sa.Column("adm_area_1", sa.String)),
+            ("adm_area_1", sa.Column("adm_area_1", sa.String)),
+            ("metro_area", sa.Column("metro_area", sa.String)),
             ("iso_3166_2_code", sa.Column("iso_3166_2_code", sa.String)),
             ("census_fips_code", sa.Column("census_fips_code", sa.String)),
             ("date", sa.Column("date", sa.Date)),
             (
                 "retail_and_recreation_percent_change_from_baseline",
-                sa.Column(
-                    "retail_and_recreation_percent_change_from_baseline", sa.Numeric
-                ),
+                sa.Column("retail_recreation", sa.Numeric),
             ),
             (
                 "grocery_and_pharmacy_percent_change_from_baseline",
-                sa.Column(
-                    "grocery_and_pharmacy_percent_change_from_baseline", sa.Numeric
-                ),
+                sa.Column("grocery_pharmacy", sa.Numeric),
             ),
-            (
-                "parks_percent_change_from_baseline",
-                sa.Column("parks_percent_change_from_baseline", sa.Numeric),
-            ),
+            ("parks_percent_change_from_baseline", sa.Column("parks", sa.Numeric),),
             (
                 "transit_stations_percent_change_from_baseline",
-                sa.Column("transit_stations_percent_change_from_baseline", sa.Numeric),
+                sa.Column("transit_stations", sa.Numeric),
             ),
             (
                 "workplaces_percent_change_from_baseline",
-                sa.Column("workplaces_percent_change_from_baseline", sa.Numeric),
+                sa.Column("workplace", sa.Numeric),
             ),
             (
                 "residential_percent_change_from_baseline",
-                sa.Column("residential_percent_change_from_baseline", sa.Numeric),
+                sa.Column("residential", sa.Numeric),
             ),
         ],
     )
 
     def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
-        df['date'] = pd.to_datetime(df['date'])
+        df['adm_area_1'] = None
+        df['adm_area_2'] = None
+
+        # Update administrative areas from sub regions
+        df.loc[df.sub_region_1.notnull(), 'adm_area_1'] = df.loc[
+            df.sub_region_1.notnull(), 'sub_region_1'
+        ].str.strip()
+        df.loc[df.sub_region_2.notnull(), 'adm_area_2'] = df.loc[
+            df.sub_region_2.notnull(), 'sub_region_2'
+        ].str.strip()
+
+        # Clean US administrative areas
+        df.loc[df.country_region_code == 'US', 'adm_area_2'] = (
+            df.loc[df.country_region_code == 'US', 'adm_area_2']
+            .replace(r'\s*County\s*|\s*Parish\s*', '', regex=True)
+            .replace(r'St\.', 'Saint', regex=True)
+            .str.strip()
+        )
+
+        # Do not set admin area 1 for GB
+        df.loc[df.country_region_code == 'GB', 'adm_area_2'] = df.loc[
+            df.country_region_code == 'GB', 'adm_area_1'
+        ]
+        df.loc[df.country_region_code == 'GB', 'adm_area_1'] = None
+
+        # Clean Jamaican administrative areas
+        df.loc[df.country_region_code == 'JM', 'adm_area_1'] = (
+            df.loc[df.country_region_code == 'JM', 'adm_area_1']
+            .replace('Parish', '')
+            .replace('St.', 'Saint')
+            .str.strip()
+        )
+
+        # Clean admin area 1 for remaining countries
+        df.loc[~df.country_region_code.isin(['US', 'GB', 'JM']), 'adm_area_1'] = (
+            df.loc[~df.country_region_code.isin(['US', 'GB', 'JM']), 'adm_area_1']
+            .replace(
+                r'\s*Province\s*|\s*District\s*|\s*County\s*|\s*Region\s*|\s*Governorate\s*|\s*State of\s*|\s*Department\s*',
+                '',
+                regex=True,
+            )
+            .str.strip()
+        )
+
         return df
 
     def get_fetch_operator(self) -> PythonOperator:
