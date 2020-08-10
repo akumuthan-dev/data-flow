@@ -54,7 +54,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                             is_primary,
                             phone AS contact_phone,
                             email AS contact_email,
-                            accepts_dit_email_marketing AS contact_accepts_dit_email_marketing
+                            email_marketing_consent AS contact_accepts_dit_email_marketing
                         FROM contacts_dataset
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
