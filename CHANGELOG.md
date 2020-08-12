@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Remove Data Hub's obslete field `accepts_dit_email_marketing`, using new field `email_marketing_consent` should be used instead.
+- Updated market access trade barriers endpoint and small change to the resulting table structure.
 
 ## 2020-08-05
 
