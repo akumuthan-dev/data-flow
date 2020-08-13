@@ -32,7 +32,8 @@ class DNBCompanyPipeline(_DNBPipeline):
     allow_null_columns = True
     source_url = f'{config.DNB_BASE_URL}/api/workspace/companies/?page_size=1000'
     table_config = TableConfig(
-        table_name='dnb__companies',
+        schema='dun_and_bradstreet',
+        table_name='uk_companies',
         field_mapping=[
             ('last_updated', sa.Column('last_updated', sa.DateTime)),
             ('duns_number', sa.Column('duns_number', sa.Text)),
@@ -92,7 +93,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'registration_numbers',
                 TableConfig(
-                    table_name='dnb__registration_numbers',
+                    schema='dun_and_bradstreet',
+                    table_name='uk_registration_numbers',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,
@@ -112,7 +114,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'industry_codes',
                 TableConfig(
-                    table_name='dnb__industry_codes',
+                    schema='dun_and_bradstreet',
+                    table_name='uk_industry_codes',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,
@@ -132,7 +135,8 @@ class DNBCompanyPipeline(_DNBPipeline):
             (
                 'primary_industry_codes',
                 TableConfig(
-                    table_name='dnb__primary_industry_codes',
+                    schema='dun_and_bradstreet',
+                    table_name='uk_primary_industry_codes',
                     transforms=[
                         lambda record, table_config, contexts: {
                             **record,

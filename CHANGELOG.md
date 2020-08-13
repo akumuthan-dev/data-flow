@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-08-13
+
+### Changed
+
+- Move dun and bradstreet tables to dun_and_bradstreet schema
+- Rename dun and bradstreet tables to differentiate from global data
+
 ## 2020-08-10
 
 ### Changed
