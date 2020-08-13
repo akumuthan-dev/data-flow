@@ -4,7 +4,3 @@ applications:
   buildpacks:
    - python_buildpack
   memory: 5gb
-  services:
-    - data-flow-db
-    - data-flow-redis
-    - data-flow-s3
