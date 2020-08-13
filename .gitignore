@@ -89,3 +89,12 @@ airflow/
 # pyenv
 .python-version
 .coverage
+
+
+aws/
+awscliv2.zip
+models.zip
+models/
+to_predict.csv
+to_predict_result.csv
+to_train.csv
