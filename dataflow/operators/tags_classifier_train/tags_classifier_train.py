@@ -1,10 +1,16 @@
-from airflow.hooks.postgres_hook import PostgresHook
-from dataflow.utils import logger, S3Data
+# from airflow.hooks.postgres_hook import PostgresHook
+# from dataflow.utils import logger, S3Data
 import numpy
 import operator
 # fix random seed for reproducibility
 numpy.random.seed(7)
 
+from dataflow.operators.tags_classifier_train.setting import tags_covid, tags_general
+
+print('check it out', tags_general)
+
+import os
+print(os.getcwd(), __package__, __name__, __file__)
 from keras_preprocessing.text import tokenizer_from_json
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPooling1D, Flatten
@@ -16,9 +22,10 @@ from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 import numpy as np
 from tensorflow.keras import layers
 from itertools import compress
-from .utils import *
 import json
+from dataflow.operators.tags_classifier_train.utils import *
 
+print('a', a)
 
 def fetch_interaction_labelled_data(
     target_db: str,  query: str
@@ -26,7 +33,7 @@ def fetch_interaction_labelled_data(
     logger.info("starting fetching data")
 
     try:
-
+        print('working directory', os.getcwd())
         # create connection with named cursor to fetch data in batches
         connection = PostgresHook(postgres_conn_id=target_db).get_conn()
         cursor = connection.cursor(name='fetch_interaction')
@@ -50,6 +57,7 @@ def fetch_interaction_labelled_data(
 
 
 def build_tokens(df):
+    print(df.columns)
     tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', lower=True)
     # tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~', lower=True)
     tokenizer.fit_on_texts(df['sentence'].values)
@@ -58,10 +66,10 @@ def build_tokens(df):
 
 
     tokenizer_json = tokenizer.to_json()
-    with open('models_covid/cnn_tokenizer_covid.json', 'w', encoding='utf-8') as f:
-        f.write(json.dumps(tokenizer_json, ensure_ascii=False))
+    # with open('models_covid/cnn_tokenizer_covid.json', 'w', encoding='utf-8') as f:
+    #     f.write(json.dumps(tokenizer_json, ensure_ascii=False))
 
-    return tokenizer
+    return tokenizer, tokenizer_json
 
 
 # with open('models_covid/cnn_tokenizer_covid.pickle', 'wb') as handle:
@@ -73,13 +81,14 @@ def build_tokens(df):
 #     X = sequence.pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH, padding='post', truncating='post')
 #     return X
 
-def build_train_set(df, tokenizer):
+def build_train_set(df, tokenizer, tags):
+    print('MAX_SEQUENCE_LENGTH',MAX_SEQUENCE_LENGTH)
     X = tokenizer.texts_to_sequences(df['sentence'].values)
     X = sequence.pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH, padding='post', truncating='post')
     print('Shape of data tensor:', X.shape)
 
 
-
+    print('aaa', df.columns, tags)
     Y = df[tags].values
     # Y = df['label'].values.reshape(-1,1)
     print('Shape of label tensor:', Y.shape)
@@ -101,7 +110,7 @@ def cnn():
     #                            input_length=maxlen))
     # model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=X.shape[1],trainable=True,mask_zero=True, weights=[embedding_matrix]))
     # model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=X.shape[1],trainable=True, weights=[embedding_matrix]))
-    model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=X.shape[1],trainable=True))
+    model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=MAX_SEQUENCE_LENGTH,trainable=True))
     model.add(layers.Conv1D(128, 5, activation='relu'))
     model.add(layers.GlobalMaxPool1D())
     # model.add(layers.Flatten())
@@ -147,7 +156,7 @@ def train_model(model, X_train, Y_train,  X_val, Y_val,class_weight):
     return model
 
 
-def buid_models(sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, X_test, Y_test):
+def buid_models_for_tags(tags, sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, X_test, Y_test, model_path):
     tag_precisions = dict()
     tag_recalls = dict()
     tag_f1 = dict()
@@ -159,7 +168,7 @@ def buid_models(sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, 
     Y_test_predict = np.zeros(Y_test.shape)
     Y_test_predict_prob = np.zeros(Y_test.shape)
 
-
+    print('check...', tags)
     for j in tags:
       # if j!='Covid-19 Employment':
       if 1==1:
@@ -173,9 +182,11 @@ def buid_models(sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, 
         class_weight = (sum(Y_test[:,i]==0)+ sum(Y_train[:,i]==0))/ (sum(Y_test[:,i]==1)+ sum(Y_train[:,i]==1))
         # class_weight = (sum(Y_test[:,tag_i]==0)+ sum(Y_train[:,tag_i]==0))/ (sum(Y_test[:,tag_i]==1)+ sum(Y_train[:,tag_i]==1))
 
+        # print('X_train', X_train.shape, 'ddddd')
         m = cnn()
         m = train_model(m, X_train, Y_train_tag, X_val, Y_val_tag,class_weight)
-        m.save("./models_covid/"+'_'.join(j.split(' ')))
+        # m.save("./models_covid/"+'_'.join(j.split(' ')))
+        m.save(model_path + '_'.join(j.split(' ')))
 
         data_to_evaluate = X_test
         tag_to_evaluate = Y_test_tag
@@ -202,7 +213,7 @@ def buid_models(sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, 
         tag_size[tags[i]] = class_size
 
     metric_df = report_metrics_for_all(tag_size, tag_precisions, tag_recalls, tag_f1, tag_accuracy, tag_auc)
-    metric_df.to_csv('models_metrics_cnn_test.csv', index=True)
+    metric_df.to_csv(model_path+'/models_metrics_cnn.csv', index=True)
 
 
     actual = []
@@ -214,14 +225,49 @@ def buid_models(sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, 
         actual.append(list(compress(tags, Y_test[i])))
         predict.append(list(compress(tags, Y_test_predict_prob[i]>0.5)))
 
+    return metric_df
+
 
 
 def build_models_pipeline(**context):
-    df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
-    tokenizer, tokenizer_json = build_tokens(df)
+    print('a', a)
+    print('check it out', tags_general)
+    if run_mode=='prod':
+        df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
+        # tags_general = [i for i in df.columns if (not i.lower().startswith('covid') and i.lower() not in ['id', 'sentence', 'not specified']) or i.lower=='covid-19']
+        # tags_covid = [i for i in df.columns if i.lower().startswith('covid') and i.lower != 'covid-19']
+    elif run_mode=='dev':
+        df = pd.read_csv(context['data'])
+        df['id'] = 'placeholder'
+        # tags_general = tags_general
+        # tags_covid = tags_general
 
-    sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test = build_train_set(df, tokenizer)
+    # tokenizer_general, tokenizer_json_general = build_tokens(df)
+    # print('tags_general', tags_general)
+    # sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test = build_train_set(df, tokenizer_general, tags_general)
+    # metric_df_general = buid_models_for_tags(tags_general, sent_train, sent_val, sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
+    #                                          model_path = "models/models_general/")
 
+
+    print('tags_covid', tags_covid)
+    print(df[tags_covid], type(df[tags_covid]))
+    print(df[tags_covid].sum(axis=1))
+    print(df[df[tags_covid].sum(axis=1)>0])
+    x  = df[df[tags_covid].sum(axis=1)>0]
+    print('x', ['sentence']+tags_covid)
+    print(x[['sentence']+tags_covid])
+    df_covid = df[df[tags_covid].sum(axis=1)>0][['sentence']+tags_covid]
+    print('shape', df.shape, df_covid.shape)
+    tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid)
+    sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
+    metric_df_covid = buid_models_for_tags(tags_covid, sent_train, sent_val, sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
+                                           model_path = "models/models_covid/")
+
+
+    return metric_df_general, metric_df_covid
+
+
+build_models_pipeline(data='to_train.csv')
 
 
 # df = pd.read('interaction_all_data_0811.csv')

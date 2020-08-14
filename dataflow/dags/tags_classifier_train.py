@@ -4,7 +4,7 @@
 
 from airflow.operators.sensors import ExternalTaskSensor
 
-from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data
+from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data, build_models_pipeline
 
 from dataflow.operators.db_tables import (
     check_table_data,
@@ -160,6 +160,7 @@ class _TrainModelPipeline(_PipelineDAG):
         #     op_args=[self.target_db, *self.table_config.tables],
         # )
 
+        # _fetch_data
 
         (_fetch_data
          >> _build_model
@@ -170,7 +171,8 @@ class _TrainModelPipeline(_PipelineDAG):
          # >> _swap_dataset_tables
          # >> _drop_swap_tables
          )
-        #
+
+
         # _insert_into_temp_table >> _drop_temp_tables
 
         # for dependency in self.dependencies:

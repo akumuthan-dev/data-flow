@@ -1,9 +1,9 @@
 import pandas as pd
 import re
-from .setting import *
+from dataflow.operators.tags_classifier_train.setting import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve,auc
 
-
+a=300000
 
 
 ######################## fetch and clean the data ########################
@@ -54,14 +54,17 @@ def relabel(x):
 
     # if 'Covid-19 Employment' in x.columns:
     # print(x.columns)
-    if 1==1:
+    if 'Covid-19 Employment' in x.columns:
       x['Covid-19 Employment'] = \
         x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['employment', 'furlough']) else x['Covid-19 Employment'], axis=1)
+    if 'Covid-19 Exports/Imports' in x.columns:
       x['Covid-19 Exports/Imports'] = \
         x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['export', 'import']) else x['Covid-19 Exports/Imports'], axis=1)
+    if 'Covid-19 Supply Chain/Stock' in x.columns:
       x['Covid-19 Supply Chain/Stock'] = \
         x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['supply chain']) else x['Covid-19 Supply Chain/Stock'], axis=1)
-      x['Covid-19 Cash Flow'] = \
+    if 'Covid-19 Covid-19 Cash Flow' in x.columns:
+          x['Covid-19 Cash Flow'] = \
         x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['cashflow', 'cash flow', 'cash']) else x['Covid-19 Cash Flow'], axis=1)
 
     return x
@@ -113,9 +116,11 @@ def preprocess(fb_all, action='train', **kwargs):
         fb_all = fb_all[['id', 'policy feedback', 'tags']]
         fb_all = fb_all.dropna(subset=['policy feedback', 'tags'])
         fb_all['tags'] = fb_all['tags'].apply(lambda x: x.replace(';', ','))
+        fb_all['tags'] = fb_all['tags'].apply(lambda x: x + ',covid-19' if 'covid' in x.lower() else x)
         fb_all = clean_tag(fb_all)
         # print(fb_all.head(1))
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
+
         fb_tag.columns = [i.strip().title() for i in fb_tag.columns]
         print('test', fb_tag.columns)
         # print(fb_tag.shape)
@@ -131,7 +136,7 @@ def preprocess(fb_all, action='train', **kwargs):
         tags_count = fb_tag.sum().sort_values(ascending=False)
         # print('test', fb_tag['Movement Of People'].sum())
         tags = list(tags_count[tags_count>200].index)
-        tags = [i for i in tags if i.lower() not in ['general', 'not specifed', 'other', 'others']]
+        tags = [i for i in tags if i.lower() not in ['general', 'not specified', 'other', 'others']]
         # tags = kwargs['tags']
         print('train model for these tags:', tags)
         select_columns = ['id', 'policy feedback']
