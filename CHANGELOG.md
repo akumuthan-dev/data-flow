@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-08-18
+
+### Added
+
+- Metadata table to the datasets DB under a `dataflow` schema, used to track various information related to pipeline runs/data pulled in. To begin with, we record the last modification date for ONS datasets and the timestamp when dataflow swapped temporary ingest tables with the "real" tables.
+- Updated ONS parsing pipelines to only continue if there is more recent data available, based on the source data modified timestamp stored in the metadata table.
+
 ## 2020-08-17
 
 ### Added

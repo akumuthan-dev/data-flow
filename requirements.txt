@@ -4,10 +4,11 @@
 #
 #    pip-compile requirements.in
 #
-alembic==1.3.1            # via apache-airflow
+alembic==1.3.1            # via -r requirements.in, apache-airflow
 amqp==2.5.2               # via kombu
 apache-airflow[celery,crypto,postgres,s3,sentry,slack]==1.10.11  # via -r requirements.in
 apispec[yaml]==1.3.3      # via flask-appbuilder
+appnope==0.1.0            # via ipython
 argcomplete==1.11.1       # via apache-airflow
 argparse==1.4.0           # via gssutils
 attrs==19.3.0             # via apache-airflow, cattrs, jsonschema

@@ -1,10 +1,13 @@
+from datetime import datetime
 from unittest import mock
 from unittest.mock import call
 
+import freezegun as freezegun
 import pytest
 import sqlalchemy
 
 from dataflow.operators import db_tables
+from dataflow.operators.db_tables import branch_on_modified_date
 from dataflow.utils import get_temp_table, TableConfig
 
 
@@ -252,7 +255,14 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
         'DEFAULT_DATABASE_GRANTEES',
         ['default-grantee-1', 'default-grantee-2'],
     )
-    db_tables.swap_dataset_tables("test-db", table, ts_nodash="123")
+    xcom_mock = mock.Mock()
+    xcom_mock.xcom_pull.return_value = datetime(2020, 1, 1, 12, 0, 0)
+
+    with freezegun.freeze_time('20200202t12:00:00'):
+        db_tables.swap_dataset_tables(
+            "test-db", table, ts_nodash="123", task_instance=xcom_mock
+        )
+
     mock_db_conn.execute.assert_has_calls(
         [
             call(),
@@ -279,6 +289,19 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
             ),
             call(
                 'GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO default-grantee-2'
+            ),
+            call(
+                """
+                INSERT INTO dataflow.metadata
+                (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    'public',
+                    'test_table',
+                    datetime(2020, 1, 1, 12, 0),
+                    datetime(2020, 2, 2, 12, 0),
+                ),
             ),
         ]
     )
@@ -310,3 +333,34 @@ def test_drop_swap_tables(mocker, mock_db_conn):
 
     for table in tables:
         table.drop.assert_called_once_with(mock_db_conn, checkfirst=True)
+
+
+@pytest.mark.parametrize(
+    "db_result, new_modified_utc, expected_result",
+    (
+        (((None,),), datetime(2020, 1, 2), "continue"),
+        (((datetime(2020, 1, 1),),), datetime(2020, 1, 2), "continue"),
+        (((datetime(2020, 1, 1),),), datetime(2019, 12, 31), "stop"),
+        (tuple(), None, "continue"),
+    ),
+)
+def test_branch_on_modified_date(
+    mocker, mock_db_conn, db_result, new_modified_utc, expected_result
+):
+    target_db = 'target_db'
+    table_config = TableConfig(
+        table_name="my-table",
+        field_mapping=(
+            ("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False)),
+            ("data", sqlalchemy.Column("data", sqlalchemy.String())),
+        ),
+    )
+    task_instance_mock = mock.Mock()
+    task_instance_mock.xcom_pull.return_value = new_modified_utc
+    mock_db_conn.execute().fetchall.return_value = db_result
+
+    next_task = branch_on_modified_date(
+        target_db, table_config, task_instance=task_instance_mock
+    )
+
+    assert next_task == expected_result

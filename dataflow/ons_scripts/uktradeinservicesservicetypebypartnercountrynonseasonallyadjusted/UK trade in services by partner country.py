@@ -16,10 +16,11 @@
 # UK trade in services: service type by partner country, non-seasonally adjusted
 
 # +
+import json
+
 from gssutils import *
 
-scraper = Scraper('https://www.ons.gov.uk/businessindustryandtrade/' + \
-                  'internationaltrade/datasets/uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted')
+scraper = Scraper(json.load(open('info.json'))['landingPage'])
 scraper
 
 # +
