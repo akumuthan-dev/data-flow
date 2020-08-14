@@ -76,6 +76,32 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                 ('assessment', 'commercial_value_explanation'),
                 sa.Column('commercial_value_explanation', sa.Text),
             ),
+            ("archived", sa.Column("archived", sa.Boolean)),
+            (("archived_by", "name"), sa.Column("archived_by", sa.Text)),
+            ("archived_on", sa.Column("archived_on", sa.DateTime)),
+            (("archived_reason", "name"), sa.Column("archived_reason", sa.Text)),
+            ("archived_explanation", sa.Column("archived_explanation", sa.Text)),
+            (("unarchived_by", "name"), sa.Column("unarchived_by", sa.Text)),
+            ("unarchived_on", sa.Column("unarchived_on", sa.DateTime)),
+            ("unarchived_reason", sa.Column("unarchived_reason", sa.Text)),
+            (
+                "status_history",
+                TableConfig(
+                    table_name="market_access_trade_barrier_status_history",
+                    transforms=[
+                        lambda record, table_config, contexts: {
+                            **record,
+                            'trade_barrier_id': contexts[0]['id'],
+                        }
+                    ],
+                    field_mapping=(
+                        ('date', sa.Column("date", sa.Text)),
+                        (('status', 'name'), sa.Column("status", sa.Text)),
+                        (('status', 'id'), sa.Column("status_id", sa.Text)),
+                        ('trade_barrier_id', sa.Column('trade_barrier_id', sa.Text)),
+                    ),
+                ),
+            ),
         ],
     )
 
