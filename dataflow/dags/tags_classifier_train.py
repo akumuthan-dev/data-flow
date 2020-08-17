@@ -4,7 +4,7 @@
 
 from airflow.operators.sensors import ExternalTaskSensor
 
-from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data, build_models_pipeline
+from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data, build_models_pipeline,save_model
 
 from dataflow.operators.db_tables import (
     check_table_data,
@@ -56,25 +56,25 @@ class _TrainModelPipeline(_PipelineDAG):
     query: str
 
 
-    def fetch_data_operator(self) -> PythonOperator:
-        raise NotImplementedError(
-            f"{self.__class__} needs to override fetch_data_operator"
-        )
-
-    def build_model_operator(self) -> PythonOperator:
-        raise NotImplementedError(
-            f"{self.__class__} needs to override prediction_operator"
-        )
+    # def fetch_data_operator(self) -> PythonOperator:
+    #     raise NotImplementedError(
+    #         f"{self.__class__} needs to override fetch_data_operator"
+    #     )
     #
-    # def measure_model_operator(self) -> PythonOperator:
+    # def build_model_operator(self) -> PythonOperator:
     #     raise NotImplementedError(
     #         f"{self.__class__} needs to override prediction_operator"
     #     )
-    #
-    # def save_model_operator(self) -> PythonOperator:
-    #     raise NotImplementedError(
-    #         f"{self.__class__} needs to override write_prediction_operator"
-    #     )
+    # #
+    # # def measure_model_operator(self) -> PythonOperator:
+    # #     raise NotImplementedError(
+    # #         f"{self.__class__} needs to override prediction_operator"
+    # #     )
+    # #
+    def save_model_operator(self) -> PythonOperator:
+        raise NotImplementedError(
+            f"{self.__class__} needs to override write_prediction_operator"
+        )
 
     def get_dag(self) -> DAG:
         dag = DAG(
@@ -101,16 +101,20 @@ class _TrainModelPipeline(_PipelineDAG):
             else None,
         )
 
-
-        _fetch_data = self.fetch_data_operator()
-        _fetch_data.dag = dag
-
-        _build_model = self.build_model_operator()
-        _build_model.dag = dag
         #
-        # _measure_model = self.measure_model_operator()
-        # _measure_model.dag = dag
+        # _fetch_data = self.fetch_data_operator()
+        # _fetch_data.dag = dag
         #
+        # _build_model = self.build_model_operator()
+        # _build_model.dag = dag
+        # #
+        # # _measure_model = self.measure_model_operator()
+        # # _measure_model.dag = dag
+        # #
+
+        _save_model = self.save_model_operator()
+        _save_model.dag = dag
+
         # _create_tables = PythonOperator(
         #     task_id="create-temp-tables",
         #     python_callable=create_temp_tables,
@@ -160,17 +164,18 @@ class _TrainModelPipeline(_PipelineDAG):
         #     op_args=[self.target_db, *self.table_config.tables],
         # )
 
-        # _fetch_data
+        _save_model
 
-        (_fetch_data
-         >> _build_model
-         # >> _measure_model
-         # >> _create_tables
-         # >> _insert_into_temp_table
-         # >> _check_tables
-         # >> _swap_dataset_tables
-         # >> _drop_swap_tables
-         )
+        # (_fetch_data
+        #  >> _build_model
+        #  >> _save_model
+        #  # >> _measure_model
+        #  # >> _create_tables
+        #  # >> _insert_into_temp_table
+        #  # >> _check_tables
+        #  # >> _swap_dataset_tables
+        #  # >> _drop_swap_tables
+        #  )
 
 
         # _insert_into_temp_table >> _drop_temp_tables
@@ -225,21 +230,29 @@ class TagsClassifierTrainPipeline(_TrainModelPipeline):
 
 
 
-    def fetch_data_operator(self) -> PythonOperator:
-        return PythonOperator(
-            task_id='fetch-interaction-data',
-            python_callable=fetch_interaction_labelled_data,
-            op_args=[
-                self.target_db,
-                self.query
-            ],
-        )
+    # def fetch_data_operator(self) -> PythonOperator:
+    #     return PythonOperator(
+    #         task_id='fetch-interaction-data',
+    #         python_callable=fetch_interaction_labelled_data,
+    #         op_args=[
+    #             self.target_db,
+    #             self.query
+    #         ],
+    #     )
+    #
+    # def build_model_operator(self) -> PythonOperator:
+    #     return PythonOperator(
+    #         task_id='build-model',
+    #         python_callable=build_models_pipeline,
+    #         provide_context=True
+    #
+    #     )
 
-    def build_model_operator(self) -> PythonOperator:
+    def save_model_operator(self) -> PythonOperator:
         return PythonOperator(
-            task_id='build-model',
-            python_callable=build_models_pipeline,
-            provide_context=True
+            task_id='save-model',
+            python_callable=save_model,
+            provide_context=False
 
         )
 

@@ -9,6 +9,10 @@ from dataflow.operators.tags_classifier_train.setting import tags_covid, tags_ge
 
 print('check it out', tags_general)
 
+from dataflow import config
+import boto3
+import shutil
+import datetime
 import os
 print(os.getcwd(), __package__, __name__, __file__)
 from keras_preprocessing.text import tokenizer_from_json
@@ -266,6 +270,23 @@ def build_models_pipeline(**context):
 
 
 # df = pd.read('interaction_all_data_0811.csv')
+
+
+def save_model():
+    bucket = config.S3_IMPORT_DATA_BUCKET
+
+    today = datetime.date.today()
+    today = today.strftime("%Y%m%d")
+    shutil.make_archive('models_'+today, 'zip', 'models')
+
+    s3 = boto3.client('s3', region_name='eu-west-2')
+    s3.upload_file('models_'+today+'.zip',
+                   bucket,
+                 'models/data_hub_policy_feedback_tags_classifier/'+'models_'+today+'.zip')
+
+    return None
+
+
 
 # def transform_X(X_text, tokenizer):
 #     X = tokenizer.texts_to_sequences(X_text)

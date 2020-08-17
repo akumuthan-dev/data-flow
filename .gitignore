@@ -93,7 +93,7 @@ airflow/
 
 aws/
 awscliv2.zip
-models.zip
+*.zip
 models/
 to_predict.csv
 to_predict_result.csv
