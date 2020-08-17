@@ -4,7 +4,7 @@
 
 from airflow.operators.sensors import ExternalTaskSensor
 
-from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data, build_models_pipeline,save_model
+from dataflow.operators.tags_classifier_train.tags_classifier_train import fetch_interaction_labelled_data, build_models_pipeline,save_model,write_model_performance
 
 from dataflow.operators.db_tables import (
     check_table_data,
@@ -66,11 +66,12 @@ class _TrainModelPipeline(_PipelineDAG):
     #         f"{self.__class__} needs to override prediction_operator"
     #     )
     # #
-    # # def measure_model_operator(self) -> PythonOperator:
-    # #     raise NotImplementedError(
-    # #         f"{self.__class__} needs to override prediction_operator"
-    # #     )
-    # #
+
+    def write_model_performance_operator(self) -> PythonOperator:
+        raise NotImplementedError(
+            f"{self.__class__} needs to override prediction_operator"
+        )
+
     def save_model_operator(self) -> PythonOperator:
         raise NotImplementedError(
             f"{self.__class__} needs to override write_prediction_operator"
@@ -108,68 +109,68 @@ class _TrainModelPipeline(_PipelineDAG):
         # _build_model = self.build_model_operator()
         # _build_model.dag = dag
         # #
-        # # _measure_model = self.measure_model_operator()
-        # # _measure_model.dag = dag
-        # #
+        _write_model_performance = self.write_model_performance_operator()
+        _write_model_performance.dag = dag
+
 
         _save_model = self.save_model_operator()
         _save_model.dag = dag
 
-        # _create_tables = PythonOperator(
-        #     task_id="create-temp-tables",
-        #     python_callable=create_temp_tables,
-        #     execution_timeout=timedelta(minutes=10),
-        #     provide_context=True,
-        #     op_args=[self.target_db, *self.table_config.tables],
-        #     dag=dag,
-        # )
-        #
-        # _insert_into_temp_table = PythonOperator(
-        #     task_id="insert-into-temp-table",
-        #     python_callable=self.get_insert_data_callable(),
-        #     provide_context=True,
-        #     op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
-        # )
-        #
-        # _check_tables = PythonOperator(
-        #     task_id="check-temp-table-data",
-        #     python_callable=check_table_data,
-        #     provide_context=True,
-        #     op_args=[self.target_db, *self.table_config.tables],
-        #     op_kwargs={'allow_null_columns': self.allow_null_columns},
-        # )
-        #
-        # _swap_dataset_tables = PythonOperator(
-        #     task_id="swap-dataset-table",
-        #     python_callable=swap_dataset_tables,
-        #     execution_timeout=timedelta(minutes=10),
-        #     provide_context=True,
-        #     op_args=[self.target_db, *self.table_config.tables],
-        # )
-        #
-        # _drop_temp_tables = PythonOperator(
-        #     task_id="drop-temp-tables",
-        #     python_callable=drop_temp_tables,
-        #     execution_timeout=timedelta(minutes=10),
-        #     provide_context=True,
-        #     trigger_rule="one_failed",
-        #     op_args=[self.target_db, *self.table_config.tables],
-        # )
-        #
-        # _drop_swap_tables = PythonOperator(
-        #     task_id="drop-swap-tables",
-        #     python_callable=drop_swap_tables,
-        #     execution_timeout=timedelta(minutes=10),
-        #     provide_context=True,
-        #     op_args=[self.target_db, *self.table_config.tables],
-        # )
+        _create_tables = PythonOperator(
+            task_id="create-temp-tables",
+            python_callable=create_temp_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+            dag=dag,
+        )
 
-        _save_model
+        _insert_into_temp_table = PythonOperator(
+            task_id="insert-into-temp-table",
+            python_callable=self.get_insert_data_callable(),
+            provide_context=True,
+            op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
+        )
+
+        _check_tables = PythonOperator(
+            task_id="check-temp-table-data",
+            python_callable=check_table_data,
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+            op_kwargs={'allow_null_columns': self.allow_null_columns},
+        )
+
+        _swap_dataset_tables = PythonOperator(
+            task_id="swap-dataset-table",
+            python_callable=swap_dataset_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _drop_temp_tables = PythonOperator(
+            task_id="drop-temp-tables",
+            python_callable=drop_temp_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            trigger_rule="one_failed",
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _drop_swap_tables = PythonOperator(
+            task_id="drop-swap-tables",
+            python_callable=drop_swap_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _write_model_performance >> _save_model
 
         # (_fetch_data
         #  >> _build_model
         #  >> _save_model
-        #  # >> _measure_model
+        #  # >> _write_model_performance
         #  # >> _create_tables
         #  # >> _insert_into_temp_table
         #  # >> _check_tables
@@ -256,26 +257,16 @@ class TagsClassifierTrainPipeline(_TrainModelPipeline):
 
         )
 
-    # def prediction_operator(self) -> PythonOperator:
-    #     return PythonOperator(
-    #         task_id='predict-tags',
-    #         python_callable=predict_tags,
-    #         provide_context=True,
-    #         op_args=[
-    #             'models'
-    #         ],
-    #     )
-    #
-    # def write_prediction_operator(self) -> PythonOperator:
-    #     return PythonOperator(
-    #         task_id='write-prediction',
-    #         python_callable=write_prediction,
-    #         provide_context=True,
-    #         op_args=[
-    #             # self.controller_pipeline.table_config.table_name+'_with_tags'
-    #             self.table_config.table_name
-    #         ],
-    #     )
-    #
-    #
+
+    def write_model_performance_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='write-model-performance',
+            python_callable=write_model_performance,
+            provide_context=True,
+            op_args=[
+                self.table_config.table_name+'measurement'
+            ],
+        )
+
+
 

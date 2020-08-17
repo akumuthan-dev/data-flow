@@ -194,5 +194,6 @@ def report_metrics_for_all(tag_size, tag_precisions, tag_recalls, tag_f1, tag_ac
     auc_df = auc_df.rename(columns={0: 'auc'})
 
     metric_df = pd.concat([size_df, precisions_df, recalls_df, f1_df, accuracy_df, auc_df], axis=1)
+    metric_df.columns = ['model_for_tag'] + list(metric_df.columns[1:])
 
     return metric_df

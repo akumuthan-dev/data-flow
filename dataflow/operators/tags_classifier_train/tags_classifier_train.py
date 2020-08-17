@@ -262,7 +262,9 @@ def build_models_pipeline(**context):
                                                model_path = "models/models_covid/")
 
 
-    # return metric_df_general, metric_df_covid
+
+    # return metric_df_general, metric_df_covid ## or: merge these two tables, and pass it to context for next step
+    return None
 
 
 # run_mode='dev'
@@ -277,7 +279,7 @@ def save_model():
 
     today = datetime.date.today()
     today = today.strftime("%Y%m%d")
-    shutil.make_archive('models_'+today, 'zip', 'models')
+    shutil.make_archive('models_'+today, 'zip', 'models_'+today)
 
     s3 = boto3.client('s3', region_name='eu-west-2')
     s3.upload_file('models_'+today+'.zip',
@@ -287,6 +289,24 @@ def save_model():
     return None
 
 
+def write_model_performance(table_name, **context):
+    today = datetime.date.today()
+    today = today.strftime("%Y%m%d")
+
+    metrics1 = pd.read_csv('models_' + today + '/models_covid/models_metrics_cnn.csv')
+    metrics2 = pd.read_csv('models_' + today + '/models_general/models_metrics_cnn.csv')
+
+    metrics = pd.concat([metrics1, metrics2])
+    metrics = metrics.reset_index()
+    # metrics = context['task_instance'].xcom_pull(task_ids='build-model')
+
+    metrics_json = metrics.to_json(orient="records")
+    metrics_json = json.loads(metrics_json)
+
+    s3 = S3Data(table_name+'_'+today, context["ts_nodash"])
+    s3.write_key('model_performance.json', metrics_json)
+
+    return None
 
 # def transform_X(X_text, tokenizer):
 #     X = tokenizer.texts_to_sequences(X_text)
