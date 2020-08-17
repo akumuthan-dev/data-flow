@@ -303,7 +303,7 @@ def write_model_performance(table_name, **context):
     metrics_json = metrics.to_json(orient="records")
     metrics_json = json.loads(metrics_json)
 
-    s3 = S3Data(table_name+'_'+today, context["ts_nodash"])
+    s3 = S3Data(table_name, context["ts_nodash"])
     s3.write_key('model_performance.json', metrics_json)
 
     return None
