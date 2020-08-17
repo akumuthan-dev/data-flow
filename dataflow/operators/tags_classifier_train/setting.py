@@ -8,8 +8,10 @@ tags = ['Covid-19', 'Covid-19 Feedback On Hmg Support',
 tags_general = [i for i in tags if not i.lower().startswith('covid')  or i.lower() == 'covid-19']
 tags_covid = [i for i in tags if i.lower().startswith('covid') and i.lower() != 'covid-19']
 
-
+#
 # tags_general = ['Covid-19']
+# tags_general = []
+# tags_covid = ['Covid-19 Feedback On Hmg Support']
 #
 # tags_covid = [ 'Covid-19 Employment',   'Covid-19 Cash Flow',  'Covid-19 Supply Chain/Stock', ## 'Covid-19 Exports/Imports',
 #          'Covid-19 Feedback On Hmg Support',  'Covid-19 Request For Hmg Support',
@@ -27,7 +29,7 @@ tags_covid = [i for i in tags if i.lower().startswith('covid') and i.lower() != 
 
 # tags = tags_covid+tags_general
 
-run_mode = 'dev'
+run_mode = 'prod'
 
 #
 # ['Covid-19 Feedback On Hmg Support', 'Covid-19 Business Disruption', 'Covid-19 General', 'Covid-19 Employment',

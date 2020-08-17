@@ -1,5 +1,5 @@
-# from airflow.hooks.postgres_hook import PostgresHook
-# from dataflow.utils import logger, S3Data
+from airflow.hooks.postgres_hook import PostgresHook
+from dataflow.utils import logger, S3Data
 import numpy
 import operator
 # fix random seed for reproducibility
@@ -24,6 +24,7 @@ from tensorflow.keras import layers
 from itertools import compress
 import json
 from dataflow.operators.tags_classifier_train.utils import *
+import sys
 
 print('a', a)
 
@@ -31,6 +32,8 @@ def fetch_interaction_labelled_data(
     target_db: str,  query: str
 ):
     logger.info("starting fetching data")
+    print(sys.version)
+    print(tf.__version__)
 
     try:
         print('working directory', os.getcwd())
@@ -57,7 +60,7 @@ def fetch_interaction_labelled_data(
 
 
 def build_tokens(df):
-    print(df.columns)
+    # print(df.columns)
     tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', lower=True)
     # tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~', lower=True)
     tokenizer.fit_on_texts(df['sentence'].values)
@@ -88,7 +91,6 @@ def build_train_set(df, tokenizer, tags):
     print('Shape of data tensor:', X.shape)
 
 
-    print('aaa', df.columns, tags)
     Y = df[tags].values
     # Y = df['label'].values.reshape(-1,1)
     print('Shape of label tensor:', Y.shape)
@@ -98,9 +100,9 @@ def build_train_set(df, tokenizer, tags):
     print(X_train.shape,Y_train.shape)
     print(X_test.shape,Y_test.shape)
 
-    sent_train, sent_val, X_train, X_val,Y_train, Y_val = train_test_split(sent_train, X_train,  Y_train, test_size = 0.10, random_state = 42, shuffle=True)
+    sent_train, sent_val, X_train, X_val, Y_train, Y_val = train_test_split(sent_train, X_train,  Y_train, test_size = 0.10, random_state = 42, shuffle=True)
 
-    return sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test
+    return sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test
 
 
 def cnn():
@@ -156,7 +158,7 @@ def train_model(model, X_train, Y_train,  X_val, Y_val,class_weight):
     return model
 
 
-def buid_models_for_tags(tags, sent_train, sent_val, sent_test, X_train, X_val,Y_train, Y_val, X_test, Y_test, model_path):
+def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test, Y_test, model_path):
     tag_precisions = dict()
     tag_recalls = dict()
     tag_f1 = dict()
@@ -168,14 +170,17 @@ def buid_models_for_tags(tags, sent_train, sent_val, sent_test, X_train, X_val,Y
     Y_test_predict = np.zeros(Y_test.shape)
     Y_test_predict_prob = np.zeros(Y_test.shape)
 
-    print('check...', tags)
+
     for j in tags:
       # if j!='Covid-19 Employment':
       if 1==1:
         print('-------------'*5)
         print('model for '+j )
         i = tags.index(j)
+
+
         Y_train_tag = Y_train[:,i]
+        print('check y', Y_train_tag.sum(), Y_train_tag.shape)
         Y_test_tag = Y_test[:,i]
         Y_val_tag = Y_val[:,i]
         class_size = (sum(Y_test[:,i]==1)+ sum(Y_train[:,i]==1), (sum(Y_test[:,i]==1)+ sum(Y_train[:,i]==1)) / (Y_test.shape[0] + Y_train.shape[0]))
@@ -230,44 +235,34 @@ def buid_models_for_tags(tags, sent_train, sent_val, sent_test, X_train, X_val,Y
 
 
 def build_models_pipeline(**context):
-    print('a', a)
-    print('check it out', tags_general)
+    print('tags_general', tags_general)
+    print('tags_covid', tags_covid)
     if run_mode=='prod':
         df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
-        # tags_general = [i for i in df.columns if (not i.lower().startswith('covid') and i.lower() not in ['id', 'sentence', 'not specified']) or i.lower=='covid-19']
-        # tags_covid = [i for i in df.columns if i.lower().startswith('covid') and i.lower != 'covid-19']
     elif run_mode=='dev':
         df = pd.read_csv(context['data'])
         df['id'] = 'placeholder'
-        # tags_general = tags_general
-        # tags_covid = tags_general
 
-    # tokenizer_general, tokenizer_json_general = build_tokens(df)
-    # print('tags_general', tags_general)
-    # sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test = build_train_set(df, tokenizer_general, tags_general)
-    # metric_df_general = buid_models_for_tags(tags_general, sent_train, sent_val, sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-    #                                          model_path = "models/models_general/")
+    if len(tags_general)>0:
+        tokenizer_general, tokenizer_json_general = build_tokens(df)
+        sent_train, sent_val, sent_test, X_train, X_val, X_test, Y_train, Y_val, Y_test = build_train_set(df, tokenizer_general, tags_general)
+        metric_df_general = buid_models_for_tags(tags_general,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
+                                                 model_path = "models/models_general/")
 
 
-    print('tags_covid', tags_covid)
-    print(df[tags_covid], type(df[tags_covid]))
-    print(df[tags_covid].sum(axis=1))
-    print(df[df[tags_covid].sum(axis=1)>0])
-    x  = df[df[tags_covid].sum(axis=1)>0]
-    print('x', ['sentence']+tags_covid)
-    print(x[['sentence']+tags_covid])
-    df_covid = df[df[tags_covid].sum(axis=1)>0][['sentence']+tags_covid]
-    print('shape', df.shape, df_covid.shape)
-    tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid)
-    sent_train, sent_val, sent_test, X_train, X_test, X_val,Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
-    metric_df_covid = buid_models_for_tags(tags_covid, sent_train, sent_val, sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-                                           model_path = "models/models_covid/")
+    if len(tags_covid)>0:
+        df_covid = df[df['Covid-19'] > 0][['sentence'] + tags_covid]
+        tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid)
+        sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
+        metric_df_covid = buid_models_for_tags(tags_covid,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
+                                               model_path = "models/models_covid/")
 
 
-    return metric_df_general, metric_df_covid
+    # return metric_df_general, metric_df_covid
 
 
-build_models_pipeline(data='to_train.csv')
+# run_mode='dev'
+# build_models_pipeline(data='to_train.csv')
 
 
 # df = pd.read('interaction_all_data_0811.csv')
