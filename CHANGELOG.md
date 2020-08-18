@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-08-17
+
+### Added
+
+- New pipeline to sync changes from the dnb company service to the dnb global companies table
+
 ## 2020-08-13
 
 ### Changed
