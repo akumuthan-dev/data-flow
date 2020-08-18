@@ -82,8 +82,9 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             (("archived_reason", "name"), sa.Column("archived_reason", sa.Text)),
             ("archived_explanation", sa.Column("archived_explanation", sa.Text)),
             (("unarchived_by", "name"), sa.Column("unarchived_by", sa.Text)),
-            ("unarchived_on", sa.Column("unarchived_on", sa.DateTime)),
-            ("unarchived_reason", sa.Column("unarchived_reason", sa.Text)),
+            # `unarchived_` fields are currently NULL everywhere, so we can't pull them in yet ...
+            # ("unarchived_on", sa.Column("unarchived_on", sa.DateTime)),
+            # ("unarchived_reason", sa.Column("unarchived_reason", sa.Text)),
             (
                 "status_history",
                 TableConfig(
