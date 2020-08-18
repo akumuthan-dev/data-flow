@@ -222,7 +222,8 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
         tag_size[tags[i]] = class_size
 
     metric_df = report_metrics_for_all(tag_size, tag_precisions, tag_recalls, tag_f1, tag_accuracy, tag_auc)
-    metric_df.to_csv(model_path+'/models_metrics_cnn.csv', index=True)
+    print('check columns', metric_df.columns)
+    metric_df.to_csv(model_path+'/models_metrics_cnn.csv', index=False)
 
 
     actual = []
@@ -239,6 +240,10 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
 
 
 def build_models_pipeline(**context):
+
+    today = datetime.date.today()
+    today = today.strftime("%Y%m%d")
+
     print('tags_general', tags_general)
     print('tags_covid', tags_covid)
     if run_mode=='prod':
@@ -251,7 +256,7 @@ def build_models_pipeline(**context):
         tokenizer_general, tokenizer_json_general = build_tokens(df)
         sent_train, sent_val, sent_test, X_train, X_val, X_test, Y_train, Y_val, Y_test = build_train_set(df, tokenizer_general, tags_general)
         metric_df_general = buid_models_for_tags(tags_general,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-                                                 model_path = "models/models_general/")
+                                                 model_path =  "models_"+today+"/models_general/")
 
 
     if len(tags_covid)>0:
@@ -259,7 +264,7 @@ def build_models_pipeline(**context):
         tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid)
         sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
         metric_df_covid = buid_models_for_tags(tags_covid,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-                                               model_path = "models/models_covid/")
+                                               model_path = "models_"+today+"/models_covid/")
 
 
 
