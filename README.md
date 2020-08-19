@@ -67,3 +67,10 @@ For data import pipelines, it's important to keep the state of DB tables in mind
 * If a check or swap DB tables tasks fail then the temporary table is left in place, so (as long as there were no bugs in fetch/insert tasks that needed a new release) only the failed tasks need to be cleared for a rerun.
 
 
+### Managing Data-Flow migrations
+
+Data-Flow maintains some models in the `dataflow` schema of the datasets DB. At the moment this is just a `metadata` table used to associate some timestamps with tables. Migrations for this table, and future tables in the same schema, are managed using Alembic. To change the model:
+
+1) Update the model in Python
+2) Run `PYTHONPATH=. alembic revision --autogenerate -m "<short description>"`
+3) Optionally run `PYTHONPATH=. alembic upgrade head`, though this is run automatically on app startup.

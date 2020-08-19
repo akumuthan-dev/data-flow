@@ -2,10 +2,11 @@ import sys
 
 from datetime import datetime, timedelta
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Callable
 
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
 
 from dataflow import config
@@ -17,6 +18,7 @@ from dataflow.operators.db_tables import (
     drop_temp_tables,
     insert_data_into_db,
     swap_dataset_tables,
+    branch_on_modified_date,
 )
 from dataflow.utils import TableConfig, slack_alert
 
@@ -80,6 +82,31 @@ class _PipelineDAG(metaclass=PipelineMeta):
     def get_insert_data_callable(self):
         return insert_data_into_db
 
+    def get_source_data_modified_utc(self) -> Optional[datetime]:
+        return None
+
+    def get_source_data_modified_utc_callable(self) -> Optional[Callable]:
+        return None
+
+    def branch_on_modified_date(
+        self, dag: DAG, target_db: str, table_config: TableConfig
+    ) -> PythonOperator:
+        """Check whether data is newer than the previous run, else abort.
+
+        This task is executed if the DAG returns non-None from `get_source_data_modified_utc_callable` method. That
+        method should return a callable which itself returns a UTC timestamp that is compared gainst the
+        `dataflow.metadata` table for this pipeline. If the date is newer than our stored date, the pipeline will
+        continue, otherwise we'll abort.
+        """
+        return BranchPythonOperator(
+            task_id="branch-on-modified-date",
+            python_callable=branch_on_modified_date,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[target_db, table_config],
+            dag=dag,
+        )
+
     def get_transform_operator(self):
         """
         Optional overridable task to transform/manipulate data
@@ -115,6 +142,30 @@ class _PipelineDAG(metaclass=PipelineMeta):
             if self.alert_on_failure
             else None,
         )
+
+        # If we've configured a way for the pipeline to determine when the source data was last modified,
+        # then we should run checks to see if the data has been updated. If it hasn't, we will end the pipeline
+        # early (but gracefully) without pulling the data again.
+        _get_source_data_modified_utc_callable = (
+            self.get_source_data_modified_utc_callable()
+        )
+        if _get_source_data_modified_utc_callable:
+            _get_source_modified_date_utc = PythonOperator(
+                task_id="get-source-modified-date",
+                python_callable=_get_source_data_modified_utc_callable,
+                dag=dag,
+            )
+            _branch_on_modified_date = self.branch_on_modified_date(
+                dag, self.target_db, self.table_config
+            )
+
+            _stop = DummyOperator(task_id="stop", dag=dag)
+            _continue = DummyOperator(task_id="continue", dag=dag)
+        else:
+            _branch_on_modified_date = None
+            _get_source_modified_date_utc = None
+            _stop = None
+            _continue = None
 
         _fetch = self.get_fetch_operator()
         _fetch.dag = dag
@@ -172,6 +223,13 @@ class _PipelineDAG(metaclass=PipelineMeta):
             provide_context=True,
             op_args=[self.target_db, *self.table_config.tables],
         )
+
+        if _get_source_modified_date_utc:
+            _get_source_modified_date_utc >> _branch_on_modified_date >> [
+                _stop,
+                _continue,
+            ]
+            _continue >> [_fetch, _create_tables]
 
         [_fetch, _create_tables] >> _insert_into_temp_table >> _drop_temp_tables
 

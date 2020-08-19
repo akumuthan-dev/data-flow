@@ -1,10 +1,13 @@
 import csv
+
+import datetime
 import itertools
 import warnings
 from io import StringIO
 from typing import Tuple, Dict, Optional
 
 import sqlalchemy as sa
+from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
@@ -24,6 +27,45 @@ class MissingDataError(ValueError):
 
 class UnusedColumnError(ValueError):
     pass
+
+
+def branch_on_modified_date(target_db: str, table_config: TableConfig, **context):
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    with engine.begin() as conn:
+        res = conn.execute(
+            """
+            SELECT source_data_modified_utc
+            FROM dataflow.metadata
+            WHERE table_schema = %s and table_name = %s
+            """,
+            [table_config.schema, table_config.table_name],
+        ).fetchall()
+
+        if len(res) == 0:
+            return 'continue'
+        elif len(res) > 1:
+            raise AirflowException(
+                f"Multiple rows in the dataflow metadata table for {table_config.schema}.{table_config.table_name}"
+            )
+        elif not res[0][0]:
+            return 'continue'
+
+        old_modified_utc = res[0][0]
+
+    new_modified_utc = context['task_instance'].xcom_pull(
+        task_ids='get-source-modified-date'
+    )
+
+    logger.info("Old: %s. New: %s", old_modified_utc, new_modified_utc)
+
+    if new_modified_utc > old_modified_utc:
+        return 'continue'
+
+    return 'stop'
 
 
 def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
@@ -383,6 +425,23 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
                         grantee=grantee,
                     )
                 )
+
+            new_modified_utc = kwargs['task_instance'].xcom_pull(
+                task_ids='get-source-modified-date'
+            )
+            conn.execute(
+                """
+                INSERT INTO dataflow.metadata
+                (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    table.schema,
+                    table.name,
+                    new_modified_utc,
+                    datetime.datetime.utcnow(),
+                ),
+            )
 
 
 def drop_temp_tables(target_db: str, *tables, **kwargs):

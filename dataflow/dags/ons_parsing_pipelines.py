@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
@@ -27,6 +28,37 @@ class _ONSParserPipeline(_PipelineDAG):
                 table_name=self.table_config.table_name, script_name=self.ons_script_dir
             ),
         )
+
+    def get_source_data_modified_utc(self) -> datetime:
+        from gssutils import Scraper
+        import json
+
+        with open(
+            Path('.') / 'dataflow' / 'ons_scripts' / self.ons_script_dir / 'info.json'
+        ) as info:
+            distribution_info = json.load(info)['landingPage']
+
+        if isinstance(distribution_info, list):
+            issued_dates = set()
+            for dist in distribution_info:
+                scraper = Scraper(dist)
+                issued_dates.add(scraper.distribution(latest=True).dataset.issued)
+
+            if len(issued_dates) != 1:
+                raise ValueError(
+                    "The files making up this dataset have different issue dates - refusing to continue with "
+                    "inconsistent data."
+                )
+
+            issue_date = issued_dates.pop()
+        else:
+            scraper = Scraper(distribution_info)
+            issue_date = scraper.distribution(latest=True).dataset.issued
+
+        return datetime(issue_date.year, issue_date.month, issue_date.day)
+
+    def get_source_data_modified_utc_callable(self):
+        return self.get_source_data_modified_utc
 
 
 class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):

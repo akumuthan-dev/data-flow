@@ -29,6 +29,7 @@ services:
       - /bin/sh
       - -c
       - |
+          alembic upgrade head
           airflow initdb
           ./bin/airflow-scheduler.sh &
           airflow worker &
