@@ -42,7 +42,7 @@ class _ONSParserPipeline(_PipelineDAG):
             issued_dates = set()
             for dist in distribution_info:
                 scraper = Scraper(dist)
-                issued_dates.add(scraper.distribution(latest=True).dataset.issued)
+                issued_dates.add(scraper.dataset.issued)
 
             if len(issued_dates) != 1:
                 raise ValueError(
@@ -53,7 +53,7 @@ class _ONSParserPipeline(_PipelineDAG):
             issue_date = issued_dates.pop()
         else:
             scraper = Scraper(distribution_info)
-            issue_date = scraper.distribution(latest=True).dataset.issued
+            issue_date = scraper.dataset.issued
 
         return datetime(issue_date.year, issue_date.month, issue_date.day)
 
