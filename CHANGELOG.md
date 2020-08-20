@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Directory Forms API pipeline.
+- New HMRC pipeline for exports to the EU
+- New HMRC pipeline for import from the EU 
 
 ## 2020-08-18
 
