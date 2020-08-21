@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - New HMRC pipeline for exports to the EU
 - New HMRC pipeline for import from the EU 
 
+### Changed
+
+- Use hmrc schema for all hmrc pipelines
+
 ## 2020-08-18
 
 ### Added
