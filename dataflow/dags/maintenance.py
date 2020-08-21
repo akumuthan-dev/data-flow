@@ -79,7 +79,7 @@ AND schemaname NOT LIKE 'pg_%%'
             schema, table_name = table
             table_match = re.match(r"(.*)_(\d{8}t\d{6})(?:_swap)?", table_name)
             if not table_match:
-                logger.info(f"Skipping {table_name}")
+                logger.info(f"Skipping {schema}.{table_name}")
                 continue
 
             table_dt = datetime.strptime(table_match.groups()[1], "%Y%m%dt%H%M%S")
