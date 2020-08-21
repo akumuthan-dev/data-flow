@@ -64,15 +64,22 @@ def cleanup_old_datasets_db_tables(*args, **kwargs):
     with engine.begin() as conn:
         tables = [
             table
-            for table, in conn.execute(
-                "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'public'"
+            for table in conn.execute(
+                '''
+SELECT schemaname, tablename
+FROM pg_catalog.pg_tables
+WHERE schemaname NOT IN ('dataflow', 'information_schema')
+AND schemaname NOT LIKE '\\_%%'
+AND schemaname NOT LIKE 'pg_%%'
+'''
             )
         ]
 
         for table in tables:
-            table_match = re.match(r"(.*)_(\d{8}t\d{6})(?:_swap)?", table)
+            schema, table_name = table
+            table_match = re.match(r"(.*)_(\d{8}t\d{6})(?:_swap)?", table_name)
             if not table_match:
-                logger.info(f"Skipping {table}")
+                logger.info(f"Skipping {table_name}")
                 continue
 
             table_dt = datetime.strptime(table_match.groups()[1], "%Y%m%dt%H%M%S")
@@ -80,21 +87,22 @@ def cleanup_old_datasets_db_tables(*args, **kwargs):
             if current_time - table_dt >= timedelta(
                 days=config.DB_TEMP_TABLE_RETENTION_PERIOD_DAYS
             ):
-                if table_match.groups()[0] not in tables:
+                if table_match.groups()[0] not in [table[1] for table in tables]:
                     logger.warning(
-                        f"Main table {table_match.groups()[0]} missing for {table}, skipping"
+                        f"Main table {table_match.groups()[0]} missing for {schema}.{table_name}, skipping"
                     )
                 else:
                     logger.info(
-                        f"Deleting temporary table {table} ({table_dt}) older than retention period"
+                        f"Deleting temporary table {schema}.{table_name} ({table_dt}) older than retention period"
                     )
                     conn.execute(
-                        "DROP TABLE {}".format(
-                            engine.dialect.identifier_preparer.quote(table)
+                        "DROP TABLE {}.{}".format(
+                            engine.dialect.identifier_preparer.quote(schema),
+                            engine.dialect.identifier_preparer.quote(table_name),
                         )
                     )
             else:
-                logger.info(f"Keeping table {table}")
+                logger.info(f"Keeping table {schema}.{table_name}")
 
 
 dag = DAG(
