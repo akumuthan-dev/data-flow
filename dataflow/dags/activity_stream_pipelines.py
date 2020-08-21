@@ -1,5 +1,4 @@
-import re
-from typing import Dict, List, cast, Tuple
+from typing import Dict, List, cast
 
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
@@ -479,50 +478,3 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
     )
 
     query = {"bool": {"filter": [{"term": {"type": "dit:StaffSSO:User"}}]}}
-
-
-class DirectoryFormsPipeline(_ActivityStreamPipeline):
-    name = "directory-forms"
-    index = "activities"
-
-    table_config = TableConfig(
-        schema="dit",
-        table_name="directory_forms",
-        transforms=[
-            lambda record, table_config, contexts: {
-                **record,
-                "norm_id": record["object"]["id"].replace(
-                    "dit:directoryFormsApi:Submission:", ""
-                ),
-                "submission_type": record["object"]["attributedTo"]["id"].replace(
-                    "dit:directoryFormsApi:SubmissionType:", ""
-                ),
-                "submission_action": record["object"]["attributedTo"]["type"].replace(
-                    "dit:directoryFormsApi:SubmissionAction:", ""
-                ),
-            }
-        ],
-        field_mapping=[
-            ("norm_id", sa.Column("id", sa.Integer, primary_key=True)),
-            (("object", "url"), sa.Column("url", sa.String)),
-            (("object", "published"), sa.Column("created_at", sa.DateTime)),
-            ("submission_type", sa.Column("submission_type", sa.String)),
-            ("submission_action", sa.Column("submission_action", sa.String)),
-            (("actor", "dit:emailAddress"), sa.Column("actor_email", sa.String)),
-            (("actor"), sa.Column("actor", sa.JSON),),
-            (
-                ("object", "dit:directoryFormsApi:Submission:Data"),
-                sa.Column("data", sa.JSON),
-            ),
-            (
-                ("object", "dit:directoryFormsApi:Submission:Meta"),
-                sa.Column("meta", sa.JSON),
-            ),
-        ],
-    )
-
-    query = {
-        "bool": {
-            "filter": [{"term": {"object.type": "dit:directoryFormsApi:Submission"}}]
-        }
-    }
