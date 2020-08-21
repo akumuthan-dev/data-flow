@@ -27,7 +27,8 @@ class _HMRCPipeline(_PipelineDAG):
 class HMRCNonEUExports(_HMRCPipeline):
     base_filename = "SMKE19"
     table_config = TableConfig(
-        table_name="non_eu_exports_hmrc",
+        schema="hmrc",
+        table_name="non_eu_exports",
         # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKE19.DOC
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
@@ -60,7 +61,8 @@ class HMRCNonEUExports(_HMRCPipeline):
 class HMRCNonEUImports(_HMRCPipeline):
     base_filename = "SMKI19"
     table_config = TableConfig(
-        table_name="non_eu_imports_hmrc",
+        schema="hmrc",
+        table_name="non_eu_imports",
         # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKI19.DOC
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
