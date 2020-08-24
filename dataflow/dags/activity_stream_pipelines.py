@@ -480,13 +480,13 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
     query = {"bool": {"filter": [{"term": {"type": "dit:StaffSSO:User"}}]}}
 
 
-class DirectoryFormsPipeline(_ActivityStreamPipeline):
-    name = "directory-forms"
+class GreatGovUKFormsPipeline(_ActivityStreamPipeline):
+    name = "great-gov-uk-forms"
     index = "activities"
 
     table_config = TableConfig(
         schema="dit",
-        table_name="directory_forms",
+        table_name="great_gov_uk__forms",
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
