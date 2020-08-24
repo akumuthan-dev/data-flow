@@ -60,6 +60,7 @@ def get_table_config(**context):
             'FLOAT': sa.Float,
             'BOOLEAN': sa.Boolean,
             'BIGINT': sa.BigInteger,
+            'NUMERIC': sa.Numeric,
         }
         try:
             sa_data_type = mapping[data_type]

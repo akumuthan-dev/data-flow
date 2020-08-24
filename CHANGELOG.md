@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Add numeric data type to generic dss pipeline
+
+## 2020-08-24
+
+### Changed
+
 - Renamed DirectoryFormsPipeline to GreatGovUKFormsPipeline.
 
 ## 2020-08-20
