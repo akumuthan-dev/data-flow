@@ -459,6 +459,7 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
             ('dit_team_id', sa.Column('team_id', UUID)),
             ('is_active', sa.Column('is_active', sa.Boolean)),
             ('last_login', sa.Column('last_login', sa.DateTime)),
+            ('sso_email_user_id', sa.Column('sso_email_user_id', sa.String)),
         ],
     )
 
