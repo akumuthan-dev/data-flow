@@ -63,7 +63,7 @@ class _ONSParserPipeline(_PipelineDAG):
 
 class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
     start_date = datetime(2020, 4, 1)
-    schedule_interval = "@monthly"
+    schedule_interval = "1/15 7-17 * * *"
 
     ons_script_dir = 'uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
 
@@ -107,7 +107,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
 
 class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
     start_date = datetime(2020, 4, 1)
-    schedule_interval = "@monthly"
+    schedule_interval = "3/15 7-17 * * *"
 
     ons_script_dir = 'uktotaltradeallcountriesnonseasonallyadjusted'
 
@@ -150,7 +150,7 @@ class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
 
 class ONSUKTradeInGoodsByCountryAndCommodity(_ONSParserPipeline):
     start_date = datetime(2020, 4, 1)
-    schedule_interval = "0 0 13 * *"
+    schedule_interval = "5/15 7-17 * * *"
 
     ons_script_dir = "uktradecountrybycommodity"
 

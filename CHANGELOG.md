@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-08-26
+
+### Changed
+
+- ONS datasets 2-4 to poll for updates every 15 minutes.
+
 ## 2020-08-25
 
 ### Added
