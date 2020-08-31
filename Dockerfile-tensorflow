@@ -1,0 +1,18 @@
+FROM python:3.7
+
+# To have the same locations as the buildpack-based application, so
+# Celery can always find the code for the DAGs
+RUN mkdir -p /home/vcap/app
+WORKDIR /home/vcap/app
+
+COPY requirements-tensorflow.txt .
+RUN pip install -r requirements-tensorflow.txt
+
+RUN apt-get update && apt-get install --yes jq
+
+COPY . .
+
+# PaaS appears to need the entrypoint to be set
+COPY entrypoint-worker-tensorflow.sh /usr/local/bin/docker_entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker_entrypoint.sh"]
+

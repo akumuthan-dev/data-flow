@@ -1,0 +1,3 @@
+-r requirements.in
+
+tensorflow==2.3.0
