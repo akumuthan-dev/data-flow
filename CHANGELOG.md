@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-01
+
+### Added
+
+- 'country_investment_originates_from' to Investment Projects dataset.
+
 ## 2020-08-26
 
 ### Changed
