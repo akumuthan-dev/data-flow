@@ -11,6 +11,7 @@ pipeline {
         checkout([
             $class: 'GitSCM',
             branches: [[name: params.GIT_COMMIT]],
+            userRemoteConfigs: [[url: 'https://github.com/uktrade/data-flow.git']]
         ])
         script {
           pullRequestNumber = sh(
