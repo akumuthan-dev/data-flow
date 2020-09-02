@@ -172,6 +172,10 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
                 'competing_countries',
                 sa.Column('competing_countries', sa.ARRAY(sa.Text)),
             ),
+            (
+                'country_investment_originates_from__name',
+                sa.Column('country_investment_originates_from', sa.String),
+            ),
             ('created_by_id', sa.Column('created_by_id', UUID)),
             ('created_on', sa.Column('created_on', sa.DateTime)),
             (
