@@ -26,7 +26,7 @@ class PeopleFinderPeoplePipeline(_PipelineDAG):
             ),
             ("staff_sso_id", sa.Column("staff_sso_id", UUID)),
             ("email", sa.Column("email", sa.Text)),
-            ("contact_email", sa.Column("email", sa.Text)),
+            ("contact_email", sa.Column("contact_email", sa.Text)),
             ("full_name", sa.Column("full_name", sa.Text)),
             ("first_name", sa.Column("first_name", sa.Text)),
             ("last_name", sa.Column("last_name", sa.Text)),
