@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - 'country_investment_originates_from' to Investment Projects dataset.
 
+## 2020-08-28
+
+### Added
+
+- New investment projects pipeline DataHubMonthlyInvesmentProjectsPipline
+
 ## 2020-08-26
 
 ### Changed
