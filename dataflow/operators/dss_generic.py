@@ -1,6 +1,8 @@
 from urllib.parse import quote
 
 import sqlalchemy as sa
+from airflow.models import DagBag
+from airflow.operators.dagrun_operator import TriggerDagRunOperator
 
 import dataflow.operators.db_tables
 from dataflow.config import (
@@ -72,16 +74,7 @@ def get_table_config(**context):
     source_url = f'{DATA_STORE_SERVICE_BASE_URL}/api/v1/table-structure/{quote(schema_name)}/{quote(table_name)}'
 
     # transform schema and table in line with dataflow conventions
-    schema_parts = schema_name.split('.')
-    if len(schema_parts) != 2:
-        raise ValueError(
-            'invalid schema name: "organisation"."dataset" structure expected'
-        )
-    organisation = schema_parts[0]
-    dataset = schema_name.split('.')[1]
-
-    target_schema_name = organisation.lower()
-    target_table_name = dataset.lower()
+    target_schema_name, target_table_name = _parse_schema(schema_name)
 
     table_fields = _hawk_api_request(
         url=source_url,
@@ -115,6 +108,21 @@ def swap_dataset_tables(*args, **context):
     )
 
 
+def trigger_matching(**context):
+    schema_name, _ = _get_schema_and_table(context)
+    target_schema_name, target_table_name = _parse_schema(schema_name)
+    target_tag = f'DSSGenericMatchingPipeline-{target_schema_name}-{target_table_name}'
+    target_dag = None
+    for dag in DagBag().dags.values():
+        if dag.tags and target_tag in dag.tags:
+            target_dag = dag
+            break
+    if target_dag:
+        TriggerDagRunOperator(
+            trigger_dag_id=target_dag.dag_id, task_id='trigger-match'
+        ).execute(context)
+
+
 def _get_schema_and_table(context):
     config = context['dag_run'].conf
     if not config:
@@ -127,3 +135,18 @@ def _get_schema_and_table(context):
         raise ValueError("no table or schema provided in config")
 
     return schema_name, table_name
+
+
+def _parse_schema(schema_name):
+    # transform schema and table in line with dataflow conventions
+    schema_parts = schema_name.split('.')
+    if len(schema_parts) != 2:
+        raise ValueError(
+            'invalid schema name: "organisation"."dataset" structure expected'
+        )
+    organisation = schema_parts[0]
+    dataset = schema_parts[1]
+
+    target_schema_name = organisation.lower()
+    target_table_name = dataset.lower()
+    return target_schema_name, target_table_name

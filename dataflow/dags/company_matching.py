@@ -1,6 +1,7 @@
-from typing import Type
+from typing import Type, Union
 
 import sqlalchemy as sa
+from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
@@ -14,6 +15,7 @@ from dataflow.dags.dataset_pipelines import (
     CompaniesDatasetPipeline,
     ExportWinsWinsDatasetPipeline,
 )
+from dataflow.dags.dss_generic_pipelines import DSSGenericPipeline
 from dataflow.operators.company_matching import fetch_from_company_matching
 from dataflow.utils import TableConfig
 
@@ -23,7 +25,7 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         super().__init__(*args, **kwargs)
 
         self.table_config = TableConfig(
-            schema=self.controller_pipeline.table_config.schema,
+            schema=self.schema_name,
             table_name=self.table_name,
             field_mapping=[
                 ("id", sa.Column("id", sa.Text, primary_key=True)),
@@ -36,11 +38,15 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         self.schedule_interval = self.controller_pipeline.schedule_interval
 
     company_match_query: str
-    controller_pipeline: Type[_PipelineDAG]
+    controller_pipeline: Union[Type[_PipelineDAG], Type[DSSGenericPipeline]]
 
     @property
     def table_name(self):
         return f'{self.controller_pipeline.table_config.table_name}_match_ids'
+
+    @property
+    def schema_name(self):
+        return self.controller_pipeline.table_config.schema
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -128,4 +134,40 @@ class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
             publish_date::timestamp as datetime
         FROM {CompaniesHouseCompaniesPipeline.fq_table_name()}
         ORDER BY id asc, publish_date::timestamp desc
+    """
+
+
+class _DSSGenericMatchingPipeline(_CompanyMatchingPipeline):
+
+    controller_pipeline = DSSGenericPipeline
+    schema_name: str
+    controller_table_name: str
+    table_name: str
+
+    def get_dag(self) -> DAG:
+        dag = super().get_dag()
+        tag = f'DSSGenericMatchingPipeline-{self.schema_name}-{self.controller_table_name}'
+        if dag.tags:
+            dag.tags.append(tag)
+        else:
+            dag.tags = [tag]
+        return dag
+
+
+class DSSHMRCFieldForceMatchingPipeline(_DSSGenericMatchingPipeline):
+    schema_name = 'hmrc'
+    controller_table_name = 'field_force'
+    table_name = f'{controller_table_name}_match_ids'
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            turn_business_name as company_name,
+            contact_email as contact_email,
+            null as cdms_ref,
+            null as postcode,
+            null as companies_house_id,
+            'hmrc.field_force' as source,
+            entry_last_modified::timestamp as datetime
+        FROM "{schema_name}"."{controller_table_name}"
+        ORDER BY id asc, entry_last_modified::timestamp desc
     """
