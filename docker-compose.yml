@@ -15,6 +15,24 @@ services:
     ports:
       - "16379:6379"
 
+  data-flow-worker-tensorflow:
+    build:
+      context: .
+      dockerfile: Dockerfile-tensorflow
+    volumes:
+      - .:/home/vcap/app
+    env_file: .env
+    links:
+      - "data-flow-db"
+      - "data-flow-redis"
+    entrypoint:
+      - airflow
+      - worker
+      - --queues
+      - tensorflow
+      - --concurrency
+      - "1"
+
   data-flow:
     build:
       context: .
@@ -25,6 +43,7 @@ services:
       - "8080:8080"
       - "8793:8793"
     env_file: .env
+
     command:
       - /bin/sh
       - -c
