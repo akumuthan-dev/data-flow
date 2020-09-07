@@ -5,8 +5,6 @@ import operator
 # fix random seed for reproducibility
 numpy.random.seed(7)
 
-
-
 from dataflow.operators.tags_classifier_train.setting import tags_covid, tags_general
 
 print('check it out', tags_general)
@@ -22,8 +20,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPooling1D, Flatten
 from tensorflow.keras.preprocessing import sequence
 import tensorflow as tf
-tf.random.set_seed(2)
-
 from tensorflow.keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
@@ -110,12 +106,6 @@ def build_train_set(df, tokenizer, tags):
 
     sent_train, sent_val, X_train, X_val, Y_train, Y_val = train_test_split(sent_train, X_train,  Y_train, test_size = 0.10, random_state = 42, shuffle=True)
 
-    import pickle
-    with open('check_0.pickle', 'wb') as handle:
-        pickle.dump(X_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-
     return sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test
 
 
@@ -164,8 +154,7 @@ def train_model(model, X_train, Y_train,  X_val, Y_val,class_weight):
                         batch_size=batch_size,
                         # validation_split=0.1,
                         validation_data=(X_val, Y_val),
-                        # callbacks=[EarlyStopping(monitor='val_auc', patience=3, min_delta=0.0001, mode='max', restore_best_weights=True)],
-                        callbacks=[EarlyStopping(monitor='val_entropy', patience=3, min_delta=0.0001, mode='min', restore_best_weights=True)],
+                        callbacks=[EarlyStopping(monitor='val_auc', patience=3, min_delta=0.0001, mode='max', restore_best_weights=True)],
                         verbose=1
                         # callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001, mode='min', restore_best_weights=True)]
                         # callbacks=[tensorboard_callback]
@@ -220,6 +209,7 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
 
         metrics = m.evaluate(data_to_evaluate,tag_to_evaluate,  batch_size=tag_to_evaluate.shape[0])
 
+
         test_predictions_prob_tag = m.predict(data_to_evaluate)
         test_predictions_class_tag = (test_predictions_prob_tag>0.5)+0
         Y_test_predict[:, i] = np.concatenate((test_predictions_class_tag))
@@ -233,9 +223,6 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
         tag_accuracy[tags[i]] = accuracy
         tag_auc[tags[i]] = auc
         tag_size[tags[i]] = class_size
-
-        global fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
-        fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tags[i], i, X_test,Y_test, sent_test,m)
 
     metric_df = report_metrics_for_all(tag_size, tag_precisions, tag_recalls, tag_f1, tag_accuracy, tag_auc)
     print('check columns', metric_df.columns)
@@ -253,38 +240,7 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
 
     return metric_df
 
-def check_result(tag, tag_i, X_test,Y_test, sent_test, m):
-    print(tag)
 
-    test_predictions_prob_tag1 = m.predict(X_test)
-    test_predictions_class_tag1 = (test_predictions_prob_tag1 > 0.5) + 0
-
-    threshold = 0.5
-    # fp_ind = np.concatenate((test_predictions_prob_tag1>=threshold)&(Y_test[:,tag_i]==0))
-    fp_sen = sent_test[(np.concatenate(test_predictions_prob_tag1) > threshold) & (Y_test[:, tag_i] == 0)]
-    fp_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 >= threshold)) & (Y_test[:, tag_i] == 0)]
-
-    # tp_ind = np.concatenate((test_predictions_prob_tag1>=threshold)&(Y_test[:,tag_i]==1))
-    tp_sen = sent_test[(np.concatenate(test_predictions_prob_tag1) > threshold) & (Y_test[:, tag_i] == 1)]
-    tp_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 >= threshold)) & (Y_test[:, tag_i] == 1)]
-
-    # fn_ind = np.concatenate((test_predictions_prob_tag1<threshold)&(Y_test[:,tag_i]==1))
-    fn_sen = sent_test[(np.concatenate(test_predictions_prob_tag1) <= threshold) & (Y_test[:, tag_i] == 1)]
-    fn_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 < threshold)) & (Y_test[:, tag_i] == 1)]
-
-    # tn_ind = np.concatenate((test_predictions_prob_tag1<threshold)&(Y_test[:,tag_i]==0))
-    tn_sen = sent_test[(np.concatenate(test_predictions_prob_tag1) <= threshold) & (Y_test[:, tag_i] == 0)]
-    tn_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 < threshold)) & (Y_test[:, tag_i] == 0)]
-
-    len(fp_sen), len(tp_sen), len(fn_sen), len(tn_sen), len(fp_p), len(tp_p), len(fn_p), len(tn_p)
-
-    return fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
-
-# fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tag_i, X_test,Y_test, sent_test)
 
 def build_models_pipeline(**context):
 
@@ -299,8 +255,7 @@ def build_models_pipeline(**context):
         df = pd.read_csv(context['data'])
         df['id'] = 'placeholder'
 
-    # if len(tags_general)>0:
-    if len(tags_general) > 0 and tags_general!=['Covid-19']: ##todo remove the 2nd
+    if len(tags_general)>0:
 
         tokenizer_general, tokenizer_json_general = build_tokens(df)
         sent_train, sent_val, sent_test, X_train, X_val, X_test, Y_train, Y_val, Y_test = build_train_set(df, tokenizer_general, tags_general)
@@ -314,6 +269,8 @@ def build_models_pipeline(**context):
         sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
         metric_df_covid = buid_models_for_tags(tags_covid,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
                                                model_path = "models_"+today+"/models_covid/")
+
+
 
     # return metric_df_general, metric_df_covid ## or: merge these two tables, and pass it to context for next step
     return None
@@ -356,74 +313,20 @@ def write_model_performance(table_name, **context):
 
 
 run_mode='dev'
-#
-# a = pd.read_csv('interaction_all_data_0811.csv', encoding='utf-8-sig')
-# a['id'] = 'placeholder'
-# a = a.dropna()
-# a['biu_issue_type'] = a['biu_issue_type'].apply(lambda x: x.replace(';', ',').replace('\u200b', '').replace('â€‹', '').replace('Â', ''))
-# b = pd.read_csv('training_data_0901.csv', encoding='utf-8-sig')
-# b['id'] = 'placeholder'
-# b = b[['policy_feedback_notes','biu_issue_type', 'id']]
-# b = b.dropna()
-# b['biu_issue_type'] = b['biu_issue_type'].apply(lambda x: x.replace(';', ',').replace('\u200b', '').replace('â€‹', '').replace('Â', ''))
-# c = pd.read_csv('data_for_lingling_select_interaction_all_data_0819.csv', encoding='utf-8-sig')
-# c['id'] = 'placeholder'
-# c = c[['policy_feedback_notes','biu_issue_type', 'id']]
-# c = c.dropna()
-# c['biu_issue_type'] = c['biu_issue_type'].apply(lambda x: x.replace(';', ',').replace('\u200b', '').replace('â€‹', '').replace('Â', ''))
-# d = pd.read_csv('training_data_0904.csv', encoding='utf-8-sig')
-# d['id'] = 'placeholder'
-# d = d[['policy_feedback_notes','biu_issue_type', 'id']]
-# d = d.dropna()
-# d['biu_issue_type'] = d['biu_issue_type'].apply(lambda x: x.replace(';', ',').replace('\u200b', '').replace('â€‹', '').replace('Â', ''))
-# df =  pd.concat([a,b,c,d])
-# df = df.dropna()
-# df2 = df.drop_duplicates()
-# df3 = df[['policy_feedback_notes']].drop_duplicates()
-# print(df.shape, df2.shape,df3.shape,a.shape,b.shape,c.shape,d.shape)
-# df = df2.copy()
-#
-#
-# x = pd.concat([a, d])
-# x = x.drop_duplicates()
-# x.columns = ['policy feedback', 'biu_issue_type', 'id']
-# x=exclude_notes(x)
-# xg = x.groupby('policy feedback').count()
-# xg=xg[xg['biu_issue_type']>1]
-
-
 # df = pd.read_csv('interaction_all_data_0811.csv')
-# df = df.drop_duplicates()
-# df = pd.read_csv('data_for_lingling_select_interaction_all_data_0819.csv')
-# df = pd.read_csv('training_data_0901.csv')
-df = pd.read_csv('training_data_0904.csv')
+df = pd.read_csv('data_for_lingling_select_interaction_all_data_0819.csv')
 df['id'] = 'placeholder'
-
-
-# df0 = pd.read_csv("covid19.csv")
-# df0 = df0[['Policy Feedback Notes','Biu Issue Types', 'Interaction ID']]
-# df0.columns = ['policy_feedback_notes', 'biu_issue_type', 'id']
-# df0 = df0.dropna()
-
-# df = pd.read_csv("covid19.csv")
-df = df[['Interaction ID', 'Policy Feedback Notes', 'Biu Issue Types']]
-df.columns = ['id', 'policy_feedback_notes', 'biu_issue_type']
-
-
 df = preprocess(df, action='train', tags=tags)
-# print('check 3', df.shape)
+print('check 3', df.shape)
 df.to_csv('to_train.csv', index=False)
 build_models_pipeline(data='to_train.csv')
 
-for j in np.arange(0,5):
-  print(j, '-------'*5)
-  # print(tp_p[j])
-  # print(np.array(tp_sen)[j])
-  print(fp_p[j])
-  print(np.array(fp_sen)[j])
-  # print(fn_p[j])
-  # print(fn_sen[j])
 
-# df[df['sentence'].str.startswith('Covid-19 Track & Trace, SSP rebates, EU Exit,')]
 
-# build_models_pipeline(data='to_train_0901_check.csv')
+df = pd.read_csv("data_for_lingling_select_interaction_all_data_0819.csv", delimiter=',')
+df = df[['policy_feedback_notes', 'biu_issue_type']]
+fb_all = fb_all.rename(columns={'policy_feedback_notes': 'policy feedback', 'biu_issue_type': 'tags'})
+fb_all['tags'] = fb_all['tags'].apply(lambda x: x.replace(';', ','))
+
+#check
+fb_all = fb_all.dropna(subset=['policy feedback'])

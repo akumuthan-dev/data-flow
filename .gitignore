@@ -95,6 +95,6 @@ aws/
 awscliv2.zip
 *.zip
 models*/
-to_predict.csv
-to_predict_result.csv
-to_train.csv
+*.csv
+*.pickle
+*.pkl

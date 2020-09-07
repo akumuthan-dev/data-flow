@@ -28,7 +28,7 @@ def decontracted(phrase):
 
 def exclude_notes(fb_all):
     excluded_list = ['see notes above', 'see email above', 'see notes box above', 'see "as above"', 'none',
-                     'feedback as above',
+                     'feedback as above', '"As above"', 'see notes'
                      'see email in notes', 'covid-19', 'covid 19', 'covis 19', 'refer to above notes',
                      'see email details above', 'see email detail above',
                      'included in notes above', 'please see above', 'cbils', 'feedback in above notes',
@@ -37,8 +37,8 @@ def exclude_notes(fb_all):
     excluded_list_dot = [i + '.' for i in excluded_list]
     excluded_list.extend(excluded_list_dot)
     print(fb_all.columns)
-    print(fb_all.head(3))
-    fb_all = fb_all[fb_all['policy feedback'].str.len() > 0]
+    # print(fb_all.head(3))
+    fb_all = fb_all[fb_all['policy feedback'].str.len() > 25]
     fb_all = fb_all[~fb_all['policy feedback'].isin(excluded_list)]
     fb_all = fb_all[~fb_all['policy feedback'].str.lower().str.startswith('file:///c:/users/nick.neal/appdata/')]
     fb_all = fb_all[~fb_all['policy feedback'].str.lower().str.startswith('see detail above')]
@@ -52,20 +52,62 @@ def exclude_notes(fb_all):
 def relabel(x):
     x = x.copy()
 
-    # if 'Covid-19 Employment' in x.columns:
-    # print(x.columns)
+    def find_text(x):
+        text = x['policy feedback'].lower()
+        text_list = re.split('\W+', text)
+        return text, text_list
+
+    if 'policy_issue_types' in x.columns and 'EU Exit' in x.columns:
+        x['EU Exit'] = \
+            x.apply(lambda x: 1 if x['policy_issue_types'] == '{"EU exit"}' else x['EU Exit'], axis=1)
+
     if 'Covid-19 Employment' in x.columns:
-      x['Covid-19 Employment'] = \
-        x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['employment', 'furlough']) else x['Covid-19 Employment'], axis=1)
+        x['Covid-19 Employment'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['employment', 'furlough', 'furloughed']) else x[
+                'Covid-19 Employment'], axis=1)
     if 'Covid-19 Exports/Imports' in x.columns:
-      x['Covid-19 Exports/Imports'] = \
-        x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['export', 'import']) else x['Covid-19 Exports/Imports'], axis=1)
+        x['Covid-19 Exports/Imports'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['export', 'import']) else x[
+                'Covid-19 Exports/Imports'], axis=1)
     if 'Covid-19 Supply Chain/Stock' in x.columns:
-      x['Covid-19 Supply Chain/Stock'] = \
-        x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['supply chain']) else x['Covid-19 Supply Chain/Stock'], axis=1)
-    if 'Covid-19 Covid-19 Cash Flow' in x.columns:
-          x['Covid-19 Cash Flow'] = \
-        x.apply(lambda x: 1 if any(i in x['policy feedback'].lower() for i in ['cashflow', 'cash flow', 'cash']) else x['Covid-19 Cash Flow'], axis=1)
+        x['Covid-19 Supply Chain/Stock'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[0] for i in ['supply chain']) else x[
+                'Covid-19 Supply Chain/Stock'], axis=1)
+    if 'Covid-19 Cash Flow' in x.columns:
+        x['Covid-19 Cash Flow'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['cashflow', 'cash']) or 'cash flow' in  find_text(x)[0]
+            else x['Covid-19 Cash Flow'], axis=1)
+    if 'Tax' in x.columns:
+        x['Tax'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['tax']) else x['Tax'], axis=1)
+    if 'Free Trade Agreements' in x.columns:
+        x['Free Trade Agreements'] = \
+            x.apply(
+                lambda x: 1 if any(i in find_text(x)[0] for i in ['trade agreement', 'trade agreements']) or 'fta' in
+                               find_text(x)[1]
+                else x['Free Trade Agreements'], axis=1)
+    if 'Investment' in x.columns:
+        x['Investment'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['investment']) else x['Investment'], axis=1)
+    if 'Regulation' in x.columns:
+        x['Regulation'] = \
+            x.apply(
+                lambda x: 1 if any(i in find_text(x)[1] for i in ['regulation', 'regulations']) else x['Regulation'],
+                axis=1)
+
+        # if 'Stock' in x.columns:
+    #     #     x['Stock'] = \
+    #     #         x.apply(lambda x: 1 if any(i in find_text(x)[1] for i in ['stock']) else x[
+    #     #             'Stock'], axis=1)
+    if 'Supply Chain' in x.columns:
+        x['Supply chain'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[0] for i in ['supply chain']) else x[
+                'Supply Chain'], axis=1)
+
+    if 'Eu Exit' in x.columns:
+        x['Eu Exit'] = \
+            x.apply(lambda x: 1 if any(i in find_text(x)[0] for i in ['eu exit']) or 'brexit' in find_text(x)[1]
+            else x['Eu Exit'], axis=1)
 
     return x
 
@@ -89,24 +131,32 @@ def clean_tag(df):
                    'EU Exit - General': 'EU Exit',
                    'Post-transition Period - General': 'EU Exit',
                    'Transition Period - General': 'EU Exit',
-                   'HMG Comms on EU Exit': 'EU Exit', 'HMG Financial support\u200b': 'HMG Financial support'
+                   'HMG Comms on EU Exit': 'EU Exit', 'HMG Financial support\u200b': 'HMG Financial support',
+                   'Covid-19 Resuming Business\u200b': 'Covid-19 Resuming Operations'
                    }
-    replace_map = {k.lower():v.lower() for k,v in replace_map.items()}
 
-    df['tags'] = df['tags'].apply(
-        lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
+    replace_map = {k.title():v.title() for k,v in replace_map.items()}
+    # replace_map = {k.lower():v.lower() for k,v in replace_map.items()}
+    # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
+
+    # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip(), i.strip()) for i in x.split(',')])
+    df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',')])
     df['tags'] = df['tags'].apply(lambda x: ','.join(x))
 
     return df
 
-def preprocess(fb_all, action='train', **kwargs):
+def preprocess(fb_all, action='train', tags=tags):
 
     fb_all = fb_all.rename(columns={'Policy Feedback Notes': 'policy feedback', 'Biu Issue Types': 'tags',
                                     'biu_issue_type': 'tags',
                                     'policy_feedback_notes':'policy feedback'})
+    fb_all = fb_all.dropna(subset=['policy feedback'])
+
+    print('check 1', fb_all.shape)
 
     # print('yayay:', fb_all.columns)
     fb_all = exclude_notes(fb_all)
+    fb_all = fb_all[fb_all['tags'] != 'Not Specified']
     fb_all['policy feedback'] = fb_all['policy feedback'].apply(lambda x: decontracted(x))
     fb_all['length'] = fb_all['policy feedback'].str.len()
     fb_all = fb_all[fb_all['length']>25]
@@ -115,12 +165,13 @@ def preprocess(fb_all, action='train', **kwargs):
     if action == 'train':
         fb_all = fb_all[['id', 'policy feedback', 'tags']]
         fb_all = fb_all.dropna(subset=['policy feedback', 'tags'])
-        fb_all['tags'] = fb_all['tags'].apply(lambda x: x.replace(';', ','))
+        fb_all['tags'] = fb_all['tags'].apply(lambda x: x.replace(';', ',').replace('\u200b', '').replace('â€‹', '').replace('Â', ''))
         fb_all['tags'] = fb_all['tags'].apply(lambda x: x + ',covid-19' if 'covid' in x.lower() else x)
         fb_all = clean_tag(fb_all)
         # print(fb_all.head(1))
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
 
+        tags_count = fb_tag.sum().sort_values(ascending=False)
         fb_tag.columns = [i.strip().title() for i in fb_tag.columns]
         print('test', fb_tag.columns)
         # print(fb_tag.shape)
@@ -133,12 +184,16 @@ def preprocess(fb_all, action='train', **kwargs):
         df = relabel(df)
 
         # select_columns = ['policy feedback', 'cleaned']
-        tags_count = fb_tag.sum().sort_values(ascending=False)
+
         # print('test', fb_tag['Movement Of People'].sum())
-        tags = list(tags_count[tags_count>200].index)
-        tags = [i for i in tags if i.lower() not in ['general', 'not specified', 'other', 'others']]
+        tags_200 = list(tags_count[tags_count>200].index)
+        tags_200 = [i for i in tags_200 if i.lower() not in ['general', 'not specified', 'other', 'others', 'covid-19 general']]
         # tags = kwargs['tags']
+        print('tags counts', tags_count)
+        print('tags with more than 200 counts:', tags_200)
         print('train model for these tags:', tags)
+
+
         select_columns = ['id', 'policy feedback']
         select_columns.extend(tags)
         if 'bert_vec_cleaned' in fb_all.columns:
