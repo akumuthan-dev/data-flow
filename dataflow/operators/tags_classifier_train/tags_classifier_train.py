@@ -321,6 +321,7 @@ def build_models_pipeline(**context):
 
 def save_model():
     bucket = config.S3_IMPORT_DATA_BUCKET
+    # bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a'
 
     today = datetime.date.today()
     today = today.strftime("%Y%m%d")
