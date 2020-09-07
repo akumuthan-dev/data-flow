@@ -145,7 +145,7 @@ def clean_tag(df):
 
     return df
 
-def preprocess(fb_all, action='train', tags=tags):
+def preprocess(fb_all, action='train', tags=all_tags):
 
     fb_all = fb_all.rename(columns={'Policy Feedback Notes': 'policy feedback', 'Biu Issue Types': 'tags',
                                     'biu_issue_type': 'tags',

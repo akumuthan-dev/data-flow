@@ -54,7 +54,7 @@ def fetch_interaction_labelled_data(
         df = pd.DataFrame(rows)
         print(df.shape)
         df.columns = [column[0] for column in cursor.description]
-        df = preprocess(df, action='train', tags=tags)
+        df = preprocess(df, action='train', tags=all_tags)
         df.to_csv('to_train.csv', index=False)
         logger.info(df)
 
@@ -67,7 +67,8 @@ def fetch_interaction_labelled_data(
     return df
 
 
-def build_tokens(df):
+def build_tokens(df, model_path):
+    # model_path = "models_" + today + "/models_general/"
     # print(df.columns)
     tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', lower=True)
     # tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~', lower=True)
@@ -77,8 +78,9 @@ def build_tokens(df):
 
 
     tokenizer_json = tokenizer.to_json()
-    # with open('models_covid/cnn_tokenizer_covid.json', 'w', encoding='utf-8') as f:
-    #     f.write(json.dumps(tokenizer_json, ensure_ascii=False))
+    os.makedirs(model_path)
+    with open(model_path+'cnn_tokenizer.json', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(tokenizer_json, ensure_ascii=False))
 
     return tokenizer, tokenizer_json
 
@@ -110,10 +112,9 @@ def build_train_set(df, tokenizer, tags):
 
     sent_train, sent_val, X_train, X_val, Y_train, Y_val = train_test_split(sent_train, X_train,  Y_train, test_size = 0.10, random_state = 42, shuffle=True)
 
-    import pickle
-    with open('check_0.pickle', 'wb') as handle:
-        pickle.dump(X_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+    # import pickle
+    # with open('check_0.pickle', 'wb') as handle:
+    #     pickle.dump(X_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
     return sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test
@@ -234,8 +235,8 @@ def buid_models_for_tags(tags, sent_test, X_train, X_val,Y_train, Y_val, X_test,
         tag_auc[tags[i]] = auc
         tag_size[tags[i]] = class_size
 
-        global fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
-        fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tags[i], i, X_test,Y_test, sent_test,m)
+        # global fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
+        # fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tags[i], i, X_test,Y_test, sent_test,m)
 
     metric_df = report_metrics_for_all(tag_size, tag_precisions, tag_recalls, tag_f1, tag_accuracy, tag_auc)
     print('check columns', metric_df.columns)
@@ -302,18 +303,20 @@ def build_models_pipeline(**context):
     # if len(tags_general)>0:
     if len(tags_general) > 0 and tags_general!=['Covid-19']: ##todo remove the 2nd
 
-        tokenizer_general, tokenizer_json_general = build_tokens(df)
+        model_path = "models_" + today + "/models_general/"
+        tokenizer_general, tokenizer_json_general = build_tokens(df, model_path)
         sent_train, sent_val, sent_test, X_train, X_val, X_test, Y_train, Y_val, Y_test = build_train_set(df, tokenizer_general, tags_general)
         metric_df_general = buid_models_for_tags(tags_general,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-                                                 model_path =  "models_"+today+"/models_general/")
+                                                 model_path =  model_path)
 
 
     if len(tags_covid)>0:
+        model_path = "models_"+today+"/models_covid/"
         df_covid = df[df['Covid-19'] > 0][['sentence'] + tags_covid]
-        tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid)
+        tokenizer_covid, tokenizer_json_covid = build_tokens(df_covid, model_path)
         sent_train, sent_val, sent_test, X_train, X_val,  X_test,   Y_train, Y_val,  Y_test = build_train_set(df_covid, tokenizer_covid, tags_covid)
         metric_df_covid = buid_models_for_tags(tags_covid,  sent_test, X_train, X_val, Y_train, Y_val, X_test, Y_test,
-                                               model_path = "models_"+today+"/models_covid/")
+                                               model_path = model_path)
 
     # return metric_df_general, metric_df_covid ## or: merge these two tables, and pass it to context for next step
     return None
@@ -397,8 +400,8 @@ run_mode='dev'
 # df = df.drop_duplicates()
 # df = pd.read_csv('data_for_lingling_select_interaction_all_data_0819.csv')
 # df = pd.read_csv('training_data_0901.csv')
-df = pd.read_csv('training_data_0904.csv')
-df['id'] = 'placeholder'
+# df = pd.read_csv('training_data_0904.csv')
+# df['id'] = 'placeholder'
 
 
 # df0 = pd.read_csv("covid19.csv")
@@ -407,23 +410,24 @@ df['id'] = 'placeholder'
 # df0 = df0.dropna()
 
 # df = pd.read_csv("covid19.csv")
-df = df[['Interaction ID', 'Policy Feedback Notes', 'Biu Issue Types']]
-df.columns = ['id', 'policy_feedback_notes', 'biu_issue_type']
+# df = df[['Interaction ID', 'Policy Feedback Notes', 'Biu Issue Types']]
+# df.columns = ['id', 'policy_feedback_notes', 'biu_issue_type']
 
 
-df = preprocess(df, action='train', tags=tags)
+df = pd.read_csv('training_data_0904.csv')
+df = preprocess(df, action='train', tags=all_tags)
 # print('check 3', df.shape)
 df.to_csv('to_train.csv', index=False)
 build_models_pipeline(data='to_train.csv')
-
-for j in np.arange(0,5):
-  print(j, '-------'*5)
-  # print(tp_p[j])
-  # print(np.array(tp_sen)[j])
-  print(fp_p[j])
-  print(np.array(fp_sen)[j])
-  # print(fn_p[j])
-  # print(fn_sen[j])
+#
+# for j in np.arange(0,5):
+#   print(j, '-------'*5)
+#   # print(tp_p[j])
+#   # print(np.array(tp_sen)[j])
+#   print(fp_p[j])
+#   print(np.array(fp_sen)[j])
+#   # print(fn_p[j])
+#   # print(fn_sen[j])
 
 # df[df['sentence'].str.startswith('Covid-19 Track & Trace, SSP rebates, EU Exit,')]
 
