@@ -1,5 +1,3 @@
-import datetime
-
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
@@ -13,14 +11,21 @@ from dataflow.operators.dss_generic import (
     swap_dataset_tables,
     drop_temp_tables,
     drop_swap_tables,
+    trigger_matching,
 )
+from datetime import timedelta
 
 
 class DSSGenericPipeline(metaclass=PipelineMeta):
+    start_date = days_ago(1)
+    schedule_interval = None
+
     def get_dag(self):
 
         dag = DAG(
-            self.__class__.__name__, schedule_interval=None, start_date=days_ago(1),
+            self.__class__.__name__,
+            schedule_interval=self.schedule_interval,
+            start_date=self.start_date,
         )
 
         _get_table_config = PythonOperator(
@@ -50,14 +55,14 @@ class DSSGenericPipeline(metaclass=PipelineMeta):
         )
 
         _swap_dataset_tables = PythonOperator(
-            execution_timeout=datetime.timedelta(minutes=10),
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             python_callable=swap_dataset_tables,
             task_id='swap-dataset-tables',
         )
 
         _drop_temp_tables = PythonOperator(
-            execution_timeout=datetime.timedelta(minutes=10),
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             python_callable=drop_temp_tables,
             trigger_rule='one_failed',
@@ -65,10 +70,17 @@ class DSSGenericPipeline(metaclass=PipelineMeta):
         )
 
         _drop_swap_tables = PythonOperator(
-            execution_timeout=datetime.timedelta(minutes=10),
+            execution_timeout=timedelta(minutes=10),
             provide_context=True,
             python_callable=drop_swap_tables,
             task_id='drop-swap-tables',
+        )
+
+        _trigger_matching = PythonOperator(
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            python_callable=trigger_matching,
+            task_id='company_matching',
         )
 
         _get_table_config >> _create_temp_tables
@@ -82,5 +94,6 @@ class DSSGenericPipeline(metaclass=PipelineMeta):
 
         _swap_dataset_tables >> _drop_temp_tables
         _swap_dataset_tables >> _drop_swap_tables
+        _swap_dataset_tables >> _trigger_matching
 
         return dag

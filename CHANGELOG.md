@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-04
+
+### Added
+
+- HMRC Field Force matching pipeline
+
 ## 2020-09-03
 
 ### Changed
