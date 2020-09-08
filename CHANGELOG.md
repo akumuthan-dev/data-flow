@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-08
+
+### Changed
+
+- Update queries using legacy `ref_countries_and_territories` reference datasets to use new `ref_countries_territories_and_regions` dataset
+
 ## 2020-09-04
 
 ### Added
