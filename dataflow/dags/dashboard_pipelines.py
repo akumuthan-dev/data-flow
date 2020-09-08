@@ -73,7 +73,7 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
             investment_projects_dataset.status::TEXT,
             investment_projects_dataset.fdi_value,
             companies_dataset.address_country::TEXT AS investor_company_country,
-            ref_hmtc_overseas_regions.overseas_region_name::TEXT as overseas_region,
+            ref_countries_territories_and_regions.region::TEXT as overseas_region,
             SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
             ref_dit_sectors.field_03::TEXT AS sector_cluster,
             CASE
@@ -84,9 +84,7 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
         FROM investment_projects_dataset
         JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
         JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
-        LEFT JOIN ref_countries_and_territories ON ref_countries_and_territories.country_or_territory_name = companies_dataset.address_country
-        LEFT JOIN ref_countries_territories_overseas_regions ON ref_countries_territories_overseas_regions.field_02_id = ref_countries_and_territories.id
-        LEFT JOIN ref_hmtc_overseas_regions ON ref_hmtc_overseas_regions.id = ref_countries_territories_overseas_regions.field_03_id
+        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = companies_dataset.address_country
         WHERE (
             investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
             OR
@@ -770,7 +768,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         investment_projects.client_requirements,
         investment_projects.anonymous_description,
         investor_company.address_country AS investor_company_country,
-        ref_hmtc_overseas_regions.overseas_region_name AS hmtc,
+        ref_countries_territories_and_regions.region AS hmtc,
         investment_projects.sector AS original_project_sector,
         investment_projects.project_sector AS project_sector,
         ref_dit_sectors.field_03 AS dit_sector_cluster,
@@ -847,9 +845,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
     JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
     JOIN project_team ON project_team.project_id = investment_projects.id
     LEFT JOIN companies_dataset uk_company ON uk_company.id = investment_projects.uk_company_id
-    LEFT JOIN ref_countries_and_territories ON ref_countries_and_territories.country_or_territory_name = investor_company.address_country
-    LEFT JOIN ref_countries_territories_overseas_regions ON ref_countries_territories_overseas_regions.field_02_id = ref_countries_and_territories.id
-    LEFT JOIN ref_hmtc_overseas_regions ON ref_hmtc_overseas_regions.id = ref_countries_territories_overseas_regions.field_03_id
+    LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
     LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.project_sector
     LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.project_sector
     LEFT JOIN latest_interactions ON latest_interactions.investment_project_id = investment_projects.id

@@ -216,12 +216,12 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
         ('US', 'US', 'USA')
     )
     SELECT
-        COALESCE(country_or_territory_id, unmatched_codes.iso2) AS iso2_code,
-        COALESCE(country_or_territory_id3, unmatched_codes.iso3) AS iso3_code,
+        COALESCE(ref_countries_territories_and_regions.iso2_code, unmatched_codes.iso2) AS iso2_code,
+        COALESCE(ref_countries_territories_and_regions.iso3_code, unmatched_codes.iso3) AS iso3_code,
         country_or_region,
         CASE
-           WHEN type = 'confirmed' THEN 'cases'
-           ELSE type
+           WHEN csse_data.type = 'confirmed' THEN 'cases'
+           ELSE csse_data.type
         END AS type,
         date,
         sum(value) as value,
@@ -238,9 +238,9 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
             value,
             value - lag(value) OVER (PARTITION BY country_or_region, province_or_state, type ORDER BY date) as daily_value
         FROM csse_covid19_time_series_global) AS csse_data
-        LEFT JOIN ref_countries_and_territories ON csse_data.country_or_region = country_or_territory_name
+        LEFT JOIN ref_countries_territories_and_regions ON csse_data.country_or_region = ref_countries_territories_and_regions.name
         LEFT JOIN unmatched_codes ON csse_data.country_or_region = unmatched_codes.country
-    GROUP BY (date, country_or_region, country_or_territory_id, country_or_territory_id3, unmatched_codes.iso2, unmatched_codes.iso3, type)
+    GROUP BY (date, country_or_region, ref_countries_territories_and_regions.iso2_code, ref_countries_territories_and_regions.iso3_code, unmatched_codes.iso2, unmatched_codes.iso3, csse_data.type)
     ORDER BY date desc, country_or_region asc, type;
     """
 
