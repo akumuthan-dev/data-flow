@@ -23,3 +23,12 @@ def get_base_dag_tasks(with_modified_date_check=False, fetch_name="fetch-data"):
         "swap-dataset-table",
         "drop-swap-tables",
     ]
+
+
+def get_polling_dag_tasks():
+    return [
+        "poll-scrape-and-load-data",
+        "swap-dataset-table",
+        "drop-swap-tables",
+        "drop-temp-tables",
+    ]

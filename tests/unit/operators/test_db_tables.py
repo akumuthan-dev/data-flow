@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from unittest import mock
 from unittest.mock import call
 
@@ -6,6 +6,7 @@ import freezegun as freezegun
 import pytest
 import sqlalchemy
 
+from dataflow.dags import _FastPollingPipeline
 from dataflow.operators import db_tables
 from dataflow.operators.db_tables import branch_on_modified_date
 from dataflow.utils import get_temp_table, TableConfig
@@ -364,3 +365,69 @@ def test_branch_on_modified_date(
     )
 
     assert next_task == expected_result
+
+
+def test_poll_scrape_and_load_data(mocker):
+    class TestPipeline(_FastPollingPipeline):
+        date_checker = lambda: datetime.now()  # noqa
+        data_getter = mock.Mock()
+        daily_end_time_utc = time(17, 0, 0)
+        allow_null_columns = False
+        table_config = TableConfig(
+            schema='test', table_name="test_table", field_mapping=[],
+        )
+
+    table = mock.Mock()
+    engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+    conn = engine.return_value.begin.return_value.__enter__.return_value
+    conn.execute.return_value.fetchall.return_value = ((datetime(2000, 1, 1),),)
+    mock_temp_table = mocker.patch.object(
+        db_tables, "get_temp_table", autospec=True, return_value=table
+    )
+    mock_temp_table.return_value.name = 'tmp_test_table'
+    mock_temp_table.return_value.schema = 'test'
+    mock_check_table_data = mocker.patch.object(
+        db_tables, "check_table_data", autospec=True
+    )
+    mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+
+    kwargs = dict(
+        ts_nodash='123',
+        dag=mock.Mock(),
+        dag_run=mock.Mock(),
+        ti=mock.Mock(),
+        task_instance=mock.Mock(),
+    )
+
+    with freezegun.freeze_time('20200101t19:00:00'):
+        db_tables.poll_scrape_and_load_data(
+            "test-db", TestPipeline.table_config, TestPipeline(), **kwargs
+        )
+
+    assert any(
+        c == mock.call('CREATE SCHEMA IF NOT EXISTS test')
+        for c in conn.execute.call_args_list
+    )
+    assert TestPipeline.data_getter.return_value.to_sql.call_args_list == [
+        mock.call(
+            name='tmp_test_table',
+            schema='test',
+            con=engine.return_value.connect.return_value.__enter__.return_value,
+            method='multi',
+            if_exists='append',
+            chunksize=10000,
+            index=False,
+        )
+    ]
+    assert mock_check_table_data.call_args_list == [
+        mock.call(
+            'test-db',
+            mock.ANY,
+            allow_null_columns=False,
+            ts_nodash='123',
+            dag=mock.ANY,
+            dag_run=mock.ANY,
+            ti=mock.ANY,
+            task_instance=mock.ANY,
+        )
+    ]
