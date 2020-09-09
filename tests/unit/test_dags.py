@@ -79,7 +79,7 @@ def test_pipelines_dags():
         'ONSUKSATradeInGoodsPipeline',
         'ONSUKTotalTradeAllCountriesNSA',
         'ONSUKTotalTradeAllCountriesNSACSVPipeline',
-        'ONSUKTradeInGoodsByCountryAndCommodity',
+        'ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline',
         'ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline',
         'ONSUKTradeInServicesByPartnerCountryNSACSV',
         'ONSUKTradeInServicesByPartnerCountryNSAPipeline',

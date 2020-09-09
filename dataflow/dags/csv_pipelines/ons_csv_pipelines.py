@@ -7,9 +7,11 @@ from dataflow.dags import _CSVPipelineDAG
 from dataflow.dags.ons_parsing_pipelines import (
     ONSUKTradeInServicesByPartnerCountryNSAPipeline,
     ONSUKTotalTradeAllCountriesNSA,
-    ONSUKTradeInGoodsByCountryAndCommodity,
 )
-from dataflow.dags.ons_pipelines import ONSUKSATradeInGoodsPipeline
+from dataflow.dags.ons_pipelines import (
+    ONSUKSATradeInGoodsPipeline,
+    ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline,
+)
 
 
 class ONSUKSATradeInGoodsCSV(_CSVPipelineDAG):
@@ -333,9 +335,11 @@ FROM (
 
 
 class ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline(_CSVPipelineDAG):
-    dependencies = [ONSUKTradeInGoodsByCountryAndCommodity]
-    start_date = ONSUKTradeInGoodsByCountryAndCommodity.start_date
-    schedule_interval = ONSUKTradeInGoodsByCountryAndCommodity.schedule_interval
+    dependencies = [ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline]
+    start_date = ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline.start_date
+    schedule_interval = (
+        ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline.schedule_interval
+    )
 
     catchup = False
     static = True
@@ -345,18 +349,18 @@ class ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline(_CSVPipelineDAG):
 
     query = """
 WITH all_rows_plus_balances AS (
-    SELECT imports_t.og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
-           imports_t.og_ons_region_name as ons_region_name,
-           imports_t.og_product_code as product_code,
-           imports_t.og_product_name as product_name,
-           imports_t.norm_period as period,
-           imports_t.norm_period_type as period_type,
-           unnest(array[imports_t.og_direction, exports_t.og_direction, 'trade balance', 'total trade']) AS direction,
-           unnest(array[imports_t.norm_total, exports_t.norm_total, exports_t.norm_total - imports_t.norm_total, exports_t.norm_total + imports_t.norm_total]) AS total,
-           imports_t.og_unit as unit,
-           unnest(array[imports_t.norm_marker, exports_t.norm_marker, 'derived', 'derived']) AS marker
-    FROM ons__uk_trade_goods_by_country_commodity AS imports_t
-    JOIN ons__uk_trade_goods_by_country_commodity AS exports_t ON imports_t.og_ons_iso_alpha_2_code = exports_t.og_ons_iso_alpha_2_code AND imports_t.og_product_code = exports_t.og_product_code AND imports_t.og_period = exports_t.og_period AND imports_t.og_direction = 'imports' AND exports_t.og_direction = 'exports'
+    SELECT imports_t.ons_iso_alpha_2_code as ons_iso_alpha_2_code,
+           imports_t.ons_region_name as ons_region_name,
+           imports_t.product_code as product_code,
+           imports_t.product_name as product_name,
+           imports_t.period as period,
+           imports_t.period_type as period_type,
+           unnest(array[imports_t.direction, exports_t.direction, 'trade balance', 'total trade']) AS direction,
+           unnest(array[imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total]) AS total,
+           imports_t.unit as unit,
+           unnest(array[imports_t.marker, exports_t.marker, 'derived', 'derived']) AS marker
+    FROM ons.uk_trade_in_goods_by_country_and_commodity AS imports_t
+    JOIN ons.uk_trade_in_goods_by_country_and_commodity AS exports_t ON imports_t.ons_iso_alpha_2_code = exports_t.ons_iso_alpha_2_code AND imports_t.product_code = exports_t.product_code AND imports_t.period = exports_t.period AND imports_t.direction = 'imports' AND exports_t.direction = 'exports'
 ),
      rolling_totals AS (
      SELECT ons_iso_alpha_2_code,

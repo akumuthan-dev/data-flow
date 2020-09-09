@@ -8,6 +8,11 @@ from sqlalchemy.dialects.postgresql import UUID
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.base import _FastPollingPipeline
+from dataflow.ons_scripts.uktradecountrybycommodity.main import (
+    get_source_data_modified_date,
+    get_data,
+)
 from dataflow.operators.ons import fetch_from_ons_sparql
 from dataflow.transforms import transform_ons_marker_field
 from dataflow.utils import TableConfig
@@ -95,3 +100,14 @@ class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
     }
     ORDER BY ?period ?geography_s
     """
+
+
+class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
+    date_checker = get_source_data_modified_date
+    data_getter = get_data
+    table_config = TableConfig(
+        schema='ons',
+        table_name='uk_trade_in_goods_by_country_and_commodity',
+        field_mapping=[],
+    )
+    queue = 'high-memory-usage'
