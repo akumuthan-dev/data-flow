@@ -157,7 +157,7 @@ class _DSSGenericMatchingPipeline(_CompanyMatchingPipeline):
 class DSSHMRCFieldForceMatchingPipeline(_DSSGenericMatchingPipeline):
     schema_name = 'hmrc'
     controller_table_name = 'field_force__triage_call_responses'
-    table_name = f'{controller_table_name}_match_ids'
+    table_name = 'field_force_match_ids'
     company_match_query = f"""
         SELECT distinct on (id)
             id as id,
