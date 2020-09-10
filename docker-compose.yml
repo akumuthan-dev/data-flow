@@ -38,10 +38,11 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - .:/app
+      - .:/home/vcap/app
     ports:
       - "8080:8080"
       - "8793:8793"
+      - "5555:5555"
     env_file: .env
 
     command:
@@ -53,6 +54,7 @@ services:
           ./bin/airflow-scheduler.sh &
           airflow worker &
           airflow worker --queues high-memory-usage --concurrency 1 &
+          airflow flower &
           airflow webserver --pid /tmp/airflow-webserver.pid -p 8080
     links:
       - "data-flow-db"

@@ -373,7 +373,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     daily_end_time_utc = time(17, 0, 0)
 
     # Which worker to run the poll/scrape/clean/load task on.
-    worker_queue = 'worker'
+    worker_queue = 'default'
 
     @classmethod
     def fq_table_name(cls):
@@ -392,7 +392,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
                 "depends_on_past": False,
                 "email_on_failure": False,
                 "email_on_retry": False,
-                "retries": 0,
+                "retries": 3,
                 "retry_delay": timedelta(minutes=5),
                 'catchup': self.catchup,
             },
@@ -419,6 +419,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             dag=dag,
             provide_context=True,
             queue=self.worker_queue,
+            retries=3,
         )
 
         _swap_dataset_tables = PythonOperator(
