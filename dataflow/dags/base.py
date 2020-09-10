@@ -373,7 +373,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     daily_end_time_utc = time(17, 0, 0)
 
     # Which worker to run the poll/scrape/clean/load task on.
-    worker_queue = 'worker'
+    worker_queue = 'default'
 
     @classmethod
     def fq_table_name(cls):
