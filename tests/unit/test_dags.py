@@ -76,7 +76,7 @@ def test_pipelines_dags():
         'OMISDatasetPipeline',
         'ONSPostcodePipeline',
         'ONSUKSATradeInGoodsCSV',
-        'ONSUKSATradeInGoodsPipeline',
+        'ONSUKSATradeInGoodsPollingPipeline',
         'ONSUKTotalTradeAllCountriesNSA',
         'ONSUKTotalTradeAllCountriesNSACSVPipeline',
         'ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline',

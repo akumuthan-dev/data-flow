@@ -9,136 +9,129 @@ from dataflow.dags.ons_parsing_pipelines import (
     ONSUKTotalTradeAllCountriesNSA,
 )
 from dataflow.dags.ons_pipelines import (
-    ONSUKSATradeInGoodsPipeline,
+    ONSUKSATradeInGoodsPollingPipeline,
     ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline,
 )
 
 
 class ONSUKSATradeInGoodsCSV(_CSVPipelineDAG):
-    schedule_interval = ONSUKSATradeInGoodsPipeline.schedule_interval
+    schedule_interval = ONSUKSATradeInGoodsPollingPipeline.schedule_interval
 
     start_date = datetime(2020, 4, 1)
     catchup = False
     static = True
 
-    dependencies = [ONSUKSATradeInGoodsPipeline]
+    dependencies = [ONSUKSATradeInGoodsPollingPipeline]
 
     base_file_name = "ons_uk_sa_trade_in_goods"
     timestamp_output = False
 
     query = """
 SELECT
-    ons_geography_code AS ons_iso_alpha_2_code,
-    geography AS ons_region_name,
-    og_period AS period,
-    norm_period_type AS period_type,
-    CASE
-        WHEN og_direction = 'Imports' THEN 'imports'
-        WHEN og_direction = 'Exports' THEN 'exports'
-        ELSE og_direction
-    END AS direction,
+    ons_iso_alpha_2_code,
+    ons_region_name,
+    period,
+    period_type,
+    direction,
     'goods' as trade_type,
     trade_value,
-    CASE
-        WHEN LOWER(og_unit) = 'gbp million' THEN 'gbp-million'
-        ELSE LOWER(og_unit)
-    END AS unit,
+    unit,
     marker
 FROM (
     SELECT
-        og_ons_iso_alpha_2_code as ons_geography_code,
-        og_ons_region_name as geography,
-        og_period,
-        norm_period_type,
-        og_direction,
-        norm_total as trade_value,
-        og_unit,
-        norm_marker AS marker
-    FROM ons__uk_sa_trade_in_goods
+        ons_iso_alpha_2_code,
+        ons_region_name,
+        period,
+        period_type,
+        direction,
+        total as trade_value,
+        unit,
+        marker
+    FROM ons.uk_sa_trade_in_goods
     UNION (
         SELECT
-            i.og_ons_iso_alpha_2_code as ons_geography_code,
-            i.og_ons_region_name as geography,
-            i.og_period,
-            i.norm_period_type,
-            'total trade' as og_direction,
-            e.norm_total + i.norm_total as trade_value,
-            i.og_unit,
+            i.ons_iso_alpha_2_code,
+            i.ons_region_name,
+            i.period,
+            i.period_type,
+            'total trade' as direction,
+            e.total + i.total as trade_value,
+            i.unit,
             'derived' as marker
-        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
-        ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
-        WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
+        FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
+        ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
+        WHERE i.direction = 'imports' AND e.direction = 'exports'
     ) UNION (
         select
-            i.og_ons_iso_alpha_2_code as ons_geography_code,
-            i.og_ons_region_name as geography,
-            i.og_period,
-            i.norm_period_type,
-            'trade balance' as og_direction,
-            e.norm_total - i.norm_total as trade_value,
-            i.og_unit,
+            i.ons_iso_alpha_2_code,
+            i.ons_region_name,
+            i.period,
+            i.period_type,
+            'trade balance' as direction,
+            e.total - i.total as trade_value,
+            i.unit,
             'derived' as marker
-        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
-        ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
-        WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
+        FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
+        ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
+        WHERE i.direction = 'imports' AND e.direction = 'exports'
     ) UNION (
         SELECT
-            og_ons_iso_alpha_2_code as ons_geography_code,
-            og_ons_region_name as geography,
-            og_period,
-            '12 months ending' as norm_period_type,
-            og_direction,
-            sum(norm_total) over w AS trade_value,
-            og_unit,
+            ons_iso_alpha_2_code,
+            ons_region_name,
+            period,
+            '12 months ending' as period_type,
+            direction,
+            sum(total) over w AS trade_value,
+            unit,
             'derived' as marker
-        FROM ons__uk_sa_trade_in_goods
-        WHERE char_length(og_period) = 7
-        GROUP BY ons_geography_code, geography, og_period, og_direction, norm_total, og_unit
+        FROM ons.uk_sa_trade_in_goods
+        WHERE period_type = 'month'
+        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, total, unit
         WINDOW w AS (
-                PARTITION BY og_ons_region_name, og_direction
-                ORDER BY og_ons_region_name, og_period ASC
+                PARTITION BY ons_region_name, direction
+                ORDER BY ons_region_name, period ASC
                 ROWS between 11 preceding and current row)
     ) UNION (
         SELECT
-            i.og_ons_iso_alpha_2_code as ons_geography_code,
-            i.og_ons_region_name as geography,
-            i.og_period,
-            '12 months ending' as norm_period_type,
-            'trade balance' as og_direction,
-            sum(e.norm_total - i.norm_total) over w AS trade_value,
-            i.og_unit,
+            i.ons_iso_alpha_2_code,
+            i.ons_region_name,
+            i.period,
+            '12 months ending' as period_type,
+            'trade balance' as direction,
+            sum(e.total - i.total) over w AS trade_value,
+            i.unit,
             'derived' as marker
-        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
-        ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
-        WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
-            AND char_length(i.og_period) = 7
-        GROUP BY ons_geography_code, geography, i.og_period, i.og_unit, e.norm_total, i.norm_total
+        FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
+        ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
+        WHERE i.direction = 'imports' AND e.direction = 'exports'
+            AND i.period_type = 'month'
+        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.total, i.total
         WINDOW w AS (
-                PARTITION BY i.og_ons_region_name
-                ORDER BY i.og_ons_region_name, i.og_period ASC
+                PARTITION BY i.ons_region_name
+                ORDER BY i.ons_region_name, i.period ASC
                 ROWS between 11 preceding and current row)
     ) UNION (
         SELECT
-            i.og_ons_iso_alpha_2_code as ons_geography_code,
-            i.og_ons_region_name as geography,
-            i.og_period,
-            '12 months ending' as norm_period_type,
-            'total trade' as og_direction,
-            sum(e.norm_total + i.norm_total) over w AS trade_value,
-            i.og_unit,
+            i.ons_iso_alpha_2_code,
+            i.ons_region_name,
+            i.period,
+            '12 months ending' as period_type,
+            'total trade' as direction,
+            sum(e.total + i.total) over w AS trade_value,
+            i.unit,
             'derived' as marker
-        FROM ons__uk_sa_trade_in_goods e inner join ons__uk_sa_trade_in_goods i
-        ON i.og_ons_iso_alpha_2_code = e.og_ons_iso_alpha_2_code AND i.og_period = e.og_period
-        WHERE i.og_direction = 'Imports' AND e.og_direction = 'Exports'
-            AND char_length(i.og_period) = 7
-        GROUP BY ons_geography_code, geography, i.og_period, i.og_unit, e.norm_total, i.norm_total
+        FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
+        ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
+        WHERE i.direction = 'imports' AND e.direction = 'exports'
+            AND i.period_type = 'month'
+        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.total, i.total
         WINDOW w AS (
-                PARTITION BY i.og_ons_region_name
-                ORDER BY i.og_ons_region_name, i.og_period ASC
+                PARTITION BY i.ons_region_name
+                ORDER BY i.ons_region_name, i.period ASC
                 ROWS between 11 preceding and current row)
     )
-    ORDER BY geography, og_period, og_direction
-) AS query WHERE (og_period > '1998-11') OR norm_period_type != '12 months ending'
+    ORDER BY ons_region_name, period, direction
+) AS query WHERE (period > '1998-11') OR period_type != '12 months ending'
     """
 
 
