@@ -44,7 +44,7 @@ FROM (
         period,
         period_type,
         direction,
-        total as trade_value,
+        value as trade_value,
         unit,
         marker
     FROM ons.uk_sa_trade_in_goods
@@ -55,7 +55,7 @@ FROM (
             i.period,
             i.period_type,
             'total trade' as direction,
-            e.total + i.total as trade_value,
+            e.value + i.value as trade_value,
             i.unit,
             'derived' as marker
         FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
@@ -68,7 +68,7 @@ FROM (
             i.period,
             i.period_type,
             'trade balance' as direction,
-            e.total - i.total as trade_value,
+            e.value - i.value as trade_value,
             i.unit,
             'derived' as marker
         FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
@@ -81,12 +81,12 @@ FROM (
             period,
             '12 months ending' as period_type,
             direction,
-            sum(total) over w AS trade_value,
+            sum(value) over w AS trade_value,
             unit,
             'derived' as marker
         FROM ons.uk_sa_trade_in_goods
         WHERE period_type = 'month'
-        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, total, unit
+        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, value, unit
         WINDOW w AS (
                 PARTITION BY ons_region_name, direction
                 ORDER BY ons_region_name, period ASC
@@ -98,14 +98,14 @@ FROM (
             i.period,
             '12 months ending' as period_type,
             'trade balance' as direction,
-            sum(e.total - i.total) over w AS trade_value,
+            sum(e.value - i.value) over w AS trade_value,
             i.unit,
             'derived' as marker
         FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
         ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
         WHERE i.direction = 'imports' AND e.direction = 'exports'
             AND i.period_type = 'month'
-        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.total, i.total
+        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.value, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name
                 ORDER BY i.ons_region_name, i.period ASC
@@ -117,14 +117,14 @@ FROM (
             i.period,
             '12 months ending' as period_type,
             'total trade' as direction,
-            sum(e.total + i.total) over w AS trade_value,
+            sum(e.value + i.value) over w AS trade_value,
             i.unit,
             'derived' as marker
         FROM ons.uk_sa_trade_in_goods e inner join ons.uk_sa_trade_in_goods i
         ON i.ons_iso_alpha_2_code = e.ons_iso_alpha_2_code AND i.period = e.period
         WHERE i.direction = 'imports' AND e.direction = 'exports'
             AND i.period_type = 'month'
-        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.total, i.total
+        GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.value, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name
                 ORDER BY i.ons_region_name, i.period ASC
