@@ -2,6 +2,8 @@ alembic==1.3.1
 apache-airflow[postgres,crypto,celery,s3,sentry,slack]
 backoff
 mohawk
+msal
+notifications-python-client==5.7.0
 pyjwt[crypto]
 redis
 requests
@@ -9,4 +11,3 @@ requests-oauthlib
 typing_extensions
 git+https://github.com/GSS-Cogs/gss-utils.git@6439568a04c177a117cf8038dbee1678c98df419
 zipstream
-msal

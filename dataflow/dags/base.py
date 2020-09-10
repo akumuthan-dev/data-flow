@@ -22,6 +22,7 @@ from dataflow.operators.db_tables import (
     branch_on_modified_date,
     poll_scrape_and_load_data,
 )
+from dataflow.operators.email import send_dataset_update_emails
 from dataflow.utils import TableConfig, slack_alert
 
 
@@ -375,6 +376,14 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     # Which worker to run the poll/scrape/clean/load task on.
     worker_queue = 'default'
 
+    # If this is defined, it should point to an environment variable that provides a small blob of JSON data:
+    # {
+    #   "dataset_name": "A friendly name for the dataset",
+    #   "dataset_url": "https://www.data.trade.gov.uk/datasets/...",
+    #   "emails": ["subscriber@data.trade.gov.uk", ...]
+    # }
+    update_emails_data_environment_variable: Optional[str] = None
+
     @classmethod
     def fq_table_name(cls):
         return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
@@ -424,6 +433,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
 
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
+            dag=dag,
             retries=2,
             python_callable=swap_dataset_tables,
             execution_timeout=timedelta(minutes=10),
@@ -431,8 +441,21 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
+        _send_dataset_updated_emails = None
+        if self.update_emails_data_environment_variable:
+            _send_dataset_updated_emails = PythonOperator(
+                task_id='send-dataset-updated-emails',
+                dag=dag,
+                retries=0,
+                python_callable=send_dataset_update_emails,
+                op_kwargs=dict(
+                    update_emails_data_environment_variable=self.update_emails_data_environment_variable
+                ),
+            )
+
         _drop_temp_tables = PythonOperator(
             task_id="drop-temp-tables",
+            dag=dag,
             python_callable=drop_temp_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
@@ -442,6 +465,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
 
         _drop_swap_tables = PythonOperator(
             task_id="drop-swap-tables",
+            dag=dag,
             python_callable=drop_swap_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
@@ -453,5 +477,8 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             >> _swap_dataset_tables
             >> [_drop_swap_tables, _drop_temp_tables]
         )
+
+        if _send_dataset_updated_emails:
+            _swap_dataset_tables >> _send_dataset_updated_emails
 
         return dag
