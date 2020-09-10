@@ -7,7 +7,6 @@ from io import StringIO
 from time import sleep
 from typing import Tuple, Dict, Optional
 
-import sqlalchemy
 import sqlalchemy as sa
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook

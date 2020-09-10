@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-12
+
+### Added
+
+- The ability to send notification emails to users when a pipeline has completed successfully, configured through env vars.
+
+### Changed
+
+- ONS UK SA Trade in Goods dataset to scrape/clean/transform/load directly from the ONS spreadsheet rather than their alpha API, which has been flaky. This will also use our condensed polling pipeline to load this data more quickly.
+- ONS UK Trade in goods by country and commodity dataset to a condensed polling pipeline.
+
 ## 2020-09-08
 
 ### Changed

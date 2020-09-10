@@ -33,6 +33,10 @@ class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
         schema='ons', table_name="uk_sa_trade_in_goods", field_mapping=[],
     )
 
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKSATradeInGoodsPollingPipeline'
+    )
+
 
 class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
     from dataflow.ons_scripts.uktradecountrybycommodity.main import (

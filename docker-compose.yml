@@ -49,8 +49,8 @@ services:
       - /bin/sh
       - -c
       - |
-          alembic upgrade head
           airflow initdb
+          alembic upgrade head
           ./bin/airflow-scheduler.sh &
           airflow worker &
           airflow worker --queues high-memory-usage --concurrency 1 &
