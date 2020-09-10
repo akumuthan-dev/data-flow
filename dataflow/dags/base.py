@@ -1,10 +1,11 @@
 import sys
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from functools import partial
 from typing import List, Optional, Type, Callable
 
 from airflow import DAG
+from airflow.models import SkipMixin
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
@@ -19,6 +20,7 @@ from dataflow.operators.db_tables import (
     insert_data_into_db,
     swap_dataset_tables,
     branch_on_modified_date,
+    poll_scrape_and_load_data,
 )
 from dataflow.utils import TableConfig, slack_alert
 
@@ -333,5 +335,122 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
             )
 
             sensor >> [_create_csv]
+
+        return dag
+
+
+class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
+    """
+    A pipeline that continuously polls (within a given period) for updates to a dataset and then aims to process
+    and upload that data as fast as practicable, to support more time-sensitive workflows. The pipeline minimises time
+    by skipping or condensing steps that are in the standard `_PipelineDAG`, e.g. uploading data to S3 and splitting
+    steps out into separate tasks.
+    """
+
+    target_db: str = config.DATASETS_DB_NAME
+    start_date: datetime = datetime(2019, 11, 5)
+    end_date: Optional[datetime] = None
+    catchup: bool = False
+
+    # Enable or disable Slack notification when DAG run finishes
+    alert_on_success: bool = False
+    alert_on_failure: bool = True
+
+    # Disables the null columns check that makes sure all DB columns
+    # have at least one non-null value
+    allow_null_columns: bool = False
+
+    # These two functions must be defined on any subclasses
+    date_checker: Callable
+    data_getter: Callable
+
+    table_config: TableConfig
+
+    # How often to poll the data source to read it's "last modified" date.
+    polling_interval_in_seconds = 60
+
+    schedule_interval = "0 7 * * *"
+    daily_end_time_utc = time(17, 0, 0)
+
+    # Which worker to run the poll/scrape/clean/load task on.
+    worker_queue = 'worker'
+
+    @classmethod
+    def fq_table_name(cls):
+        return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
+
+    def skip_downstream_tasks(self, **kwargs):
+        downstream_tasks = kwargs['task'].get_flat_relatives(upstream=False)
+        self.skip(kwargs['dag_run'], kwargs['ti'].execution_date, downstream_tasks)
+
+    def get_dag(self) -> DAG:
+        dag = DAG(
+            self.__class__.__name__,
+            catchup=self.catchup,
+            default_args={
+                "owner": "airflow",
+                "depends_on_past": False,
+                "email_on_failure": False,
+                "email_on_retry": False,
+                "retries": 0,
+                "retry_delay": timedelta(minutes=5),
+                'catchup': self.catchup,
+            },
+            start_date=self.start_date,
+            end_date=self.end_date,
+            schedule_interval=self.schedule_interval,
+            max_active_runs=1,
+            on_success_callback=partial(slack_alert, success=True)
+            if self.alert_on_success
+            else None,
+            on_failure_callback=partial(slack_alert, success=False)
+            if self.alert_on_failure
+            else None,
+        )
+
+        _poll_scrape_and_load = PythonOperator(
+            task_id='poll-scrape-and-load-data',
+            python_callable=poll_scrape_and_load_data,
+            op_kwargs=dict(
+                target_db=self.target_db,
+                table_config=self.table_config,
+                pipeline_instance=self,
+            ),
+            dag=dag,
+            provide_context=True,
+            queue=self.worker_queue,
+        )
+
+        _swap_dataset_tables = PythonOperator(
+            task_id="swap-dataset-table",
+            retries=2,
+            python_callable=swap_dataset_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _drop_temp_tables = PythonOperator(
+            task_id="drop-temp-tables",
+            python_callable=drop_temp_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            trigger_rule="one_failed",
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _drop_swap_tables = PythonOperator(
+            task_id="drop-swap-tables",
+            python_callable=drop_swap_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        (
+            _poll_scrape_and_load
+            >> _swap_dataset_tables
+            >> [_drop_swap_tables, _drop_temp_tables]
+        )
 
         return dag

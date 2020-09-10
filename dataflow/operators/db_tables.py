@@ -4,13 +4,18 @@ import datetime
 import itertools
 import warnings
 from io import StringIO
+from time import sleep
 from typing import Tuple, Dict, Optional
 
+import sqlalchemy
 import sqlalchemy as sa
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
+from pandas import DataFrame
+from sqlalchemy import text
 
 from dataflow import config
+
 from dataflow.utils import (
     get_nested_key,
     get_temp_table,
@@ -59,6 +64,7 @@ def branch_on_modified_date(target_db: str, table_config: TableConfig, **context
     new_modified_utc = context['task_instance'].xcom_pull(
         task_ids='get-source-modified-date'
     )
+    context['task_instance'].xcom_push('source-modified-date-utc', new_modified_utc)
 
     logger.info("Old: %s. New: %s", old_modified_utc, new_modified_utc)
 
@@ -316,7 +322,6 @@ def check_table_data(
     target_db: str, *tables: sa.Table, allow_null_columns: bool = False, **kwargs
 ):
     """Verify basic constraints on temp table data.
-
     """
 
     engine = sa.create_engine(
@@ -427,7 +432,7 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
                 )
 
             new_modified_utc = kwargs['task_instance'].xcom_pull(
-                task_ids='get-source-modified-date'
+                key='source-modified-date-utc'
             )
             conn.execute(
                 """
@@ -480,3 +485,73 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
             swap_table = get_temp_table(table, kwargs["ts_nodash"] + "_swap")
             logger.info(f"Removing {swap_table.name}")
             swap_table.drop(conn, checkfirst=True)
+
+
+def poll_scrape_and_load_data(
+    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs,
+):
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    with engine.begin() as conn:
+        logger.info(f"Creating schema {table_config.schema} if not exists")
+        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table_config.schema}")
+
+        last_ingest_utc = conn.execute(
+            text(
+                "SELECT MIN(source_data_modified_utc) "
+                "FROM dataflow.metadata "
+                "WHERE table_schema = :schema AND table_name = :table"
+            ),
+            schema=engine.dialect.identifier_preparer.quote(table_config.schema),
+            table=engine.dialect.identifier_preparer.quote(table_config.table_name),
+        ).fetchall()[0][0]
+        logger.info(f"last_ingest_utc from previous run: {last_ingest_utc}")
+
+    dataset_modified_utc = pipeline_instance.__class__.date_checker()
+    logger.info(f"dataset_modified_utc from latest data: {dataset_modified_utc}")
+
+    while last_ingest_utc and dataset_modified_utc <= last_ingest_utc:
+        if (
+            datetime.datetime.now().time()
+            >= pipeline_instance.__class__.daily_end_time_utc
+        ):
+            logger.info(
+                "No newer data has been made available for today, "
+                "and it is now after the scheduled end time for polling "
+                f"({pipeline_instance.__class__.daily_end_time_utc}). "
+                "Ending the job and skipping remaining tasks."
+            )
+            pipeline_instance.skip_downstream_tasks(**kwargs)
+            return
+
+        sleep(pipeline_instance.__class__.polling_interval_in_seconds)
+        dataset_modified_utc = pipeline_instance.__class__.date_checker()
+        logger.info(f"dataset_modified_utc from latest data: {dataset_modified_utc}")
+
+    logger.info("Newer data is available.")
+    kwargs['task_instance'].xcom_push('source-modified-date-utc', dataset_modified_utc)
+
+    temp_table = get_temp_table(table_config.table, suffix=kwargs['ts_nodash'])
+
+    data: DataFrame = pipeline_instance.__class__.data_getter()
+
+    with engine.connect() as connection:
+        data.to_sql(
+            name=temp_table.name,
+            schema=temp_table.schema,
+            con=connection,
+            method='multi',
+            if_exists='append',
+            chunksize=10000,
+            index=False,
+        )
+
+    check_table_data(
+        target_db,
+        *table_config.tables,
+        allow_null_columns=pipeline_instance.allow_null_columns,
+        **kwargs,
+    )
