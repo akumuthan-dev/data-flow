@@ -486,8 +486,8 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
             swap_table.drop(conn, checkfirst=True)
 
 
-def poll_scrape_and_load_data(
-    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs,
+def poll_for_new_data(
+    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs
 ):
     engine = sa.create_engine(
         'postgresql+psycopg2://',
@@ -495,10 +495,7 @@ def poll_scrape_and_load_data(
     )
 
     with engine.begin() as conn:
-        logger.info(f"Creating schema {table_config.schema} if not exists")
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table_config.schema}")
-
-        last_ingest_utc = conn.execute(
+        db_data_last_modified_utc = conn.execute(
             text(
                 "SELECT MIN(source_data_modified_utc) "
                 "FROM dataflow.metadata "
@@ -507,12 +504,33 @@ def poll_scrape_and_load_data(
             schema=engine.dialect.identifier_preparer.quote(table_config.schema),
             table=engine.dialect.identifier_preparer.quote(table_config.table_name),
         ).fetchall()[0][0]
-        logger.info(f"last_ingest_utc from previous run: {last_ingest_utc}")
+        logger.info(f"last_ingest_utc from previous run: {db_data_last_modified_utc}")
 
-    dataset_modified_utc = pipeline_instance.__class__.date_checker()
-    logger.info(f"dataset_modified_utc from latest data: {dataset_modified_utc}")
+    (
+        source_last_modified_utc,
+        source_next_release_utc,
+    ) = pipeline_instance.__class__.date_checker()
+    logger.info(f"dataset_modified_utc from latest data: {source_last_modified_utc}")
 
-    while last_ingest_utc and dataset_modified_utc <= last_ingest_utc:
+    if (
+        source_next_release_utc
+        and source_last_modified_utc == db_data_last_modified_utc
+        and datetime.datetime.utcnow().date() < source_next_release_utc.date()
+    ):
+        logger.info(
+            "No new data is available and it is before the next release date, so there's no need to poll. "
+            "source_last_modified_utc=%s, source_next_release_utc=%s, db_data_last_modified_utc=%s",
+            source_last_modified_utc,
+            source_next_release_utc,
+            db_data_last_modified_utc,
+        )
+        pipeline_instance.skip_downstream_tasks(**kwargs)
+        return
+
+    while (
+        db_data_last_modified_utc
+        and source_last_modified_utc <= db_data_last_modified_utc
+    ):
         if (
             datetime.datetime.now().time()
             >= pipeline_instance.__class__.daily_end_time_utc
@@ -527,11 +545,28 @@ def poll_scrape_and_load_data(
             return
 
         sleep(pipeline_instance.__class__.polling_interval_in_seconds)
-        dataset_modified_utc = pipeline_instance.__class__.date_checker()
-        logger.info(f"dataset_modified_utc from latest data: {dataset_modified_utc}")
+        source_last_modified_utc = pipeline_instance.__class__.date_checker()
+        logger.info(
+            f"source_last_modified_utc from latest data: {source_last_modified_utc}"
+        )
 
     logger.info("Newer data is available.")
-    kwargs['task_instance'].xcom_push('source-modified-date-utc', dataset_modified_utc)
+    kwargs['task_instance'].xcom_push(
+        'source-modified-date-utc', source_last_modified_utc
+    )
+
+
+def scrape_load_and_check_data(
+    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs,
+):
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    with engine.begin() as conn:
+        logger.info(f"Creating schema {table_config.schema} if not exists")
+        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table_config.schema}")
 
     temp_table = get_temp_table(table_config.table, suffix=kwargs['ts_nodash'])
 

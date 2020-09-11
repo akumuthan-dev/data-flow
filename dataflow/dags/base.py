@@ -2,7 +2,7 @@ import sys
 
 from datetime import datetime, timedelta, time
 from functools import partial
-from typing import List, Optional, Type, Callable
+from typing import List, Optional, Type, Callable, Tuple
 
 from airflow import DAG
 from airflow.models import SkipMixin
@@ -20,7 +20,8 @@ from dataflow.operators.db_tables import (
     insert_data_into_db,
     swap_dataset_tables,
     branch_on_modified_date,
-    poll_scrape_and_load_data,
+    scrape_load_and_check_data,
+    poll_for_new_data,
 )
 from dataflow.operators.email import send_dataset_update_emails
 from dataflow.utils import TableConfig, slack_alert
@@ -362,7 +363,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     allow_null_columns: bool = False
 
     # These two functions must be defined on any subclasses
-    date_checker: Callable
+    date_checker: Callable[[], Tuple[datetime, Optional[datetime]]]
     data_getter: Callable
 
     table_config: TableConfig
@@ -417,9 +418,22 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             else None,
         )
 
-        _poll_scrape_and_load = PythonOperator(
-            task_id='poll-scrape-and-load-data',
-            python_callable=poll_scrape_and_load_data,
+        _poll_for_updates = PythonOperator(
+            task_id='poll-for-new-data',
+            python_callable=poll_for_new_data,
+            op_kwargs=dict(
+                target_db=self.target_db,
+                table_config=self.table_config,
+                pipeline_instance=self,
+            ),
+            dag=dag,
+            provide_context=True,
+            retries=3,
+        )
+
+        _scrape_load_and_check = PythonOperator(
+            task_id='scrape-and-load-data',
+            python_callable=scrape_load_and_check_data,
             op_kwargs=dict(
                 target_db=self.target_db,
                 table_config=self.table_config,
@@ -473,7 +487,8 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
         )
 
         (
-            _poll_scrape_and_load
+            _poll_for_updates
+            >> _scrape_load_and_check
             >> _swap_dataset_tables
             >> [_drop_swap_tables, _drop_temp_tables]
         )

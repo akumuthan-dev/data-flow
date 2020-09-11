@@ -4,7 +4,7 @@ https://github.com/GSS-Cogs/family-trade/blob/fca3be954d0b4ed216a4a0989182b19a5c
 """
 
 from datetime import datetime
-
+from typing import Tuple
 
 import gssutils
 import pandas
@@ -183,16 +183,19 @@ def process_data():
     return table.drop_duplicates()
 
 
-def get_source_data_modified_date() -> datetime:
+def get_current_and_next_release_date() -> Tuple[datetime, datetime]:
     scraper = gssutils.Scraper(DATASET_URL, session=requests.Session())
 
-    return datetime(
-        year=scraper.dataset.issued.year,
-        month=scraper.dataset.issued.month,
-        day=scraper.dataset.issued.day,
-        hour=0,
-        minute=0,
-        second=0,
+    return (
+        datetime(
+            year=scraper.dataset.issued.year,
+            month=scraper.dataset.issued.month,
+            day=scraper.dataset.issued.day,
+            hour=0,
+            minute=0,
+            second=0,
+        ),
+        scraper.dataset.updateDueOn,
     )
 
 
