@@ -533,7 +533,7 @@ class TestPollForNewData:
 def test_poll_scrape_and_load_data(mocker):
     class TestPipeline(_FastPollingPipeline):
         def date_checker():
-            return datetime.now()  # noqa
+            return datetime.now()
 
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
