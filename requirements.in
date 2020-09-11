@@ -1,3 +1,5 @@
+# If changing requirements, both requirements.txt and
+# requirements-tensorflow.txt must be recompiled
 alembic==1.3.1
 apache-airflow[postgres,crypto,celery,s3,sentry,slack]
 backoff
