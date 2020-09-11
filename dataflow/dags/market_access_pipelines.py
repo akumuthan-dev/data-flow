@@ -18,6 +18,7 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
     source_url = f"{config.MARKET_ACCESS_BASE_URL}/dataset/v1/barriers"
     start_date = datetime(2020, 3, 18)
     schedule_interval = '@daily'
+    use_utc_now_as_source_modified = True
 
     table_config = TableConfig(
         table_name="market_access_trade_barriers",

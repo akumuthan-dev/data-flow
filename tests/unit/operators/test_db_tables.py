@@ -249,7 +249,21 @@ def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook
     connection.close.assert_called_once_with()
 
 
-def test_swap_dataset_tables(mock_db_conn, table, mocker):
+@pytest.mark.parametrize(
+    "xcom_modified_date, use_utc_now_as_source_modified, expected_result",
+    (
+        (datetime(2020, 1, 1, 12, 0, 0), False, datetime(2020, 1, 1, 12, 0)),
+        (None, True, datetime(2020, 2, 2, 12, 0)),
+    ),
+)
+def test_swap_dataset_tables(
+    mock_db_conn,
+    table,
+    mocker,
+    xcom_modified_date,
+    use_utc_now_as_source_modified,
+    expected_result,
+):
     mock_db_conn.execute().fetchall.return_value = (('testuser',),)
     mocker.patch.object(
         db_tables.config,
@@ -257,11 +271,15 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
         ['default-grantee-1', 'default-grantee-2'],
     )
     xcom_mock = mock.Mock()
-    xcom_mock.xcom_pull.return_value = datetime(2020, 1, 1, 12, 0, 0)
+    xcom_mock.xcom_pull.return_value = xcom_modified_date
 
     with freezegun.freeze_time('20200202t12:00:00'):
         db_tables.swap_dataset_tables(
-            "test-db", table, ts_nodash="123", task_instance=xcom_mock
+            "test-db",
+            table,
+            ts_nodash="123",
+            task_instance=xcom_mock,
+            use_utc_now_as_source_modified=use_utc_now_as_source_modified,
         )
 
     mock_db_conn.execute.assert_has_calls(
@@ -297,12 +315,7 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
                 (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (
-                    'public',
-                    'test_table',
-                    datetime(2020, 1, 1, 12, 0),
-                    datetime(2020, 2, 2, 12, 0),
-                ),
+                ('public', 'test_table', expected_result, datetime(2020, 2, 2, 12, 0),),
             ),
         ]
     )
@@ -519,7 +532,9 @@ class TestPollForNewData:
 
 def test_poll_scrape_and_load_data(mocker):
     class TestPipeline(_FastPollingPipeline):
-        date_checker = lambda: (datetime.now(), datetime.now())  # noqa
+        def date_checker():
+            return datetime.now()  # noqa
+
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False

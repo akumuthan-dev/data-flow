@@ -8,11 +8,11 @@ from io import StringIO
 from time import sleep
 from typing import Tuple, Dict, Optional, TYPE_CHECKING
 
+from pandas import DataFrame
 import sqlalchemy as sa
+from sqlalchemy import text
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
-from pandas import DataFrame
-from sqlalchemy import text
 
 from dataflow import config
 
@@ -55,11 +55,11 @@ def branch_on_modified_date(target_db: str, table_config: TableConfig, **context
 
         if len(res) == 0:
             return 'continue'
-        elif len(res) > 1:
+        if len(res) > 1:
             raise AirflowException(
                 f"Multiple rows in the dataflow metadata table for {table_config.schema}.{table_config.table_name}"
             )
-        elif not res[0][0]:
+        if not res[0][0]:
             return 'continue'
 
         old_modified_utc = res[0][0]
@@ -97,9 +97,9 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
             table = get_temp_table(table, kwargs["ts_nodash"])
-            logger.info(f"Creating schema {table.schema} if not exists")
+            logger.info("Creating schema %s if not exists", table.schema)
             conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table.schema}")
-            logger.info(f"Creating {table.name}")
+            logger.info("Creating %s", table.name)
             table.create(conn, checkfirst=True)
 
 
@@ -112,7 +112,8 @@ def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
         }
     except KeyError:
         logger.warning(
-            f"Failed to load item {record.get('id', str(record))}, required field is missing"
+            "Failed to load item %s, required field is missing",
+            record.get('id', str(record)),
         )
         raise
 
@@ -194,7 +195,7 @@ def insert_data_into_db(
 
     count = 0
     for page, records in s3.iter_keys():
-        logger.info(f'Processing page {page}')
+        logger.info('Processing page %s', page)
         count += 1
 
         with engine.begin() as conn:
@@ -216,11 +217,11 @@ def insert_data_into_db(
             elif table is not None and field_mapping:
                 for record in records:
                     conn.execute(
-                        temp_table.insert(),
+                        temp_table.insert(),  # pylint: disable=E1120
                         **_get_data_to_insert(field_mapping, record),
                     )
 
-        logger.info(f'Page {page} ingested successfully')
+        logger.info('Page %s ingested successfully', page)
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")
@@ -251,7 +252,7 @@ def insert_csv_data_into_db(
     count = 0
     done = 0
     for page, data in s3.iter_keys(json=False):
-        logger.info(f'Processing page {page}')
+        logger.info('Processing page %s', page)
         count += 1
 
         with engine.begin() as conn:
@@ -262,7 +263,7 @@ def insert_csv_data_into_db(
                 if not records:
                     break
 
-                logger.info(f"Ingesting records {done} - {done+len(records)} ...")
+                logger.info("Ingesting records %s - %s ...", done, done + len(records))
                 transformed_records = []
                 for record in records:
                     for transform in table_config.transforms:
@@ -278,7 +279,7 @@ def insert_csv_data_into_db(
                 )
                 done += len(records)
 
-        logger.info(f'File {page} ingested successfully')
+        logger.info('File %s ingested successfully', page)
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")
@@ -287,7 +288,7 @@ def insert_csv_data_into_db(
 def _check_table(
     engine, conn, temp: sa.Table, target: sa.Table, allow_null_columns: bool
 ):
-    logger.info(f"Checking {temp.name}")
+    logger.info("Checking %s", temp.name)
 
     if engine.dialect.has_table(conn, target.name, schema=target.schema):
         logger.info("Checking record counts")
@@ -299,9 +300,7 @@ def _check_table(
         ).fetchone()[0]
 
         logger.info(
-            "Current records count {}, new import count {}".format(
-                target_count, temp_count
-            )
+            "Current records count %s, new import count %s", target_count, temp_count
         )
 
         if target_count > 0 and temp_count / target_count < 0.9:
@@ -353,7 +352,7 @@ def query_database(
 
         rows = cursor.fetchmany(batch_size)
         fields = [d[0] for d in cursor.description]
-        while len(rows):
+        while rows:
             records = []
             for row in rows:
                 record = {fields[col]: row[col] for col in range(len(row))}
@@ -368,7 +367,12 @@ def query_database(
             connection.close()
 
 
-def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
+def swap_dataset_tables(
+    target_db: str,
+    *tables: sa.Table,
+    use_utc_now_as_source_modified: bool = False,
+    **kwargs,
+):
     """Rename temporary tables to replace current dataset one.
 
     Given a one or more dataset tables `tables` this finds the temporary table created
@@ -390,7 +394,7 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
     for table in tables:
         temp_table = get_temp_table(table, kwargs["ts_nodash"])
 
-        logger.info(f"Moving {temp_table.name} to {table.name}")
+        logger.info("Moving %s to %s", temp_table.name, table.name)
         with engine.begin() as conn:
             conn.execute("SET statement_timeout = 600000")
             grantees = [
@@ -437,6 +441,9 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
             new_modified_utc = kwargs['task_instance'].xcom_pull(
                 key='source-modified-date-utc'
             )
+            if new_modified_utc is None and use_utc_now_as_source_modified:
+                new_modified_utc = datetime.datetime.utcnow()
+
             conn.execute(
                 """
                 INSERT INTO dataflow.metadata
@@ -467,7 +474,7 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
             temp_table = get_temp_table(table, kwargs["ts_nodash"])
-            logger.info(f"Removing {temp_table.name}")
+            logger.info("Removing %s", temp_table.name)
             temp_table.drop(conn, checkfirst=True)
 
 
@@ -486,7 +493,7 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
             swap_table = get_temp_table(table, kwargs["ts_nodash"] + "_swap")
-            logger.info(f"Removing {swap_table.name}")
+            logger.info("Removing %s", swap_table.name)
             swap_table.drop(conn, checkfirst=True)
 
 
@@ -546,9 +553,9 @@ def poll_for_new_data(
         ):
             logger.info(
                 "No newer data has been made available for today, "
-                "and it is now after the scheduled end time for polling "
-                f"({pipeline_instance.__class__.daily_end_time_utc}). "
-                "Ending the job and skipping remaining tasks."
+                "and it is now after the scheduled end time for polling (%s). "
+                "Ending the job and skipping remaining tasks.",
+                pipeline_instance.__class__.daily_end_time_utc,
             )
             pipeline_instance.skip_downstream_tasks(**kwargs)
             return

@@ -78,6 +78,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
     # exact time, NOT a range of "between now and 5 hours ago".
     dependencies_execution_delta: timedelta = timedelta(hours=0)
 
+    # If True, the source_data_modified_utc metadata field will be set to the swap table task run utc.
+    use_utc_now_as_source_modified: bool = False
+
     def get_fetch_operator(self) -> PythonOperator:
         raise NotImplementedError(
             f"{self.__class__} needs to override get_fetch_operator"
@@ -209,6 +212,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.table_config.tables],
+            op_kwargs={
+                'use_utc_now_as_source_modified': self.use_utc_now_as_source_modified
+            },
         )
 
         _drop_temp_tables = PythonOperator(

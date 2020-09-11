@@ -12,6 +12,7 @@ from dataflow.utils import TableConfig
 
 class _ConsentPipeline(_PipelineDAG):
     cascade_drop_tables = True
+    use_utc_now_as_source_modified = True
 
     source_url: str
     table_config: TableConfig

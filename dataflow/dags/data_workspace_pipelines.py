@@ -14,6 +14,7 @@ from dataflow.utils import TableConfig
 class _DataWorkspacePipeline(_PipelineDAG):
     cascade_drop_tables = True
     source_url: str
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(

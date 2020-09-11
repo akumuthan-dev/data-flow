@@ -9,6 +9,7 @@ from dataflow.utils import TableConfig
 class CompaniesHouseCompaniesPipeline(_PipelineDAG):
     schedule_interval = '0 0 10 * *'
     allow_null_columns = True
+    use_utc_now_as_source_modified = True
     number_of_files = 6
     source_url = 'http://download.companieshouse.gov.uk/BasicCompanyData-{file_date}-part{file_num}_{num_files}.zip'
     table_config = TableConfig(

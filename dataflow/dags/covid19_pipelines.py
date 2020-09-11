@@ -15,6 +15,7 @@ from dataflow.utils import TableConfig
 class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
     source_url = 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload'
     allow_null_columns = True
+    use_utc_now_as_source_modified = True
     table_config = TableConfig(
         table_name='oxford_covid19_government_response_tracker',
         field_mapping=[
@@ -144,6 +145,7 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
 class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
     # Run after the daily update of data ~4am
     schedule_interval = '0 7 * * *'
+    use_utc_now_as_source_modified = True
 
     source_urls = {
         "confirmed": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
@@ -190,7 +192,7 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
 
 class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
     schedule_interval = '0 7 * * *'
-
+    use_utc_now_as_source_modified = True
     dependencies = [CSSECovid19TimeSeriesGlobal]
 
     query = """
@@ -268,9 +270,8 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
 
 
 class GoogleCovid19MobilityReports(_PipelineDAG):
-
     schedule_interval = '0 1 * * 0'
-
+    use_utc_now_as_source_modified = True
     source_urls = {
         'global': 'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
     }
@@ -376,6 +377,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
 class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
     base_url = 'https://covid19-static.cdn-apple.com'
     config_path = '/covid19-mobility-data/current/v3/index.json'
+    use_utc_now_as_source_modified = True
     table_config = TableConfig(
         schema='apple',
         table_name='covid19_mobility_data',

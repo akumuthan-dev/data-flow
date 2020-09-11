@@ -23,6 +23,7 @@ from dataflow.utils import TableConfig
 class _SQLPipelineDAG(_PipelineDAG):
     schedule_interval = '@daily'
     query: str
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self):
         return PythonOperator(

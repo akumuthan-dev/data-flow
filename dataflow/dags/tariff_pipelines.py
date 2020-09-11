@@ -9,6 +9,7 @@ from dataflow.utils import TableConfig
 
 
 class GlobalUKTariffPipeline(_PipelineDAG):
+    use_utc_now_as_source_modified = True
     source_url = (
         'https://www.check-future-uk-trade-tariffs.service.gov.uk/api/global-uk-tariff'
     )
