@@ -402,7 +402,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
                 "email_on_failure": False,
                 "email_on_retry": False,
                 "retries": 3,
-                "retry_delay": timedelta(minutes=5),
+                "retry_delay": timedelta(seconds=30),
                 'catchup': self.catchup,
             },
             start_date=self.start_date,
