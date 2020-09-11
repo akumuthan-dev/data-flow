@@ -370,7 +370,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     # How often to poll the data source to read it's "last modified" date.
     polling_interval_in_seconds = 60
 
-    schedule_interval = "0 7 * * *"
+    schedule_interval = "0 6 * * *"
     daily_end_time_utc = time(17, 0, 0)
 
     # Which worker to run the poll/scrape/clean/load task on.
