@@ -51,4 +51,4 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline
         table_name='uk_trade_in_goods_by_country_and_commodity',
         field_mapping=[],
     )
-    queue = 'high-memory-usage'
+    worker_queue = 'high-memory-usage'
