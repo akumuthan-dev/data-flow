@@ -497,7 +497,7 @@ def poll_for_new_data(
     with engine.begin() as conn:
         db_data_last_modified_utc = conn.execute(
             text(
-                "SELECT MIN(source_data_modified_utc) "
+                "SELECT MAX(source_data_modified_utc) "
                 "FROM dataflow.metadata "
                 "WHERE table_schema = :schema AND table_name = :table"
             ),
