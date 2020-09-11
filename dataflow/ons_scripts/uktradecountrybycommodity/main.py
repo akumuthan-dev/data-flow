@@ -11,6 +11,7 @@ from multiprocessing import Pool
 from zipfile import ZipFile
 
 import numpy
+import requests
 from gssutils import Scraper
 import pandas as pd
 from pandas import DataFrame
@@ -57,7 +58,7 @@ def process_data(flow_type, dataset_url):
             print(f"no match for {t}")
 
     print(datetime.now(), f'process_data({flow_type}, {dataset_url}) start')
-    scraper = Scraper(dataset_url)
+    scraper = Scraper(dataset_url, session=requests.Session())
     distribution = scraper.distribution(mediaType=lambda x: 'zip' in x, latest=True)
 
     with ZipFile(BytesIO(scraper.session.get(distribution.downloadURL).content)) as zip:
@@ -155,8 +156,8 @@ def process_data(flow_type, dataset_url):
 
 
 def get_source_data_modified_date() -> datetime:
-    exports_scraper = Scraper(EXPORTS_DATASET_URL)
-    imports_scraper = Scraper(IMPORTS_DATASET_URL)
+    exports_scraper = Scraper(EXPORTS_DATASET_URL, session=requests.Session())
+    imports_scraper = Scraper(IMPORTS_DATASET_URL, session=requests.Session())
 
     oldest_date: date = min(
         exports_scraper.dataset.issued, imports_scraper.dataset.issued

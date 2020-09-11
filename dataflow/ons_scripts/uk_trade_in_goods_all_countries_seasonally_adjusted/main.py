@@ -10,6 +10,7 @@ import gssutils
 import pandas
 import re
 
+import requests
 
 DATASET_URL = 'https://www.ons.gov.uk/economy/nationalaccounts/balanceofpayments/datasets/uktradeallcountriesseasonallyadjusted'
 
@@ -137,7 +138,7 @@ def process_data():
         print(datetime.now(), f'scrape {sheetname} - complete')
         return new_table
 
-    scraper = gssutils.Scraper(DATASET_URL)
+    scraper = gssutils.Scraper(DATASET_URL, session=requests.Session())
     tabs = {tab.name: tab for tab in scraper.distributions[0].as_databaker()}
 
     print(datetime.now(), f'spreadsheet scrape - start')
@@ -183,7 +184,7 @@ def process_data():
 
 
 def get_source_data_modified_date() -> datetime:
-    scraper = gssutils.Scraper(DATASET_URL)
+    scraper = gssutils.Scraper(DATASET_URL, session=requests.Session())
 
     return datetime(
         year=scraper.dataset.issued.year,
