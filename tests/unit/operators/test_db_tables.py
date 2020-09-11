@@ -367,9 +367,159 @@ def test_branch_on_modified_date(
     assert next_task == expected_result
 
 
+class TestPollForNewData:
+    class TestPipeline(_FastPollingPipeline):
+        date_checker = lambda: (datetime.now(), datetime.now())  # noqa
+        data_getter = mock.Mock()
+        daily_end_time_utc = time(17, 0, 0)
+        allow_null_columns = False
+        table_config = TableConfig(
+            schema='test', table_name="test_table", field_mapping=[],
+        )
+
+    @pytest.mark.parametrize(
+        'run_time_utc, db_data_last_modified_utc, source_last_modified_utc, source_next_release_utc, should_skip',
+        (
+            (  # We have the latest data, and new data isn't expected today, so skip the rest of the pipeline.
+                datetime(2020, 1, 15),
+                datetime(2020, 1, 1),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                True,
+            ),
+            (  # Newer data is available, so we shouldn't skip anything.
+                datetime(2020, 1, 15),
+                datetime(2019, 12, 1),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                False,
+            ),
+            (  # Newer data is available but the data provider has missed a release - we should still keep going.
+                datetime(2020, 2, 15),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                datetime(2020, 3, 1),
+                False,
+            ),
+        ),
+    )
+    def test_skips_downstream_tasks_if_has_latest_data_and_not_expecting_imminent_release(
+        self,
+        run_time_utc,
+        db_data_last_modified_utc,
+        source_last_modified_utc,
+        source_next_release_utc,
+        should_skip,
+        mocker,
+        monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = (
+            (db_data_last_modified_utc,),
+        )
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (source_last_modified_utc, source_next_release_utc),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time(run_time_utc):
+            db_tables.poll_for_new_data(
+                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+            )
+
+        if should_skip:
+            assert len(mock_skip.call_args_list) == 1
+            assert kwargs['task_instance'].xcom_push.call_args_list == []
+        else:
+            assert len(mock_skip.call_args_list) == 0
+            assert kwargs['task_instance'].xcom_push.call_args_list == [
+                mock.call('source-modified-date-utc', source_last_modified_utc)
+            ]
+
+    def test_skips_downstream_tasks_if_polling_time_is_after_daily_end_time(
+        self, mocker, monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = ((datetime(2020, 1, 1),),)
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (datetime(2020, 1, 1), datetime(2020, 2, 1)),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time('20200115t19:00:00'):
+            db_tables.poll_for_new_data(
+                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+            )
+
+        assert len(mock_skip.call_args_list) == 1
+        assert kwargs['task_instance'].xcom_push.call_args_list == []
+
+    def test_pushes_source_modified_date_if_newer_data_is_available(
+        self, mocker, monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = ((datetime(2019, 12, 1),),)
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (datetime(2020, 1, 1), datetime(2020, 2, 1)),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time('20200101t12:00:00'):
+            db_tables.poll_for_new_data(
+                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+            )
+
+        assert len(mock_skip.call_args_list) == 0
+        assert kwargs['task_instance'].xcom_push.call_args_list == [
+            mock.call('source-modified-date-utc', datetime(2020, 1, 1))
+        ]
+
+
 def test_poll_scrape_and_load_data(mocker):
     class TestPipeline(_FastPollingPipeline):
-        date_checker = lambda: datetime.now()  # noqa
+        date_checker = lambda: (datetime.now(), datetime.now())  # noqa
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
@@ -380,7 +530,6 @@ def test_poll_scrape_and_load_data(mocker):
     table = mock.Mock()
     engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
     conn = engine.return_value.begin.return_value.__enter__.return_value
-    conn.execute.return_value.fetchall.return_value = ((datetime(2000, 1, 1),),)
     mock_temp_table = mocker.patch.object(
         db_tables, "get_temp_table", autospec=True, return_value=table
     )
@@ -400,7 +549,7 @@ def test_poll_scrape_and_load_data(mocker):
     )
 
     with freezegun.freeze_time('20200101t19:00:00'):
-        db_tables.poll_scrape_and_load_data(
+        db_tables.scrape_load_and_check_data(
             "test-db", TestPipeline.table_config, TestPipeline(), **kwargs
         )
 

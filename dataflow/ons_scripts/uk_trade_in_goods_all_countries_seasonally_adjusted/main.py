@@ -4,12 +4,13 @@ https://github.com/GSS-Cogs/family-trade/blob/fca3be954d0b4ed216a4a0989182b19a5c
 """
 
 from datetime import datetime
-
+from typing import Tuple
 
 import gssutils
 import pandas
 import re
 
+import requests
 
 DATASET_URL = 'https://www.ons.gov.uk/economy/nationalaccounts/balanceofpayments/datasets/uktradeallcountriesseasonallyadjusted'
 
@@ -137,7 +138,7 @@ def process_data():
         print(datetime.now(), f'scrape {sheetname} - complete')
         return new_table
 
-    scraper = gssutils.Scraper(DATASET_URL)
+    scraper = gssutils.Scraper(DATASET_URL, session=requests.Session())
     tabs = {tab.name: tab for tab in scraper.distributions[0].as_databaker()}
 
     print(datetime.now(), f'spreadsheet scrape - start')
@@ -182,16 +183,19 @@ def process_data():
     return table.drop_duplicates()
 
 
-def get_source_data_modified_date() -> datetime:
-    scraper = gssutils.Scraper(DATASET_URL)
+def get_current_and_next_release_date() -> Tuple[datetime, datetime]:
+    scraper = gssutils.Scraper(DATASET_URL, session=requests.Session())
 
-    return datetime(
-        year=scraper.dataset.issued.year,
-        month=scraper.dataset.issued.month,
-        day=scraper.dataset.issued.day,
-        hour=0,
-        minute=0,
-        second=0,
+    return (
+        datetime(
+            year=scraper.dataset.issued.year,
+            month=scraper.dataset.issued.month,
+            day=scraper.dataset.issued.day,
+            hour=0,
+            minute=0,
+            second=0,
+        ),
+        scraper.dataset.updateDueOn,
     )
 
 

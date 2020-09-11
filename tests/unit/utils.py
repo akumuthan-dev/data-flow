@@ -19,7 +19,8 @@ def get_base_dag_tasks(with_modified_date_check=False, fetch_name="fetch-data"):
 
 def get_polling_dag_tasks(with_emails=False):
     tasks = {
-        "poll-scrape-and-load-data",
+        "poll-for-new-data",
+        "scrape-and-load-data",
         "swap-dataset-table",
         "drop-swap-tables",
         "drop-temp-tables",

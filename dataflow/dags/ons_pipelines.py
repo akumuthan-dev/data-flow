@@ -23,11 +23,11 @@ class _ONSPipeline(_PipelineDAG):
 
 class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
     from dataflow.ons_scripts.uk_trade_in_goods_all_countries_seasonally_adjusted.main import (
-        get_source_data_modified_date,
+        get_current_and_next_release_date,
         get_data,
     )
 
-    date_checker = get_source_data_modified_date
+    date_checker = get_current_and_next_release_date
     data_getter = get_data
     table_config = TableConfig(
         schema='ons', table_name="uk_sa_trade_in_goods", field_mapping=[],
@@ -40,15 +40,15 @@ class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
 
 class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
     from dataflow.ons_scripts.uktradecountrybycommodity.main import (
-        get_source_data_modified_date,
+        get_current_and_next_release_date,
         get_data,
     )
 
-    date_checker = get_source_data_modified_date
+    date_checker = get_current_and_next_release_date
     data_getter = get_data
     table_config = TableConfig(
         schema='ons',
         table_name='uk_trade_in_goods_by_country_and_commodity',
         field_mapping=[],
     )
-    queue = 'high-memory-usage'
+    worker_queue = 'high-memory-usage'
