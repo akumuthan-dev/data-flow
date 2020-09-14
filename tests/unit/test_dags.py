@@ -84,7 +84,7 @@ def test_pipelines_dags():
         'ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline',
         'ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline',
         'ONSUKTradeInServicesByPartnerCountryNSACSV',
-        'ONSUKTradeInServicesByPartnerCountryNSAPipeline',
+        'ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline',
         'OxfordCovid19GovernmentResponseTracker',
         'PeopleFinderPeoplePipeline',
         'RawWorldBankBoundRatePipeline',

@@ -61,50 +61,6 @@ class _ONSParserPipeline(_PipelineDAG):
         return self.get_source_data_modified_utc
 
 
-class ONSUKTradeInServicesByPartnerCountryNSAPipeline(_ONSParserPipeline):
-    start_date = datetime(2020, 4, 1)
-    schedule_interval = "@monthly"
-
-    ons_script_dir = 'uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
-
-    table_config = TableConfig(
-        table_name="ons__uk_trade_in_services_by_country_nsa",  # dropped "partner" because of table name length limit
-        transforms=[
-            lambda record, table_config, contexts: {
-                **record,
-                "norm_period": record["Period"].split("/")[1],
-                "norm_period_type": record["Period"].split("/")[0],
-                "norm_total": int(float(record["Value"]))
-                if "Value" in record and record["Value"] != ""
-                else None,  # Convert redacted values ('') to Nones (NULL in DB)
-            },
-            transform_ons_marker_field,
-        ],
-        field_mapping=[
-            (
-                None,
-                sa.Column(
-                    "id", UUID, primary_key=True, default=lambda: str(uuid.uuid4())
-                ),
-            ),
-            (None, sa.Column("import_time", sa.DateTime, default=datetime.utcnow)),
-            ("Geography Code", sa.Column("og_ons_iso_alpha_2_code", sa.String)),
-            ("Geography Name", sa.Column("og_ons_region_name", sa.String)),
-            ("Period", sa.Column("og_period", sa.String)),
-            ("norm_period", sa.Column("norm_period", sa.String)),
-            ("norm_period_type", sa.Column("norm_period_type", sa.String)),
-            ("Flow", sa.Column("og_direction", sa.String)),
-            ("Trade Services Code", sa.Column("og_product_code", sa.String)),
-            ("Trade Services Name", sa.Column("og_product_name", sa.String)),
-            ("Value", sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Integer)),
-            ("Unit", sa.Column("og_unit", sa.String)),
-            ("Marker", sa.Column("og_marker", sa.String)),
-            ("norm_marker", sa.Column("norm_marker", sa.String)),
-        ],
-    )
-
-
 class ONSUKTotalTradeAllCountriesNSA(_ONSParserPipeline):
     start_date = datetime(2020, 4, 1)
     schedule_interval = "@monthly"

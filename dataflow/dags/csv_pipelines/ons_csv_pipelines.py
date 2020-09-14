@@ -4,13 +4,11 @@ from datetime import datetime
 
 
 from dataflow.dags import _CSVPipelineDAG
-from dataflow.dags.ons_parsing_pipelines import (
-    ONSUKTradeInServicesByPartnerCountryNSAPipeline,
-    ONSUKTotalTradeAllCountriesNSA,
-)
+from dataflow.dags.ons_parsing_pipelines import ONSUKTotalTradeAllCountriesNSA
 from dataflow.dags.ons_pipelines import (
     ONSUKSATradeInGoodsPollingPipeline,
     ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline,
+    ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline,
 )
 
 
@@ -137,14 +135,14 @@ FROM (
 
 class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
     schedule_interval = (
-        ONSUKTradeInServicesByPartnerCountryNSAPipeline.schedule_interval
+        ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline.schedule_interval
     )
 
     start_date = datetime(2020, 4, 1)
     catchup = False
     static = True
 
-    dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPipeline]
+    dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline]
 
     base_file_name = "ons_uk_trade_in_services_by_country_nsa"
     timestamp_output = False
@@ -164,35 +162,35 @@ SELECT
     marker
 FROM (
     SELECT
-        og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
-        og_ons_region_name as ons_region_name,
-        norm_period as period,
-        norm_period_type as period_type,
-        og_direction as direction,
-        og_product_code as product_code,
-        og_product_name as product_name,
-        norm_total as trade_value,
-        og_unit as unit,
-        norm_marker as marker
-    FROM ons__uk_trade_in_services_by_country_nsa
+        ons_iso_alpha_2_code,
+        ons_region_name,
+        period,
+        period_type,
+        direction,
+        product_code,
+        product_name,
+        total as trade_value,
+        unit,
+        marker
+    FROM ons.uk_trade_in_services_by_country_nsa
     UNION (
         SELECT
-            og_ons_iso_alpha_2_code as ons_iso_alpha_2_code,
-            og_ons_region_name as ons_region_name,
-            norm_period as period,
+            ons_iso_alpha_2_code,
+            ons_region_name,
+            period,
             '4 quarters ending' as period_type,
-            og_direction as direction,
-            og_product_code as product_code,
-            og_product_name as product_name,
-            sum(norm_total) over w AS trade_value,
-            og_unit as unit,
+            direction,
+            product_code,
+            product_name,
+            sum(total) over w AS trade_value,
+            unit,
             'derived' as marker
-        FROM ons__uk_trade_in_services_by_country_nsa
-        WHERE norm_period_type = 'quarter'
-        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, norm_total, unit, marker
+        FROM ons.uk_trade_in_services_by_country_nsa
+        WHERE period_type = 'quarter'
+        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, total, unit, marker
         WINDOW w AS (
-            PARTITION BY og_ons_iso_alpha_2_code, og_direction, og_product_code
-            ORDER BY og_ons_iso_alpha_2_code, og_direction, og_product_code, norm_period ASC
+            PARTITION BY ons_iso_alpha_2_code, direction, product_code
+            ORDER BY ons_iso_alpha_2_code, direction, product_code, period ASC
             ROWS between 3 preceding and current row
         )
         ORDER BY ons_region_name, period, direction, product_code

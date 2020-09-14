@@ -78,3 +78,20 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline
         ],
     )
     worker_queue = 'high-memory-usage'
+
+
+class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipeline):
+    from dataflow.ons_scripts.uk_trade_in_services_service_type_by_partner_country_non_seasonally_adjusted.main import (
+        get_current_and_next_release_date,
+        get_data,
+    )
+
+    schedule_interval = "0 6 20-31 1,4,7,10 *"
+
+    date_checker = get_current_and_next_release_date
+    data_getter = get_data
+    table_config = TableConfig(
+        schema='ons',
+        table_name='uk_trade_in_services_by_country_nsa',
+        field_mapping=[],
+    )
