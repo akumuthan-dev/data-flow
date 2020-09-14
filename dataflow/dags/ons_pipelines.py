@@ -52,7 +52,7 @@ class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
 
 
 class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
-    from dataflow.ons_scripts.uktradecountrybycommodity.main import (
+    from dataflow.ons_scripts.uk_trade_country_by_commodity.main import (
         get_current_and_next_release_date,
         get_data,
     )
