@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - ONS UK trade in services migrated to new polling pipeline.
+- ONS UK total trade migrated to new polling pipeline.
 
 ## 2020-09-12
 

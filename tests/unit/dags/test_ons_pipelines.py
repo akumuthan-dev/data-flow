@@ -1,5 +1,6 @@
 from dataflow.dags.ons_pipelines import (
     ONSUKSATradeInGoodsPollingPipeline,
+    ONSUKTotalTradeAllCountriesNSAPollingPipeline,
     ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline,
     ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline,
 )
@@ -25,6 +26,15 @@ class TestONSUKTradeInGoodsByCountryAndCommodity:
 class TestONSUKTradeInServicesByPartnerCountryNSAPollingPipeline:
     def test_tasks_in_dag(self):
         dag = ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline().get_dag()
+
+        assert {t.task_id for t in dag.tasks} == get_polling_dag_tasks(
+            with_emails=False
+        )
+
+
+class TestONSUKTotalTradeAllCountriesNSAPollingPipeline:
+    def test_tasks_in_dag(self):
+        dag = ONSUKTotalTradeAllCountriesNSAPollingPipeline().get_dag()
 
         assert {t.task_id for t in dag.tasks} == get_polling_dag_tasks(
             with_emails=False
