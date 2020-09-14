@@ -273,6 +273,11 @@ def test_swap_dataset_tables(
     xcom_mock = mock.Mock()
     xcom_mock.xcom_pull.return_value = xcom_modified_date
 
+    mock_get_task_instance = mocker.patch(
+        'dataflow.operators.db_tables.get_task_instance'
+    )
+    mock_get_task_instance().end_date = expected_result
+
     with freezegun.freeze_time('20200202t12:00:00'):
         db_tables.swap_dataset_tables(
             "test-db",
@@ -280,6 +285,8 @@ def test_swap_dataset_tables(
             ts_nodash="123",
             task_instance=xcom_mock,
             use_utc_now_as_source_modified=use_utc_now_as_source_modified,
+            dag=mock.Mock(),
+            execution_date=datetime(2020, 2, 2, 12, 0),
         )
 
     mock_db_conn.execute.assert_has_calls(

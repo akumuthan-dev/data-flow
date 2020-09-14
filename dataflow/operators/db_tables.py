@@ -13,6 +13,9 @@ import sqlalchemy as sa
 from sqlalchemy import text
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.api.common.experimental.get_task_instance import get_task_instance
+from airflow.exceptions import TaskNotFound
+
 
 from dataflow import config
 
@@ -442,7 +445,14 @@ def swap_dataset_tables(
                 key='source-modified-date-utc'
             )
             if new_modified_utc is None and use_utc_now_as_source_modified:
-                new_modified_utc = datetime.datetime.utcnow()
+                try:
+                    new_modified_utc = get_task_instance(
+                        kwargs['dag'].safe_dag_id,
+                        'run-fetch',
+                        kwargs['execution_date'],
+                    ).end_date
+                except TaskNotFound:
+                    new_modified_utc = datetime.datetime.utcnow()
 
             conn.execute(
                 """
