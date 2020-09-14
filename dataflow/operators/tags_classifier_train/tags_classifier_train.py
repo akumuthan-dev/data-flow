@@ -324,8 +324,7 @@ def build_models_pipeline(**context):
 
 def save_model():
     bucket = config.S3_IMPORT_DATA_BUCKET
-    bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
-
+    # bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
 
     today = datetime.date.today()
     today = today.strftime("%Y%m%d")
@@ -336,10 +335,12 @@ def save_model():
                    bucket,
                  'models/data_hub_policy_feedback_tags_classifier/'+'models_'+today+'.zip')
 
+
+
+    # cf service-key data-flow-s3-a dev-key-name-for-LL
     # bucket = "paas-s3-broker-prod-lon-8c167200-ac5c-4a68-80c0-dd079c35b1be" ##instance name: data-flow-s3-a
-    # aws_access_key_id = 'AKIAV3ON3AJYBTMATZF6'
-    # aws_secret_access_key  = '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'
-    # # aws_secret_access_key = 'yFr4g0QlXtdJbc09rPiSd419vDHMMMpKa2owRuw%2F'
+    # aws_access_key_id = 'AKIAV3ON3AJYBPYZLL6V' ##data-flow-s3-a
+    # aws_secret_access_key  = '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'  ##data-flow-s3-a
     # s3 = boto3.client('s3', region_name='eu-west-2', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
     # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/operators/tags_classifier_train/models_20200907.zip',bucket,
     #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
