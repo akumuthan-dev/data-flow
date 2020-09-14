@@ -5,6 +5,7 @@ def test_pipelines_dags():
     dagbag = DagBag('dataflow', include_examples=False)
     assert set(dagbag.dag_ids) == {
         'AdvisersDatasetPipeline',
+        'AdvisersLastInteractionPipeline',
         'AppleCovid19MobilityTrendsPipeline',
         'CSSECovid19TimeSeriesGlobal',
         'CSSECovid19TimeSeriesGlobalGroupedByCountry',
@@ -15,6 +16,7 @@ def test_pipelines_dags():
         'CompanyExportCountryHistory',
         'ConsentPipeline',
         'ContactsDatasetPipeline',
+        'ContactsLastInteractionPipeline',
         'CoronavirusInteractionsDashboardPipeline',
         'CountriesOfInterestServicePipeline',
         'DNBCompanyPipeline',

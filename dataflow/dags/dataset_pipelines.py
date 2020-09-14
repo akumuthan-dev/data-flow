@@ -11,6 +11,7 @@ from dataflow.dags import _PipelineDAG
 from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.operators.contact_consent import update_datahub_contact_consent
+from dataflow.operators.db_tables import query_database
 from dataflow.utils import TableConfig
 
 
@@ -375,6 +376,45 @@ class ContactsDatasetPipeline(_DatasetPipeline):
         )
 
 
+class ContactsLastInteractionPipeline(_DatasetPipeline):
+
+    dependencies = [ContactsDatasetPipeline, InteractionsDatasetPipeline]
+
+    query = """
+        with interactions as (
+            select
+                id,
+                interaction_date,
+                unnest(contact_ids) as contact_id
+            from interactions_dataset
+        )
+        select distinct on (contact_id)
+            t1.id as contact_id,
+            t2.id as last_interaction_id
+        from contacts_dataset t1
+        left join interactions t2 on t1.id::text = t2.contact_id
+        order by contact_id, interaction_date desc nulls last
+    """
+
+    table_config = TableConfig(
+        schema='dit',
+        table_name='datahub__contacts_latest_interactions',
+        field_mapping=[
+            ('contact_id', sa.Column('contact_id', UUID, primary_key=True)),
+            ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
+        ],
+    )
+
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_config.table_name],
+        )
+        return op
+
+
 class CompaniesDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for CompaniesDataset."""
 
@@ -466,6 +506,45 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
             ('sso_email_user_id', sa.Column('sso_email_user_id', sa.String)),
         ],
     )
+
+
+class AdvisersLastInteractionPipeline(_DatasetPipeline):
+
+    dependencies = [AdvisersDatasetPipeline, InteractionsDatasetPipeline]
+
+    query = """
+        with interactions as (
+            select
+                id,
+                interaction_date,
+                unnest(adviser_ids) as adviser_id
+            from interactions_dataset
+        )
+        select distinct on (adviser_id)
+            t1.id as adviser_id,
+            t2.id as last_interaction_id
+        from advisers_dataset t1
+        left join interactions t2 on t1.id::text = t2.adviser_id
+        order by adviser_id, interaction_date desc nulls last
+    """
+
+    table_config = TableConfig(
+        schema='dit',
+        table_name='datahub__advisers_latest_interactions',
+        field_mapping=[
+            ('adviser_id', sa.Column('adviser_id', UUID, primary_key=True)),
+            ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
+        ],
+    )
+
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_config.table_name],
+        )
+        return op
 
 
 class TeamsDatasetPipeline(_DatasetPipeline):
