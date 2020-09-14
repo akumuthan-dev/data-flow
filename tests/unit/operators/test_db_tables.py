@@ -2,7 +2,7 @@ from datetime import datetime, time
 from unittest import mock
 from unittest.mock import call
 
-import freezegun as freezegun
+import freezegun
 import pytest
 import sqlalchemy
 
@@ -539,6 +539,7 @@ class TestPollForNewData:
 
 def test_poll_scrape_and_load_data(mocker):
     class TestPipeline(_FastPollingPipeline):
+        @staticmethod
         def date_checker():
             return datetime.now()
 
@@ -584,40 +585,31 @@ def test_poll_scrape_and_load_data(mocker):
     )
 
     with freezegun.freeze_time('20200101t19:00:00'):
-        db_tables.scrape_load_and_check_data(
-            "test-db", TestPipeline.table_config, TestPipeline(), **kwargs
+        db_tables.poll_scrape_and_load_data(
+            "test-db",
+            TestPipeline.table_config,  # pylint: disable=no-member
+            TestPipeline(),
+            **kwargs
         )
 
-    assert mock_create_tables.call_args_list == [
-        mock.call(
-            "test-db",
-            mock.ANY,
-            ts_nodash='123',
-            dag=mock.ANY,
-            dag_run=mock.ANY,
-            ti=mock.ANY,
-            task_instance=mock.ANY,
-        )
-    ]
-    assert TestPipeline.data_getter.return_value.to_csv.call_args_list == [
-        mock.call(
-            mock_namedtempfile.name,
-            index=False,
-            header=False,
-            sep='\t',
-            na_rep=r'\N',
-            columns=["data_id"],
-        )
-    ]
-    assert mock_cursor.copy_from.call_args_list == [
-        mock.call(
-            mock_namedtempfile,
-            '"test"."tmp_test_table"',
-            sep='\t',
-            null=r'\N',
-            columns=["db_id"],
-        )
-    ]
+    assert any(
+        c == mock.call('CREATE SCHEMA IF NOT EXISTS test')
+        for c in conn.execute.call_args_list
+    )
+    assert (
+        TestPipeline.data_getter.return_value.to_sql.call_args_list  # pylint: disable=no-member
+        == [
+            mock.call(
+                name='tmp_test_table',
+                schema='test',
+                con=engine.return_value.connect.return_value.__enter__.return_value,
+                method='multi',
+                if_exists='append',
+                chunksize=10000,
+                index=False,
+            )
+        ]
+    )
     assert mock_check_table_data.call_args_list == [
         mock.call(
             'test-db',
