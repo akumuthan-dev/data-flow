@@ -6,7 +6,7 @@ import tempfile
 import warnings
 from io import StringIO
 from time import sleep
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from airflow import AirflowException
@@ -24,6 +24,9 @@ from dataflow.utils import (
     SingleTableFieldMapping,
     logger,
 )
+
+if TYPE_CHECKING:
+    from dataflow.dags import _FastPollingPipeline  # noqa
 
 
 class MissingDataError(ValueError):
@@ -488,7 +491,10 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
 
 
 def poll_for_new_data(
-    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs
+    target_db: str,
+    table_config: TableConfig,
+    pipeline_instance: "_FastPollingPipeline",
+    **kwargs,
 ):
     engine = sa.create_engine(
         'postgresql+psycopg2://',
@@ -511,7 +517,9 @@ def poll_for_new_data(
         source_last_modified_utc,
         source_next_release_utc,
     ) = pipeline_instance.__class__.date_checker()
-    logger.info(f"dataset_modified_utc from latest data: {source_last_modified_utc}")
+    logger.info(
+        f"source_last_modified_utc={source_last_modified_utc}, source_next_release_utc={source_next_release_utc}"
+    )
 
     if (
         source_next_release_utc
@@ -546,7 +554,10 @@ def poll_for_new_data(
             return
 
         sleep(pipeline_instance.__class__.polling_interval_in_seconds)
-        source_last_modified_utc = pipeline_instance.__class__.date_checker()
+        (
+            source_last_modified_utc,
+            source_next_release_utc,
+        ) = pipeline_instance.__class__.date_checker()
         logger.info(
             f"source_last_modified_utc from latest data: {source_last_modified_utc}"
         )
@@ -558,7 +569,10 @@ def poll_for_new_data(
 
 
 def scrape_load_and_check_data(
-    target_db: str, table_config: TableConfig, pipeline_instance, **kwargs,
+    target_db: str,
+    table_config: TableConfig,
+    pipeline_instance: "_FastPollingPipeline",
+    **kwargs,
 ):
     create_temp_tables(target_db, *table_config.tables, **kwargs)
 
