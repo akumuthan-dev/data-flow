@@ -398,7 +398,7 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
 
     table_config = TableConfig(
         schema='dit',
-        table_name='datahub__contacts_latest_interactions',
+        table_name='data_hub__contacts_latest_interactions',
         field_mapping=[
             ('contact_id', sa.Column('contact_id', UUID, primary_key=True)),
             ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
@@ -530,7 +530,7 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
 
     table_config = TableConfig(
         schema='dit',
-        table_name='datahub__advisers_latest_interactions',
+        table_name='data_hub__advisers_latest_interactions',
         field_mapping=[
             ('adviser_id', sa.Column('adviser_id', UUID, primary_key=True)),
             ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
