@@ -181,19 +181,12 @@ def get_current_and_next_release_date() -> Tuple[datetime, datetime]:
 
 
 def get_data() -> DataFrame:
-    with Pool(processes=2) as pool:
-        print('start getting', datetime.now())
-        exports = pool.apply_async(
-            process_data,
-            kwds=dict(flow_type='exports', dataset_url=EXPORTS_DATASET_URL),
-        )
-        imports = pool.apply_async(
-            process_data,
-            kwds=dict(flow_type='imports', dataset_url=IMPORTS_DATASET_URL),
-        )
-        df = pd.concat(
-            [exports.get(timeout=24 * 60 * 60), imports.get(timeout=24 * 60 * 60),]
-        ).drop_duplicates()
-        print('end getting', datetime.now(), len(df))
+    print('start getting', datetime.now())
+
+    exports = process_data(flow_type='exports', dataset_url=EXPORTS_DATASET_URL)
+    imports = process_data(flow_type='imports', dataset_url=IMPORTS_DATASET_URL)
+    df = pd.concat([exports, imports]).drop_duplicates()
+
+    print('end getting', datetime.now(), len(df))
 
     return df
