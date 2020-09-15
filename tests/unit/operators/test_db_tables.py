@@ -9,7 +9,7 @@ import sqlalchemy
 from dataflow.dags import _FastPollingPipeline
 from dataflow.operators import db_tables
 from dataflow.operators.db_tables import branch_on_modified_date
-from dataflow.utils import get_temp_table, TableConfig
+from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig
 
 
 @pytest.fixture
@@ -373,7 +373,7 @@ class TestPollForNewData:
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
-        table_config = TableConfig(
+        table_config = SingleTableConfig(
             schema='test', table_name="test_table", field_mapping=[],
         )
 
@@ -524,12 +524,15 @@ def test_poll_scrape_and_load_data(mocker):
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
         table_config = TableConfig(
-            schema='test', table_name="test_table", field_mapping=[],
+            schema='test',
+            table_name="test_table",
+            field_mapping=[("data_id", sqlalchemy.Column("db_id", sqlalchemy.Integer))],
         )
 
     table = mock.Mock()
-    engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
-    conn = engine.return_value.begin.return_value.__enter__.return_value
+    mock_create_tables = mocker.patch.object(
+        db_tables, "create_temp_tables", autospec=True
+    )
     mock_temp_table = mocker.patch.object(
         db_tables, "get_temp_table", autospec=True, return_value=table
     )
@@ -539,6 +542,16 @@ def test_poll_scrape_and_load_data(mocker):
         db_tables, "check_table_data", autospec=True
     )
     mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+    mock_postgres = mocker.patch(
+        "dataflow.operators.db_tables.PostgresHook", autospec=True
+    )
+    mock_conn = mock_postgres.return_value.get_conn.return_value.__enter__.return_value
+    mock_cursor = mock_conn.cursor.return_value.__enter__.return_value
+    mock_tempfile = mocker.patch("dataflow.operators.db_tables.tempfile", autospec=True)
+    mock_namedtempfile = (
+        mock_tempfile.NamedTemporaryFile.return_value.__enter__.return_value
+    )
+    mock_namedtempfile.name = "tmp_file"
 
     kwargs = dict(
         ts_nodash='123',
@@ -553,19 +566,34 @@ def test_poll_scrape_and_load_data(mocker):
             "test-db", TestPipeline.table_config, TestPipeline(), **kwargs
         )
 
-    assert any(
-        c == mock.call('CREATE SCHEMA IF NOT EXISTS test')
-        for c in conn.execute.call_args_list
-    )
-    assert TestPipeline.data_getter.return_value.to_sql.call_args_list == [
+    assert mock_create_tables.call_args_list == [
         mock.call(
-            name='tmp_test_table',
-            schema='test',
-            con=engine.return_value.connect.return_value.__enter__.return_value,
-            method='multi',
-            if_exists='append',
-            chunksize=10000,
+            "test-db",
+            mock.ANY,
+            ts_nodash='123',
+            dag=mock.ANY,
+            dag_run=mock.ANY,
+            ti=mock.ANY,
+            task_instance=mock.ANY,
+        )
+    ]
+    assert TestPipeline.data_getter.return_value.to_csv.call_args_list == [
+        mock.call(
+            mock_namedtempfile.name,
             index=False,
+            header=False,
+            sep='\t',
+            na_rep=r'\N',
+            columns=["data_id"],
+        )
+    ]
+    assert mock_cursor.copy_from.call_args_list == [
+        mock.call(
+            mock_namedtempfile,
+            '"test"."tmp_test_table"',
+            sep='\t',
+            null=r'\N',
+            columns=["db_id"],
         )
     ]
     assert mock_check_table_data.call_args_list == [

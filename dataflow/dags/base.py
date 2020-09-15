@@ -24,7 +24,7 @@ from dataflow.operators.db_tables import (
     poll_for_new_data,
 )
 from dataflow.operators.email import send_dataset_update_emails
-from dataflow.utils import TableConfig, slack_alert
+from dataflow.utils import TableConfig, slack_alert, SingleTableConfig
 
 
 class PipelineMeta(type):
@@ -366,7 +366,7 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     date_checker: Callable[[], Tuple[datetime, Optional[datetime]]]
     data_getter: Callable
 
-    table_config: TableConfig
+    table_config: SingleTableConfig
 
     # How often to poll the data source to read it's "last modified" date.
     polling_interval_in_seconds = 60

@@ -2,6 +2,7 @@ import csv
 
 import datetime
 import itertools
+import tempfile
 import warnings
 from io import StringIO
 from time import sleep
@@ -559,29 +560,45 @@ def poll_for_new_data(
 def scrape_load_and_check_data(
     target_db: str, table_config: TableConfig, pipeline_instance, **kwargs,
 ):
-    engine = sa.create_engine(
-        'postgresql+psycopg2://',
-        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
-    )
-
-    with engine.begin() as conn:
-        logger.info(f"Creating schema {table_config.schema} if not exists")
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table_config.schema}")
+    create_temp_tables(target_db, *table_config.tables, **kwargs)
 
     temp_table = get_temp_table(table_config.table, suffix=kwargs['ts_nodash'])
 
     data: DataFrame = pipeline_instance.__class__.data_getter()
 
-    with engine.connect() as connection:
-        data.to_sql(
-            name=temp_table.name,
-            schema=temp_table.schema,
-            con=connection,
-            method='multi',
-            if_exists='append',
-            chunksize=10000,
+    with tempfile.NamedTemporaryFile('r') as data_file:
+        logger.info("Writing data to disk as CSV")
+
+        # We write to disk here instead of keeping it in memory as the latter is a more contested resource, and disk
+        # is still fast enough for the time being.
+        data.to_csv(
+            data_file.name,
             index=False,
+            header=False,
+            sep='\t',
+            na_rep=r'\N',
+            columns=[data_column for data_column, sa_column in table_config.columns],
         )
+        logger.info("Write complete.")
+
+        data_file.seek(0)
+
+        with PostgresHook(postgres_conn_id=target_db).get_conn() as connection:
+            with connection.cursor() as cursor:
+                logger.info("Starting data copy from disk to DB")
+
+                # We use a postgres-native copy in order to efficiently load larger datasets.
+                cursor.copy_from(
+                    data_file,
+                    f'"{temp_table.schema}"."{temp_table.name}"',
+                    sep='\t',
+                    null=r'\N',
+                    columns=[
+                        sa_column.name
+                        for data_column, sa_column in table_config.columns
+                    ],
+                )
+                logger.info("Copy complete.")
 
     check_table_data(
         target_db,
