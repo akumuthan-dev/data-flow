@@ -528,3 +528,53 @@ class GreatGovUKFormsPipeline(_ActivityStreamPipeline):
             ]
         }
     }
+
+
+class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
+    index = "objects"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="return_to_office__bookings",
+        field_mapping=[
+            ("id", sa.Column("id", sa.Integer, primary_key=True)),
+            ("dit:ReturnToOffice:Booking:userId", sa.Column("user_id", UUID)),
+            ("dit:ReturnToOffice:Booking:userEmail", sa.Column("user_email", sa.Text)),
+            (
+                "dit:ReturnToOffice:Booking:userFullName",
+                sa.Column("user_name", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:onBehalfOfName",
+                sa.Column("on_behalf_of_name", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:onBehalfOfEmail",
+                sa.Column("on_behalf_of_email", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:bookingDate",
+                sa.Column("booking_date", sa.Date),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:building",
+                sa.Column("building_name", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:floor", sa.Column("floor_name", sa.Text)),
+            (
+                "dit:ReturnToOffice:Booking:directorate",
+                sa.Column("directorate", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:group", sa.Column("group", sa.Text),),
+            (
+                "dit:ReturnToOffice:Booking:businessUnit",
+                sa.Column("business_unit", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:created", sa.Column("created", sa.DateTime)),
+            (
+                "dit:ReturnToOffice:Booking:cancelled",
+                sa.Column("cancelled", sa.DateTime),
+            ),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"type": "dit:ReturnToOffice:Booking"}}]}}

@@ -90,6 +90,7 @@ def test_pipelines_dags():
         'PeopleFinderPeoplePipeline',
         'RawWorldBankBoundRatePipeline',
         'RawWorldBankTariffPipeline',
+        'ReturnToOfficeBookingsPipeline',
         'StaffSSOUsersPipeline',
         'TeamsDatasetPipeline',
     }
