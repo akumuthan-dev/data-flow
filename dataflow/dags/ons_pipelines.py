@@ -1,11 +1,12 @@
 from typing import Optional
 
 from airflow.operators.python_operator import PythonOperator
+import sqlalchemy as sa
 
 from dataflow.dags import _PipelineDAG
 from dataflow.dags.base import _FastPollingPipeline
 from dataflow.operators.ons import fetch_from_ons_sparql
-from dataflow.utils import TableConfig
+from dataflow.utils import SingleTableConfig
 
 
 class _ONSPipeline(_PipelineDAG):
@@ -29,8 +30,20 @@ class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
-    table_config = TableConfig(
-        schema='ons', table_name="uk_sa_trade_in_goods", field_mapping=[],
+    table_config = SingleTableConfig(
+        schema='ons',
+        table_name="uk_sa_trade_in_goods",
+        field_mapping=[
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('value', sa.Column('value', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
+        ],
     )
 
     update_emails_data_environment_variable = (
@@ -46,9 +59,22 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
-    table_config = TableConfig(
+    table_config = SingleTableConfig(
         schema='ons',
         table_name='uk_trade_in_goods_by_country_and_commodity',
-        field_mapping=[],
+        field_mapping=[
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('product_code', sa.Column('product_code', sa.Text)),
+            ('product_name', sa.Column('product_name', sa.Text)),
+            ('seasonal_adjustment', sa.Column('seasonal_adjustment', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('total', sa.Column('total', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
+        ],
     )
     worker_queue = 'high-memory-usage'

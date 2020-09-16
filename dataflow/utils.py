@@ -147,6 +147,12 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
+class SingleTableConfig(TableConfig):
+    # A TableConfig that doesn't support any nested tables, for cases where our current code doesn't support building
+    # related tables (e.g. _FastPollingPipeline).
+    field_mapping: SingleTableFieldMapping
+
+
 def slack_alert(context, success=False):
     if not config.SLACK_TOKEN:
         logger.info("No Slack token, skipping Slack notification")
@@ -268,4 +274,5 @@ def get_temp_table(table, suffix):
         table.metadata,
         *[column.copy() for column in table.columns],
         schema=table.schema,
+        keep_existing=True,
     )
