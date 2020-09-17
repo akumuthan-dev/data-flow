@@ -144,7 +144,7 @@ def process_data(flow_type, dataset_url):
             'Product Name': "product_name",
             'Seasonal Adjustment': "seasonal_adjustment",
             'Measure Type': "measure_type",
-            'Value': "total",
+            'Value': "value",
             'Unit': "unit",
             'Marker': "marker",
         },

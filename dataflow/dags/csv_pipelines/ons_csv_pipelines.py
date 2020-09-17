@@ -87,7 +87,7 @@ FROM (
         GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, value, unit
         WINDOW w AS (
                 PARTITION BY ons_region_name, direction
-                ORDER BY ons_region_name, period ASC
+                ORDER BY ons_region_name, period
                 ROWS between 11 preceding and current row)
     ) UNION (
         SELECT
@@ -106,7 +106,7 @@ FROM (
         GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.value, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name
-                ORDER BY i.ons_region_name, i.period ASC
+                ORDER BY i.ons_region_name, i.period
                 ROWS between 11 preceding and current row)
     ) UNION (
         SELECT
@@ -125,7 +125,7 @@ FROM (
         GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.unit, e.value, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name
-                ORDER BY i.ons_region_name, i.period ASC
+                ORDER BY i.ons_region_name, i.period
                 ROWS between 11 preceding and current row)
     )
     ORDER BY ons_region_name, period, direction
@@ -169,7 +169,7 @@ FROM (
         direction,
         product_code,
         product_name,
-        total as trade_value,
+        value as trade_value,
         unit,
         marker
     FROM ons.uk_trade_in_services_by_country_nsa
@@ -182,15 +182,15 @@ FROM (
             direction,
             product_code,
             product_name,
-            sum(total) over w AS trade_value,
+            sum(value) over w AS trade_value,
             unit,
             'derived' as marker
         FROM ons.uk_trade_in_services_by_country_nsa
         WHERE period_type = 'quarter'
-        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, total, unit, marker
+        GROUP BY ons_iso_alpha_2_code, ons_region_name, period, direction, product_code, product_name, value, unit, marker
         WINDOW w AS (
             PARTITION BY ons_iso_alpha_2_code, direction, product_code
-            ORDER BY ons_iso_alpha_2_code, direction, product_code, period ASC
+            ORDER BY ons_iso_alpha_2_code, direction, product_code, period
             ROWS between 3 preceding and current row
         )
         ORDER BY ons_region_name, period, direction, product_code
@@ -278,7 +278,7 @@ FROM (
         GROUP BY ons_iso_alpha_2_code, uk_total_trade_all_countries_nsa.ons_region_name, period, direction, product_name, value, unit, marker
         WINDOW w AS (
             PARTITION BY ons_iso_alpha_2_code, direction, product_name
-            ORDER BY ons_iso_alpha_2_code, direction, product_name, period ASC
+            ORDER BY ons_iso_alpha_2_code, direction, product_name, period
             ROWS between 3 preceding and current row
         )
     ) UNION (
@@ -298,7 +298,7 @@ FROM (
         GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.direction, i.product_name, e.value, i.unit, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name, i.direction, i.product_name
-                ORDER BY i.ons_region_name, i.direction, i.product_name, i.period ASC
+                ORDER BY i.ons_region_name, i.direction, i.product_name, i.period
                 ROWS between 3 preceding and current row)
     ) UNION (
         SELECT
@@ -317,7 +317,7 @@ FROM (
         GROUP BY i.ons_iso_alpha_2_code, i.ons_region_name, i.period, i.direction, i.product_name, e.value, i.unit, i.value
         WINDOW w AS (
                 PARTITION BY i.ons_region_name, i.direction, i.product_name
-                ORDER BY i.ons_region_name, i.direction, i.product_name, i.period ASC
+                ORDER BY i.ons_region_name, i.direction, i.product_name, i.period
                 ROWS between 3 preceding and current row)
     )
     ORDER BY ons_region_name, period, period_type, direction, product_name
@@ -347,7 +347,7 @@ WITH all_rows_plus_balances AS (
            imports_t.period as period,
            imports_t.period_type as period_type,
            unnest(array[imports_t.direction, exports_t.direction, 'trade balance', 'total trade']) AS direction,
-           unnest(array[imports_t.total, exports_t.total, exports_t.total - imports_t.total, exports_t.total + imports_t.total]) AS total,
+           unnest(array[imports_t.value, exports_t.value, exports_t.value - imports_t.value, exports_t.value + imports_t.value]) AS value,
            imports_t.unit as unit,
            unnest(array[imports_t.marker, exports_t.marker, 'derived', 'derived']) AS marker
     FROM ons.uk_trade_in_goods_by_country_and_commodity AS imports_t
@@ -361,7 +361,7 @@ WITH all_rows_plus_balances AS (
          period,
          '12 months ending' AS period_type,
          direction,
-         sum(total) over (PARTITION
+         sum(value) over (PARTITION
              BY
              ons_iso_alpha_2_code,
              product_code,
@@ -370,7 +370,7 @@ WITH all_rows_plus_balances AS (
                  ons_iso_alpha_2_code,
                  product_code,
                  direction,
-                 period ASC rows between 11 preceding and current row) AS total,
+                 period rows between 11 preceding and current row) AS value,
          unit,
          'derived' AS marker
      FROM all_rows_plus_balances
@@ -382,7 +382,7 @@ WITH all_rows_plus_balances AS (
               direction,
               period,
               period_type,
-              total,
+              value,
               unit,
               marker)
 SELECT
@@ -394,7 +394,7 @@ SELECT
     product_code,
     product_name,
     'goods' AS trade_type,
-    total AS trade_value,
+    value AS trade_value,
     unit,
     marker
 FROM (
