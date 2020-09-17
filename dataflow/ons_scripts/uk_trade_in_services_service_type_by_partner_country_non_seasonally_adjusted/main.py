@@ -162,7 +162,7 @@ def process_data() -> pandas.DataFrame:
             'Trade Services Code': "product_code",
             'Trade Services Name': "product_name",
             'Measure Type': "measure_type",
-            'Value': "total",
+            'Value': "value",
             'Unit': "unit",
             'Marker': "marker",
         },
