@@ -2,7 +2,7 @@ from datetime import datetime, time
 from unittest import mock
 from unittest.mock import call
 
-import freezegun as freezegun
+import freezegun
 import pytest
 import sqlalchemy
 
@@ -249,7 +249,21 @@ def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook
     connection.close.assert_called_once_with()
 
 
-def test_swap_dataset_tables(mock_db_conn, table, mocker):
+@pytest.mark.parametrize(
+    "xcom_modified_date, use_utc_now_as_source_modified, expected_result",
+    (
+        (datetime(2020, 1, 1, 12, 0, 0), False, datetime(2020, 1, 1, 12, 0)),
+        (None, True, datetime(2020, 2, 2, 12, 0)),
+    ),
+)
+def test_swap_dataset_tables(
+    mock_db_conn,
+    table,
+    mocker,
+    xcom_modified_date,
+    use_utc_now_as_source_modified,
+    expected_result,
+):
     mock_db_conn.execute().fetchall.return_value = (('testuser',),)
     mocker.patch.object(
         db_tables.config,
@@ -257,11 +271,22 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
         ['default-grantee-1', 'default-grantee-2'],
     )
     xcom_mock = mock.Mock()
-    xcom_mock.xcom_pull.return_value = datetime(2020, 1, 1, 12, 0, 0)
+    xcom_mock.xcom_pull.return_value = xcom_modified_date
+
+    mock_get_task_instance = mocker.patch(
+        'dataflow.operators.db_tables.get_task_instance'
+    )
+    mock_get_task_instance().end_date = expected_result
 
     with freezegun.freeze_time('20200202t12:00:00'):
         db_tables.swap_dataset_tables(
-            "test-db", table, ts_nodash="123", task_instance=xcom_mock
+            "test-db",
+            table,
+            ts_nodash="123",
+            task_instance=xcom_mock,
+            use_utc_now_as_source_modified=use_utc_now_as_source_modified,
+            dag=mock.Mock(),
+            execution_date=datetime(2020, 2, 2, 12, 0),
         )
 
     mock_db_conn.execute.assert_has_calls(
@@ -297,12 +322,7 @@ def test_swap_dataset_tables(mock_db_conn, table, mocker):
                 (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (
-                    'public',
-                    'test_table',
-                    datetime(2020, 1, 1, 12, 0),
-                    datetime(2020, 2, 2, 12, 0),
-                ),
+                ('public', 'test_table', expected_result, datetime(2020, 2, 2, 12, 0),),
             ),
         ]
     )
@@ -369,7 +389,10 @@ def test_branch_on_modified_date(
 
 class TestPollForNewData:
     class TestPipeline(_FastPollingPipeline):
-        date_checker = lambda: (datetime.now(), datetime.now())  # noqa
+        @staticmethod
+        def date_checker():
+            return (datetime.now(), datetime.now())
+
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
@@ -438,7 +461,10 @@ class TestPollForNewData:
 
         with freezegun.freeze_time(run_time_utc):
             db_tables.poll_for_new_data(
-                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
             )
 
         if should_skip:
@@ -476,7 +502,10 @@ class TestPollForNewData:
 
         with freezegun.freeze_time('20200115t19:00:00'):
             db_tables.poll_for_new_data(
-                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
             )
 
         assert len(mock_skip.call_args_list) == 1
@@ -508,7 +537,10 @@ class TestPollForNewData:
 
         with freezegun.freeze_time('20200101t12:00:00'):
             db_tables.poll_for_new_data(
-                "test-db", self.TestPipeline.table_config, self.TestPipeline(), **kwargs
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
             )
 
         assert len(mock_skip.call_args_list) == 0
@@ -519,7 +551,10 @@ class TestPollForNewData:
 
 def test_poll_scrape_and_load_data(mocker):
     class TestPipeline(_FastPollingPipeline):
-        date_checker = lambda: (datetime.now(), datetime.now())  # noqa
+        @staticmethod
+        def date_checker():
+            return datetime.now()
+
         data_getter = mock.Mock()
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
@@ -563,7 +598,10 @@ def test_poll_scrape_and_load_data(mocker):
 
     with freezegun.freeze_time('20200101t19:00:00'):
         db_tables.scrape_load_and_check_data(
-            "test-db", TestPipeline.table_config, TestPipeline(), **kwargs
+            "test-db",
+            TestPipeline.table_config,  # pylint: disable=no-member
+            TestPipeline(),
+            **kwargs
         )
 
     assert mock_create_tables.call_args_list == [
@@ -577,16 +615,19 @@ def test_poll_scrape_and_load_data(mocker):
             task_instance=mock.ANY,
         )
     ]
-    assert TestPipeline.data_getter.return_value.to_csv.call_args_list == [
-        mock.call(
-            mock_namedtempfile.name,
-            index=False,
-            header=False,
-            sep='\t',
-            na_rep=r'\N',
-            columns=["data_id"],
-        )
-    ]
+    assert (
+        TestPipeline.data_getter.return_value.to_csv.call_args_list  # pylint: disable=no-member
+        == [
+            mock.call(
+                mock_namedtempfile.name,
+                index=False,
+                header=False,
+                sep='\t',
+                na_rep=r'\N',
+                columns=["data_id"],
+            )
+        ]
+    )
     assert mock_cursor.copy_from.call_args_list == [
         mock.call(
             mock_namedtempfile,

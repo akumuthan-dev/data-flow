@@ -15,6 +15,7 @@ from dataflow.utils import TableConfig
 
 class PeopleFinderPeoplePipeline(_PipelineDAG):
     schedule_interval = "@daily"
+    use_utc_now_as_source_modified = True
     path = "/api/v2/data_workspace_export"
     source_url = f"{config.PEOPLE_FINDER_BASE_URL}{path}"
     table_config = TableConfig(

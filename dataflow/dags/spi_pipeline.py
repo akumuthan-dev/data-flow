@@ -14,6 +14,7 @@ from dataflow.utils import TableConfig
 
 
 class DataHubSPIPipeline(_PipelineDAG):
+    use_utc_now_as_source_modified = True
     target_db = config.DATASETS_DB_NAME
     source_url = '{0}/v4/dataset/investment-projects-activity-dataset'.format(
         config.DATAHUB_BASE_URL

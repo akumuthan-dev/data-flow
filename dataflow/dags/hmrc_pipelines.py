@@ -14,6 +14,7 @@ class _HMRCPipeline(_PipelineDAG):
 
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(

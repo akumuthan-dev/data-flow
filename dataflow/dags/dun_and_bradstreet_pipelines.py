@@ -23,6 +23,7 @@ from dataflow.utils import TableConfig
 class _DNBPipeline(_PipelineDAG):
     cascade_drop_tables = True
     source_url: str
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
