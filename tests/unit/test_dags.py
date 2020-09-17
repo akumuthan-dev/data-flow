@@ -76,6 +76,7 @@ def test_pipelines_dags():
         'LITECasesPipeline',
         'Maintenance',
         'MarketAccessTradeBarriersPipeline',
+        'MaxemailCampaignsSentPipeline',
         'MinisterialInteractionsDashboardPipeline',
         'OMISDatasetPipeline',
         'ONSPostcodePipeline',

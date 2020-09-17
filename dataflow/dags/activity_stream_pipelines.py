@@ -30,7 +30,7 @@ class ERPPipeline(_ActivityStreamPipeline):
     index = "objects"
     table_name = "erp_submissions"
     table_config = TableConfig(
-        table_name='erp',
+        table_name="erp",
         field_mapping=[
             ("id", sa.Column("id", sa.String, primary_key=True)),
             ("url", sa.Column("url", sa.String, primary_key=True)),
@@ -448,7 +448,7 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
 def staff_sso_users_get_app_names(apps: JSONType) -> JSONType:
     # Happy with a runtime error if apps is is not a list, since the data would not
     # be of the expected structure
-    return [app['name'] for app in cast(List[Dict[str, str]], apps)]
+    return [app["name"] for app in cast(List[Dict[str, str]], apps)]
 
 
 class StaffSSOUsersPipeline(_ActivityStreamPipeline):
@@ -585,3 +585,22 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
     )
 
     query = {"bool": {"filter": [{"term": {"type": "dit:ReturnToOffice:Booking"}}]}}
+
+
+class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
+    name = "maxemail-campaigns-sent"
+    index = "activities"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="maxemail__email_campaigns_sent",
+        field_mapping=[
+            (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+            (("object", "dit:emailAddress"), sa.Column("email_address", sa.String)),
+            (("object", "attributedTo", "id"), sa.Column("campaign_id", sa.Integer)),
+            (("object", "attributedTo", "name"), sa.Column("campaign_name", sa.String)),
+            (("object", "attributedTo", "published"), sa.Column("sent", sa.DateTime)),
+            (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Email"}}]}}
