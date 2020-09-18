@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add a new derived table for reporting on export wins
 
+### Changed
+
+- Run the google covid pipeline daily 
+
 ## 2020-09-15
 
 ### Changed

@@ -270,7 +270,6 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
 
 
 class GoogleCovid19MobilityReports(_PipelineDAG):
-    schedule_interval = '0 1 * * 0'
     use_utc_now_as_source_modified = True
     source_urls = {
         'global': 'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
