@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-09-15
 
+### Added
+
+- Add a new derived table for reporting on export wins
+
+## 2020-09-15
+
 ### Changed
 - Use postgres's native `copy_from` rather than `DataFrame.to_sql` to load data in postgres for the "fast polling" pipelines for significant speed gains (~15x).
 

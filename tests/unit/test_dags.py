@@ -51,6 +51,7 @@ def test_pipelines_dags():
         'ExportWinsByFinancialYearCSVPipeline',
         'ExportWinsCurrentFinancialYearDailyCSVPipeline',
         'ExportWinsDashboardPipeline',
+        'ExportWinsDerivedReportTablePipeline',
         'ExportWinsHVCDatasetPipeline',
         'ExportWinsMatchingPipeline',
         'ExportWinsWinsDatasetPipeline',
