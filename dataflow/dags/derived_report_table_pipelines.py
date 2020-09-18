@@ -111,6 +111,7 @@ class ExportWinsDerivedReportTablePipeline(_DerivedReportTablePipeline):
             ('export_experience', sa.Column('export_experience', sa.Text)),
             ('created', sa.Column('created', sa.Text)),
             ('audit', sa.Column('audit', sa.Text)),
+            ('advisers', sa.Column('advisers', sa.Text)),
             ('customer_email_sent', sa.Column('customer_email_sent', sa.Text)),
             ('customer_email_date', sa.Column('customer_email_date', sa.Text)),
             ('export_breakdown_1', sa.Column('export_breakdown_1', sa.Text)),
