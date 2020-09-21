@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-21
+
+### Changed
+
+- Run the google covid pipeline daily 
+- Allow null columns on the derived export wins pipeline
+- Use the high memory queue for the google covid dataset fetch operation
+- Add region name and region code fields to oxford covid dataset
+
 ## 2020-09-18
 
 ### Added

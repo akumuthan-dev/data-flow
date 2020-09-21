@@ -19,6 +19,7 @@ from dataflow.utils import TableConfig
 class _DerivedReportTablePipeline(_PipelineDAG):
     schedule_interval = '@daily'
     query: str
+    allow_null_columns = True
 
     def get_fetch_operator(self):
         return PythonOperator(
