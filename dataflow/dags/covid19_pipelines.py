@@ -365,6 +365,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
             task_id='run-fetch',
             python_callable=fetch_mapped_hosted_csvs,
             provide_context=True,
+            queue='high-memory-usage',
             op_args=[
                 self.table_config.table_name,
                 self.source_urls,
