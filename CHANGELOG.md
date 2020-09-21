@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Run the google covid pipeline daily 
+- Allow null columns on the derived export wins pipeline
 
 ## 2020-09-18
 
