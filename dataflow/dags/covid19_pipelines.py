@@ -21,6 +21,8 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
         field_mapping=[
             ('CountryName', sa.Column('country_name', sa.String)),
             ('CountryCode', sa.Column('country_code', sa.String)),
+            ('RegionName', sa.Column('region_name', sa.String)),
+            ('RegionCode', sa.Column('region_code', sa.String)),
             ('Date', sa.Column('date', sa.Numeric)),
             ('C1_School closing', sa.Column('c1_school_closing', sa.Numeric)),
             ('C1_Flag', sa.Column('c1_flag', sa.Numeric)),
@@ -138,7 +140,10 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
             task_id='run-fetch',
             python_callable=partial(fetch_from_hosted_csv, allow_empty_strings=False),
             provide_context=True,
-            op_args=[self.table_config.table_name, self.source_url],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
+            ],
         )
 
 
@@ -146,11 +151,11 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
     # Run after the daily update of data ~4am
     schedule_interval = '0 7 * * *'
     use_utc_now_as_source_modified = True
-
+    _endpoint = "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series"
     source_urls = {
-        "confirmed": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
-        "recovered": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-        "deaths": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+        "confirmed": f"{_endpoint}/time_series_covid19_confirmed_global.csv",
+        "recovered": f"{_endpoint}/time_series_covid19_recovered_global.csv",
+        "deaths": f"{_endpoint}/time_series_covid19_deaths_global.csv",
     }
 
     table_config = TableConfig(
@@ -183,7 +188,7 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
             python_callable=fetch_mapped_hosted_csvs,
             provide_context=True,
             op_args=[
-                self.table_config.table_name,
+                self.table_config.table_name,  # pylint: disable=no-member
                 self.source_urls,
                 self.transform_dataframe,
             ],
@@ -264,7 +269,11 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
 
@@ -367,7 +376,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
             provide_context=True,
             queue='high-memory-usage',
             op_args=[
-                self.table_config.table_name,
+                self.table_config.table_name,  # pylint: disable=no-member
                 self.source_urls,
                 self.transform_dataframe,
             ],
@@ -482,7 +491,7 @@ class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
             provide_context=True,
             python_callable=fetch_apple_mobility_data,
             op_args=[
-                self.table_config.table_name,
+                self.table_config.table_name,  # pylint: disable=no-member
                 self.base_url,
                 self.config_path,
                 self.transform_dataframe,
