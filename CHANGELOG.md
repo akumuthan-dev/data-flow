@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fix typos in export wins derived config
 
+## 2020-09-22
+
+### Added
+
+- HMRC Exporters matching pipeline
+
 ## 2020-09-21
 
 ### Changed

@@ -23,6 +23,7 @@ def test_pipelines_dags():
         'DNBGlobalCompanyUpdatePipeline',
         'DSSGenericPipeline',
         'DSSHMRCFieldForceMatchingPipeline',
+        'DSSHMRCExportersMatchingPipeline',
         'DailyCSVRefreshPipeline',
         'DataHubCompanyReferralsDatasetPipeline',
         'DataHubExportClientSurveyStaticCSVPipeline',
