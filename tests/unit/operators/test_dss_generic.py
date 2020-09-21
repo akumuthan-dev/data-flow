@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from sqlalchemy import Column, Integer, Text, DateTime
+from sqlalchemy import ARRAY, Column, Integer, Text, DateTime
 
 import dataflow
 from dataflow.operators import dss_generic
@@ -15,6 +15,9 @@ def test_get_table_config(mocker):
             {'name': 'batch_ref', 'type': 'TEXT'},
             {'name': 'status', 'type': 'TEXT'},
             {'name': 'start_date', 'type': 'TIMESTAMP WITHOUT TIME ZONE'},
+            {'name': 'int_list', 'type': 'INTEGER[]'},
+            {'name': 'text_list', 'type': 'TEXT[]'},
+            {'name': 'timestamp_list', 'type': 'TIMESTAMP WITHOUT TIME ZONE[]'},
         ],
     }
     config = {
@@ -28,7 +31,7 @@ def test_get_table_config(mocker):
     assert table_config.schema == 'test_org'
 
     field_mapping_types = [field[1].type for field in table_config.field_mapping]
-    expected_field_mapping_types = [Integer] + [Text] * 2 + [DateTime]
+    expected_field_mapping_types = [Integer] + [Text] * 2 + [DateTime] + [ARRAY] * 3
 
     for i, type in enumerate(field_mapping_types):
         expected_type = expected_field_mapping_types[i]
