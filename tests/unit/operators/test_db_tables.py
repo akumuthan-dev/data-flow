@@ -305,8 +305,10 @@ def test_swap_dataset_tables(
             call().fetchall(),
             call(
                 '''
+                SELECT dataflow.save_and_drop_dependencies('QUOTED<public>', 'QUOTED<test_table>');
                 ALTER TABLE IF EXISTS QUOTED<public>.QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
                 ALTER TABLE QUOTED<public>.QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
+                SELECT dataflow.restore_dependencies('QUOTED<public>', 'QUOTED<test_table>');
                 '''
             ),
             call('GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO testuser'),

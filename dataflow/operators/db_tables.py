@@ -417,8 +417,10 @@ def swap_dataset_tables(
 
             conn.execute(
                 """
+                SELECT dataflow.save_and_drop_dependencies('{schema}', '{target_temp_table}');
                 ALTER TABLE IF EXISTS {schema}.{target_temp_table} RENAME TO {swap_table_name};
                 ALTER TABLE {schema}.{temp_table} RENAME TO {target_temp_table};
+                SELECT dataflow.restore_dependencies('{schema}', '{target_temp_table}');
                 """.format(
                     schema=engine.dialect.identifier_preparer.quote(table.schema),
                     target_temp_table=engine.dialect.identifier_preparer.quote(
