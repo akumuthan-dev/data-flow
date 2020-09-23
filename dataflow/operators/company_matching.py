@@ -11,7 +11,12 @@ valid_email = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 
 def fetch_from_company_matching(
-    target_db: str, table_name: str, company_match_query: str, batch_size=str, **kwargs
+    target_db: str,
+    table_name: str,
+    company_match_query: str,
+    batch_size=str,
+    update=bool,
+    **kwargs,
 ):
     logger.info("starting company matching")
 
@@ -23,11 +28,10 @@ def fetch_from_company_matching(
         connection = PostgresHook(postgres_conn_id=target_db).get_conn()
         cursor = connection.cursor(name='fetch_companies')
         cursor.execute(company_match_query)
+        use_update_api = config.MATCHING_SERVICE_UPDATE and update
 
-        for request in _build_request(
-            cursor, batch_size, config.MATCHING_SERVICE_UPDATE
-        ):
-            match_type = 'update' if config.MATCHING_SERVICE_UPDATE else 'match'
+        for request in _build_request(cursor, batch_size, use_update_api):
+            match_type = 'update' if use_update_api else 'match'
             data = _hawk_api_request(
                 url=f'{config.MATCHING_SERVICE_BASE_URL}/api/v1/company/{match_type}/',
                 method='POST',

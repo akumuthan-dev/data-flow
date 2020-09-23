@@ -39,6 +39,7 @@ class _CompanyMatchingPipeline(_PipelineDAG):
 
     company_match_query: str
     controller_pipeline: Union[Type[_PipelineDAG], Type[DSSGenericPipeline]]
+    update: bool = False
 
     @property
     def table_name(self):
@@ -58,11 +59,13 @@ class _CompanyMatchingPipeline(_PipelineDAG):
                 self.table_config.table_name,
                 self.company_match_query,
                 config.MATCHING_SERVICE_BATCH_SIZE,
+                self.update,
             ],
         )
 
 
 class DataHubMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
     controller_pipeline = CompaniesDatasetPipeline
     dependencies = [CompaniesDatasetPipeline, ContactsDatasetPipeline]
     company_match_query = f"""
@@ -83,6 +86,7 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
 
 
 class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
     controller_pipeline = ExportWinsWinsDatasetPipeline
     dependencies = [ExportWinsWinsDatasetPipeline]
     company_match_query = f"""
@@ -120,6 +124,7 @@ class GreatGOVUKExportOpportunityEnquiriesMatchingPipeline(_CompanyMatchingPipel
 
 
 class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
     controller_pipeline = CompaniesHouseCompaniesPipeline
     dependencies = [CompaniesHouseCompaniesPipeline]
     company_match_query = f"""
