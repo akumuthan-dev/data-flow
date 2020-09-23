@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-09-23
 
+### Added
+
+- New activity stream pipeline for the return-to-office service
+
 ### Changed
 
 - Fix typos in export wins derived config
