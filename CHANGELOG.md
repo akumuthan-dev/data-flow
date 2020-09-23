@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Fix typos in export wins derived config
+- Fix incorrect field type bug in return to office pipeline
 
 ## 2020-09-22
 
