@@ -226,10 +226,10 @@ class ExportWinsDerivedReportTablePipeline(_DerivedReportTablePipeline):
             ),
             # Filtering columns
             ('country_code', sa.Column('country_code', sa.Text)),
-            ('win_date,', sa.Column('win_date', sa.Date)),
+            ('win_date', sa.Column('win_date', sa.Date)),
             ('win_financial_year', sa.Column('win_financial_year', sa.Integer)),
             (
-                'confirmation_created_date,',
+                'confirmation_created_date',
                 sa.Column('confirmation_created_date', sa.Date),
             ),
             (
