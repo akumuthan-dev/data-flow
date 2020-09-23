@@ -1,8 +1,8 @@
 from typing import Dict, List, cast
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.activity_stream import fetch_from_activity_stream
@@ -18,7 +18,11 @@ class _ActivityStreamPipeline(_PipelineDAG):
             task_id="fetch-activity-stream-data",
             python_callable=fetch_from_activity_stream,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.index, self.query],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.index,
+                self.query,
+            ],
         )
 
 
@@ -537,7 +541,7 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
         table_name="return_to_office__bookings",
         field_mapping=[
             ("id", sa.Column("id", sa.Integer, primary_key=True)),
-            ("dit:ReturnToOffice:Booking:userId", sa.Column("user_id", UUID)),
+            ("dit:ReturnToOffice:Booking:userId", sa.Column("user_id", sa.Integer)),
             ("dit:ReturnToOffice:Booking:userEmail", sa.Column("user_email", sa.Text)),
             (
                 "dit:ReturnToOffice:Booking:userFullName",
