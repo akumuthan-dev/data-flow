@@ -171,3 +171,22 @@ class DSSHMRCFieldForceMatchingPipeline(_DSSGenericMatchingPipeline):
         FROM "{schema_name}"."{controller_table_name}"
         ORDER BY id asc, entry_last_modified::timestamp desc
     """
+
+
+class DSSHMRCExportersMatchingPipeline(_DSSGenericMatchingPipeline):
+    schema_name = 'hmrc'
+    controller_table_name = 'exporters'
+    table_name = 'exporters_match_ids'
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            null as contact_email,
+            null as cdms_ref,
+            postcode as postcode,
+            null as companies_house_id,
+            'hmrc.exporters' as source,
+            datetime::timestamp as datetime
+        FROM "{schema_name}"."{controller_table_name}"
+        ORDER BY id asc, datetime::timestamp desc
+    """

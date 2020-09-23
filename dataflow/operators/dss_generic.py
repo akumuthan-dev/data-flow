@@ -65,7 +65,10 @@ def get_table_config(**context):
             'NUMERIC': sa.Numeric,
         }
         try:
-            sa_data_type = mapping[data_type]
+            if data_type.endswith('[]'):
+                sa_data_type = sa.ARRAY(mapping[data_type[:-2]])
+            else:
+                sa_data_type = mapping[data_type]
         except KeyError:
             raise ValueError(f'data type {data_type} not supported')
         return sa.Column(column_name, sa_data_type)
