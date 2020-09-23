@@ -540,7 +540,10 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
         schema="dit",
         table_name="return_to_office__bookings",
         field_mapping=[
-            ("id", sa.Column("id", sa.Integer, primary_key=True)),
+            (
+                "dit:ReturnToOffice:Booking:bookingId",
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
             ("dit:ReturnToOffice:Booking:userId", sa.Column("user_id", sa.Integer)),
             ("dit:ReturnToOffice:Booking:userEmail", sa.Column("user_email", sa.Text)),
             (
