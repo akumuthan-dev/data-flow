@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Maxemail campaigns sent emails pipeline.
 
+### Changed
+
+- Preserve views/materialised views dependencies on table swap
+
 ## 2020-09-23
 
 ### Added
