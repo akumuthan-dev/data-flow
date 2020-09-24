@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Maxemail campaigns sent emails pipeline.
+- Email alerts for the remaining 3 ONS pipeline runs.
 
 ### Changed
 
