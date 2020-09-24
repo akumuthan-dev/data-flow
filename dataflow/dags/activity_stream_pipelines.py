@@ -596,7 +596,6 @@ class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:emailAddress"), sa.Column("email_address", sa.String)),
-            (("object", "attributedTo", "id"), sa.Column("campaign_id", sa.Integer)),
             (("object", "attributedTo", "name"), sa.Column("campaign_name", sa.String)),
             (("object", "attributedTo", "published"), sa.Column("sent", sa.DateTime)),
             (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
