@@ -79,6 +79,10 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline
     )
     worker_queue = 'high-memory-usage'
 
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline'
+    )
+
 
 class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipeline):
     from dataflow.ons_scripts.uk_trade_in_services_service_type_by_partner_country_non_seasonally_adjusted.main import (
@@ -109,6 +113,10 @@ class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipelin
         ],
     )
 
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline'
+    )
+
 
 class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_FastPollingPipeline):
     from dataflow.ons_scripts.uk_total_trade_all_countries_non_seasonally_adjusted.main import (
@@ -136,4 +144,8 @@ class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_FastPollingPipeline):
             ('unit', sa.Column('unit', sa.Text)),
             ('marker', sa.Column('marker', sa.Text)),
         ],
+    )
+
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTotalTradeAllCountriesNSAPollingPipeline'
     )
