@@ -338,7 +338,8 @@ class GreatGOVUKExportOpportunitiesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunitites"
     index = "objects"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunities",
+        schema="dit",
+        table_name="great_gov_uk__export_opportunities",
         field_mapping=[
             ("id", sa.Column("id", sa.String, primary_key=True)),
             ("name", sa.Column("name", sa.String, nullable=False)),
@@ -361,7 +362,8 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunity-enquiries"
     index = "activities"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunity_enquiries",
+        schema="dit",
+        table_name="great_gov_uk__export_opportunity_enquiries",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "published"), sa.Column("published", sa.DateTime)),
