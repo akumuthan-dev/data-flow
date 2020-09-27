@@ -95,4 +95,5 @@ def test_pipelines_dags():
         'ReturnToOfficeBookingsPipeline',
         'StaffSSOUsersPipeline',
         'TeamsDatasetPipeline',
+        'TagsClassifierPipeline',
     }

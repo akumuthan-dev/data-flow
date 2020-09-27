@@ -326,8 +326,7 @@ def _check_table(
 def check_table_data(
     target_db: str, *tables: sa.Table, allow_null_columns: bool = False, **kwargs
 ):
-    """Verify basic constraints on temp table data.
-    """
+    """Verify basic constraints on temp table data."""
 
     engine = sa.create_engine(
         'postgresql+psycopg2://',

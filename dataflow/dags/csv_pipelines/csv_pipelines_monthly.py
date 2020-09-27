@@ -111,7 +111,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
 
 class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
-     of the last calendar month"""
+    of the last calendar month"""
 
     dependencies = [
         CompaniesDatasetPipeline,
