@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-09-29
+
+### Changed
+
+- Join on original rather than transformed sectors for DataHubMonthlyInvesmentProjectsPipline query
+
 ## 2020-09-24
 
 ### Added
