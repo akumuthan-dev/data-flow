@@ -31,22 +31,22 @@ def fetch_model():
     client = S3Hook("DEFAULT_S3")
 
     s3_key_object = client.get_key(
-        'models/data_hub_policy_feedback_tags_classifier/' + model_version + '.zip',
+        'models/data_hub_policy_feedback_tags_classifier/' + model_version,
         bucket_name=bucket,
     )
 
     # note: 'wb' rather than 'w'
-    with open(model_version + '.zip', 'wb') as data:
+    with open(model_version, 'wb') as data:
         s3_key_object.download_fileobj(data)
 
-    with zipfile.ZipFile(model_version + '.zip', "r") as zip_ref:
+    with zipfile.ZipFile(model_version, "r") as zip_ref:
         # it extracts directly to models_general and models_covid
         zip_ref.extractall()
         logger.info(f"working dir: {os.getcwd()}")
         logger.info(f"list contents: {os.listdir()}")
 
 
-def _predict(X_to_predict, tokenizer, tags_to_predcit, model_path):
+def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
     import tensorflow as tf
 
     logger.info("Start making prediction")
@@ -56,10 +56,10 @@ def _predict(X_to_predict, tokenizer, tags_to_predcit, model_path):
     text_to_predict = X_to_predict.copy()
 
     X_to_predict = transform_X(X_to_predict.values, tokenizer)
-    Y_test_predict = np.zeros((X_to_predict.shape[0], len(tags_to_predcit)))
-    Y_test_predict_prob = np.zeros((X_to_predict.shape[0], len(tags_to_predcit)))
+    Y_test_predict = np.zeros((X_to_predict.shape[0], len(tags_to_predict)))
+    Y_test_predict_prob = np.zeros((X_to_predict.shape[0], len(tags_to_predict)))
 
-    for ind, tag_i in enumerate(['_'.join(j.split(' ')) for j in tags_to_predcit]):
+    for ind, tag_i in enumerate(['_'.join(j.split(' ')) for j in tags_to_predict]):
         logger.info(f"Predicting for tag {ind}, {tag_i}")
         m = tf.keras.models.load_model(model_path + tag_i)
         test_predictions_prob_tag = m.predict(X_to_predict)
@@ -73,8 +73,8 @@ def _predict(X_to_predict, tokenizer, tags_to_predcit, model_path):
 
     for i in np.arange(0, X_to_predict.shape[0]):
         sentence.append(X_to_predict[i])
-        predict.append(list(compress(tags_to_predcit, Y_test_predict_prob[i] > 0.5)))
-        predict_prob.append(dict(zip(tags_to_predcit, Y_test_predict_prob[i])))
+        predict.append(list(compress(tags_to_predict, Y_test_predict_prob[i] > 0.5)))
+        predict_prob.append(dict(zip(tags_to_predict, Y_test_predict_prob[i])))
 
     prediction_on_data = pd.DataFrame(
         {
@@ -161,8 +161,6 @@ def predict_tags(df):
 
     from keras_preprocessing.text import tokenizer_from_json
 
-    # memory_used0 = memory_profiler.memory_usage() # to check memory usage
-
     with open('models_general/cnn_tokenizer.json') as f:
         data_general = json.load(f)
         tokenizer_general = tokenizer_from_json(data_general)
@@ -174,21 +172,21 @@ def predict_tags(df):
     prediction_on_general_data = _predict(
         X_to_predict=df,
         tokenizer=tokenizer_general,
-        tags_to_predcit=tags_general,
+        tags_to_predict=tags_general,
         model_path='models_general/',
     )
 
     covid_to_predict = prediction_on_general_data[
         prediction_on_general_data['prediction'].apply(lambda x: 'Covid-19' in x)
     ]
-    print('check covid df shape', covid_to_predict.shape[0])
+    logger.info(f"check covid df shape: {covid_to_predict.shape[0]}")
 
     if covid_to_predict.shape[0] > 0:
 
         prediction_on_covid_data = _predict(
             X_to_predict=covid_to_predict[['id', 'sentence']],
             tokenizer=tokenizer_covid,
-            tags_to_predcit=tags_covid,
+            tags_to_predict=tags_covid,
             model_path='models_covid/',
         )
 
@@ -240,11 +238,11 @@ def convert_prob_dict(a_dict):
     converted_dict = {}
     for i, (k, v) in enumerate(a_dict.items()):
         converted_dict['tag_' + str(i + 1)] = k
-        converted_dict['probability_score_' + str(i + 1)] = v
+        converted_dict['probability_score_tag_' + str(i + 1)] = v
     for i in range(1, 6):
         if 'tag_' + str(i) not in converted_dict:
             converted_dict['tag_' + str(i)] = None
-            converted_dict['probability_score_' + str(i)] = None
+            converted_dict['probability_score_tag_' + str(i)] = None
     return converted_dict
 
 
@@ -256,9 +254,9 @@ def update_df_column_with_prob(df):
         df['tag_' + str(i)] = df['prediction_prob_top_5_converted'].apply(
             lambda x: x['tag_' + str(i)]
         )
-        df['probability_score_' + str(i)] = df['prediction_prob_top_5_converted'].apply(
-            lambda x: x['probability_score_' + str(i)], 2
-        )
+        df['probability_score_tag_' + str(i)] = df[
+            'prediction_prob_top_5_converted'
+        ].apply(lambda x: x['probability_score_tag_' + str(i)], 2)
     del df['prediction_prob_top_5_converted']
     del df['prediction_prob_top_5']
     return df

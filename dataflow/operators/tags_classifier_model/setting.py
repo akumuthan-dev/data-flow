@@ -24,14 +24,13 @@ all_tags = [
     'Tax',
 ]
 
-tags_general = [
-    i for i in all_tags if not i.lower().startswith('covid') or i.lower() == 'covid-19'
-]
 tags_covid = [
     i for i in all_tags if i.lower().startswith('covid') and i.lower() != 'covid-19'
 ]
 
+tags_general = [i for i in all_tags if i not in tags_covid]
+
 MAX_NB_WORDS = 10000
 MAX_SEQUENCE_LENGTH = 500
 EMBEDDING_DIM = 100
-model_version = 'models_20200907'
+model_version = 'models_20200907.zip'

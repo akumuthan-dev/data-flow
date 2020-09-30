@@ -4,7 +4,6 @@ from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
 from dataflow.utils import TableConfig
 from dataflow.dags.dataset_pipelines import InteractionsDatasetPipeline
-import datetime
 
 
 class TagsClassifierPipeline(_PipelineDAG):
@@ -15,32 +14,45 @@ class TagsClassifierPipeline(_PipelineDAG):
             ("policy_feedback_notes", sa.Column("policy_feedback_notes", sa.Text)),
             ("tags_prediction", sa.Column("tags_prediction", sa.Text)),
             ("tag_1", sa.Column("tag_1", sa.Text)),
-            ("probability_score_1", sa.Column("probability_score_1", sa.Numeric)),
+            (
+                "probability_score_tag_1",
+                sa.Column("probability_score_tag_1", sa.Numeric),
+            ),
             ("tag_2", sa.Column("tag_2", sa.Text)),
-            ("probability_score_2", sa.Column("probability_score_2", sa.Numeric)),
+            (
+                "probability_score_tag_2",
+                sa.Column("probability_score_tag_2", sa.Numeric),
+            ),
             ("tag_3", sa.Column("tag_3", sa.Text)),
-            ("probability_score_3", sa.Column("probability_score_3", sa.Numeric)),
+            (
+                "probability_score_tag_3",
+                sa.Column("probability_score_tag_3", sa.Numeric),
+            ),
             ("tag_4", sa.Column("tag_4", sa.Text)),
-            ("probability_score_4", sa.Column("probability_score_4", sa.Numeric)),
+            (
+                "probability_score_tag_4",
+                sa.Column("probability_score_tag_4", sa.Numeric),
+            ),
             ("tag_5", sa.Column("tag_5", sa.Text)),
-            ("probability_score_5", sa.Column("probability_score_5", sa.Numeric)),
+            (
+                "probability_score_tag_5",
+                sa.Column("probability_score_tag_5", sa.Numeric),
+            ),
         ],
     )
 
     controller_pipeline = InteractionsDatasetPipeline
-    # todo - uncomment this when testing is done
-    # dependencies = [InteractionsDatasetPipeline]
+    dependencies = [InteractionsDatasetPipeline]
 
-    today = datetime.date.today()
-    six_week_ago = today - datetime.timedelta(weeks=6)
-
-    # todo - add 6 weeks' data only (check the downstream query)
     query = f"""
-             SELECT id, policy_feedback_notes  FROM "public"."{controller_pipeline.table_config.table_name}"
-                          where policy_feedback_notes!='' limit 15000
+             SELECT id, policy_feedback_notes FROM "public"."{controller_pipeline.table_config.table_name}"
+             WHERE policy_feedback_notes!=''  AND policy_areas NOTNULL
+             AND (
+                  created_on > current_date - INTERVAL '6 weeks'
+                  OR
+                  modified_on > current_date - INTERVAL '6 weeks'
+                 )
              """
-    # and modified_on >= '{six_week_ago}'
-    # limit 15000
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
