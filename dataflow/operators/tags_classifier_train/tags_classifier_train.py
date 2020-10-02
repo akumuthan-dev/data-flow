@@ -323,6 +323,7 @@ def build_models_pipeline(**context):
 
 
 def save_model():
+    ## todo save to prod bucket if use this model in prod
     bucket = config.S3_IMPORT_DATA_BUCKET
     # bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
 
