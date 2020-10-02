@@ -89,3 +89,9 @@ airflow/
 # pyenv
 .python-version
 .coverage
+
+
+*.zip
+*.csv
+aws/
+models*/

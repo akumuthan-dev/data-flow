@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## 2020-10-02
 
+### Added
+
+- Pipeline for interaction tags classifier (TagsClassifierPipeline).
+
 ### Changed
 
 - More export wins derived fetch task to the high mem queue

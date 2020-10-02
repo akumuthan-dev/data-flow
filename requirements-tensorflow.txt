@@ -9,7 +9,6 @@ alembic==1.3.1            # via -r requirements.in, apache-airflow
 amqp==2.6.1               # via kombu
 apache-airflow[celery,crypto,postgres,s3,sentry,slack]==1.10.12  # via -r requirements.in
 apispec[yaml]==1.3.3      # via flask-appbuilder
-appnope==0.1.0            # via ipython
 argcomplete==1.12.0       # via apache-airflow
 argparse==1.4.0           # via gssutils
 astunparse==1.6.3         # via tensorflow
@@ -79,6 +78,7 @@ itsdangerous==1.1.0       # via flask, flask-wtf
 jedi==0.17.2              # via ipython
 jinja2==2.11.2            # via apache-airflow, flask, flask-babel, python-nvd3
 jmespath==0.10.0          # via boto3, botocore
+joblib==0.16.0            # via scikit-learn
 json-merge-patch==0.2     # via apache-airflow
 json-table-schema==0.2.1  # via messytables
 jsonschema==3.2.0         # via apache-airflow, flask-appbuilder
@@ -101,7 +101,7 @@ msal==1.4.3               # via -r requirements.in
 msgpack==1.0.0            # via cachecontrol
 natsort==7.0.1            # via croniter
 notifications-python-client==5.7.0  # via -r requirements.in
-numpy==1.18.5             # via h5py, keras-preprocessing, opt-einsum, pandas, scipy, tensorboard, tensorflow
+numpy==1.18.5             # via h5py, keras-preprocessing, opt-einsum, pandas, scikit-learn, scipy, tensorboard, tensorflow
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.3.0         # via tensorflow
 pandas==0.25.3            # via apache-airflow, gssutils
@@ -146,7 +146,8 @@ requests-oauthlib==1.3.0  # via -r requirements.in, google-auth-oauthlib
 requests==2.24.0          # via -r requirements.in, apache-airflow, cachecontrol, gssutils, messytables, msal, notifications-python-client, requests-oauthlib, slackclient, tensorboard
 rsa==4.6                  # via google-auth
 s3transfer==0.3.3         # via boto3
-scipy==1.4.1              # via tensorflow
+scikit-learn==0.22.2.post1  # via -r requirements.in
+scipy==1.4.1              # via scikit-learn, tensorflow
 sentry-sdk==0.17.0        # via apache-airflow
 setproctitle==1.1.10      # via apache-airflow
 six==1.15.0               # via absl-py, astunparse, cryptography, flask-jwt-extended, google-auth, google-pasta, grpcio, h5py, html5lib, isodate, jsonschema, keras-preprocessing, mohawk, prison, protobuf, pyrsistent, python-dateutil, slackclient, sqlalchemy-utils, tenacity, tensorboard, tensorflow, thrift, traitlets, websocket-client
