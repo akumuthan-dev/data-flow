@@ -105,7 +105,7 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
 
 
 class GreatGOVUKExportOpportunityEnquiriesMatchingPipeline(_CompanyMatchingPipeline):
-    table_name = 'great_gov_uk_ex_opps_enquiries_match_ids'
+    table_name = 'great_gov_uk__ex_opp_enquiries__match_ids'
     controller_pipeline = GreatGOVUKExportOpportunityEnquiriesPipeline
     dependencies = [GreatGOVUKExportOpportunityEnquiriesPipeline]
     company_match_query = f"""

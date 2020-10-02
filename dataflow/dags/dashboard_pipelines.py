@@ -30,7 +30,11 @@ class _SQLPipelineDAG(_PipelineDAG):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
 
 
@@ -847,7 +851,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
     JOIN project_team ON project_team.project_id = investment_projects.id
     LEFT JOIN companies_dataset uk_company ON uk_company.id = investment_projects.uk_company_id
     LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
-    LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.project_sector
-    LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.project_sector
+    LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.sector
+    LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.sector
     LEFT JOIN latest_interactions ON latest_interactions.investment_project_id = investment_projects.id
     '''

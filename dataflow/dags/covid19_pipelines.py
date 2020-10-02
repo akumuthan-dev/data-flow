@@ -203,9 +203,10 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
     query = """
     WITH unmatched_codes (country, iso2, iso3) AS (VALUES
         ('Bahamas', 'BS', 'BSS'),
-        ('Bonaire, Sint Eustatius and Saba', 'BQ', NULL),
+        ('Bonaire, Sint Eustatius and Saba', 'BQ', 'BES'),
         ('Burma', 'MM', 'MMR'),
         ('Cabo Verde', 'CV', 'CPV'),
+        ('Channel Islands', 'GB', 'GBR'),
         ('Congo (Brazzaville)', 'CG', 'COG'),
         ('Congo (Kinshasa)', 'CD', 'COD'),
         ('Cote d''Ivoire', 'CI', 'CIV'),
@@ -214,13 +215,19 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
         ('Gambia', 'GM', 'GMB'),
         ('Holy See', 'VA', 'VAT'),
         ('Korea, South', 'KR', 'KOR'),
+        ('Kosovo', 'XK', 'XKX'),
+        ('Reunion', 'RE', 'REU'),
+        ('Saint Barthelemy', 'BL', 'BLM'),
         ('Saint Kitts and Nevis', 'KN', 'KNA'),
         ('Saint Lucia', 'LC', 'LCA'),
         ('Saint Vincent and the Grenadines', 'VC', 'VCT'),
         ('Sint Maarten', 'SX', 'SXM'),
+        ('St Martin', 'MF', 'MAF'),
         ('Taiwan*', 'TW', 'TWN'),
         ('Timor-Leste', 'TL', 'TLS'),
-        ('US', 'US', 'USA')
+        ('United Kingdom', 'GB', 'GBR'),
+        ('US', 'US', 'USA'),
+        ('West Bank and Gaza', 'PS', 'PSE')
     )
     SELECT
         COALESCE(ref_countries_territories_and_regions.iso2_code, unmatched_codes.iso2) AS iso2_code,
