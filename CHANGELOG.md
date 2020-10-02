@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-10-02
+
+### Changed
+
+- More export wins derived fetch task to the high mem queue
+
 ## 2020-09-30
 
 ### Changed

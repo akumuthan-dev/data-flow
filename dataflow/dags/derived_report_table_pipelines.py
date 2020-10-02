@@ -26,6 +26,7 @@ class _DerivedReportTablePipeline(_PipelineDAG):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
+            queue='high-memory-usage',
             op_args=[
                 self.query,
                 self.target_db,
