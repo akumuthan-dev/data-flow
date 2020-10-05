@@ -134,7 +134,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
                 "depends_on_past": False,
                 "email_on_failure": False,
                 "email_on_retry": False,
-                "retries": 0,
+                "retries": 3,
                 "retry_delay": timedelta(minutes=5),
                 'catchup': self.catchup,
             },
@@ -207,7 +207,6 @@ class _PipelineDAG(metaclass=PipelineMeta):
 
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
-            retries=2,
             python_callable=swap_dataset_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
@@ -308,7 +307,7 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
                 'depends_on_past': False,
                 'email_on_failure': False,
                 'email_on_retry': False,
-                'retries': 1,
+                'retries': 3,
                 'retry_delay': timedelta(minutes=5),
                 'start_date': datetime(2019, 1, 1),
             },
@@ -434,7 +433,6 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             ),
             dag=dag,
             provide_context=True,
-            retries=3,
         )
 
         _scrape_load_and_check = PythonOperator(
@@ -448,13 +446,11 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             dag=dag,
             provide_context=True,
             queue=self.worker_queue,
-            retries=3,
         )
 
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             dag=dag,
-            retries=2,
             python_callable=swap_dataset_tables,
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
