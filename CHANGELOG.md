@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add [prometheus metrics exporter](https://github.com/uktrade/data-flow-metrics) to data-flow.
 
+### Changed
+- Set default retries across almost all DAGs at three, to (hopefully) reduce the need for manually restarting failed pipelines that are caused by transient issues.
+
 ## 2020-10-02
 
 ### Added
