@@ -33,6 +33,23 @@ services:
       - --concurrency
       - "1"
 
+  data-flow-worker-high-memory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/home/vcap/app
+    env_file: .env
+
+    command:
+      - /bin/sh
+      - -c
+      - |
+          airflow worker --queues high-memory-usage --concurrency 1
+    links:
+      - "data-flow-db"
+      - "data-flow-redis"
+
   data-flow:
     build:
       context: .
@@ -53,7 +70,6 @@ services:
           alembic upgrade head
           ./bin/airflow-scheduler.sh &
           airflow worker &
-          airflow worker --queues high-memory-usage --concurrency 1 &
           airflow flower &
           airflow webserver --pid /tmp/airflow-webserver.pid -p 8080
     links:
