@@ -20,7 +20,7 @@ class _DatasetPipeline(_PipelineDAG):
     use_utc_now_as_source_modified = True
     source_url: str
 
-    fetch_retries = 0
+    fetch_retries = 3
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -309,7 +309,6 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
             ),
         ],
     )
-    fetch_retries = 3
 
 
 class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
