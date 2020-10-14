@@ -21,7 +21,11 @@ class _SharepointPipeline(_PipelineDAG):
             task_id='run-fetch',
             python_callable=fetch_from_sharepoint_list,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.sub_site_id, self.list_id],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.sub_site_id,
+                self.list_id,
+            ],
         )
 
 
@@ -58,7 +62,10 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
                 'Is a sharing agreement in place?',
                 sa.Column('is_sharing_agreement_in_place', sa.String),
             ),
-            ('Sharing agreement link', sa.Column('sharing_agreement_link', sa.String)),
+            (
+                ('Sharing agreement link', 'Url'),
+                sa.Column('sharing_agreement_link', sa.String),
+            ),
             (
                 'Security handling classification',
                 sa.Column('security_handling_classification', sa.String),
@@ -78,7 +85,7 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
                 sa.Column('type_of_agreement_personal_data_agreement', sa.String),
             ),
             (
-                'Link to agreement for collecting personal data',
+                ('Link to agreement for collecting personal data', 'Url'),
                 sa.Column('link_to_personal_data_agreement', sa.String),
             ),
             (
