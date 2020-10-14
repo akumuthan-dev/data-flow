@@ -32,6 +32,11 @@ COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
 DATA_STORE_SERVICE_BASE_URL = os.environ.get(
     "DATA_STORE_SERVICE_BASE_URL", "localhost:5050"
 )
+DATA_STORE_SERVICE_HAWK_CREDENTIALS = {
+    "id": os.environ.get("DATA_STORE_SERVICE_HAWK_ID"),
+    "key": os.environ.get("DATA_STORE_SERVICE_HAWK_KEY"),
+    "algorithm": "sha256",
+}
 
 S3_IMPORT_DATA_BUCKET = os.environ.get("S3_IMPORT_DATA_BUCKET")
 S3_RETENTION_PERIOD_DAYS = os.environ.get("S3_RETENTION_PERIOD_DAYS", 7)
@@ -109,3 +114,9 @@ AIRFLOW_API_HAWK_CREDENTIALS = {
         'DATA_STORE_UPLOADER_SENDER_HAWK_KEY'
     ),
 }
+
+DEFAULT_DATABASE_GRANTEES = (
+    os.environ.get('DEFAULT_DATABASE_GRANTEES', '').split(',')
+    if os.environ.get('DEFAULT_DATABASE_GRANTEES') is not None
+    else []
+)

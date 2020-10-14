@@ -1,21 +1,35 @@
 import csv
+
+import datetime
 import itertools
+import tempfile
 import warnings
 from io import StringIO
-from typing import Tuple, Dict, Optional
+from time import sleep
+from typing import Tuple, Dict, Optional, TYPE_CHECKING
 
-import sqlalchemy
+from pandas import DataFrame
 import sqlalchemy as sa
+from sqlalchemy import text
+from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.api.common.experimental.get_task_instance import get_task_instance
+from airflow.exceptions import TaskNotFound
+
 
 from dataflow import config
+
 from dataflow.utils import (
     get_nested_key,
+    get_temp_table,
     S3Data,
     TableConfig,
     SingleTableFieldMapping,
     logger,
 )
+
+if TYPE_CHECKING:
+    from dataflow.dags import _FastPollingPipeline  # noqa
 
 
 class MissingDataError(ValueError):
@@ -26,20 +40,44 @@ class UnusedColumnError(ValueError):
     pass
 
 
-def _get_temp_table(table, suffix):
-    """Get a Table object for the temporary dataset table.
-
-    Given a dataset `table` instance creates a new table with
-    a unique temporary name for the given DAG run and the same
-    columns as the dataset table.
-
-    """
-    return sa.Table(
-        f"{table.name}_{suffix}".lower(),
-        table.metadata,
-        *[column.copy() for column in table.columns],
-        schema=table.schema,
+def branch_on_modified_date(target_db: str, table_config: TableConfig, **context):
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
+
+    with engine.begin() as conn:
+        res = conn.execute(
+            """
+            SELECT source_data_modified_utc
+            FROM dataflow.metadata
+            WHERE table_schema = %s and table_name = %s
+            """,
+            [table_config.schema, table_config.table_name],
+        ).fetchall()
+
+        if len(res) == 0:
+            return 'continue'
+        if len(res) > 1:
+            raise AirflowException(
+                f"Multiple rows in the dataflow metadata table for {table_config.schema}.{table_config.table_name}"
+            )
+        if not res[0][0]:
+            return 'continue'
+
+        old_modified_utc = res[0][0]
+
+    new_modified_utc = context['task_instance'].xcom_pull(
+        task_ids='get-source-modified-date'
+    )
+    context['task_instance'].xcom_push('source-modified-date-utc', new_modified_utc)
+
+    logger.info("Old: %s. New: %s", old_modified_utc, new_modified_utc)
+
+    if new_modified_utc > old_modified_utc:
+        return 'continue'
+
+    return 'stop'
 
 
 def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
@@ -61,8 +99,10 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            table = _get_temp_table(table, kwargs["ts_nodash"])
-            logger.info(f"Creating {table.name}")
+            table = get_temp_table(table, kwargs["ts_nodash"])
+            logger.info("Creating schema %s if not exists", table.schema)
+            conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table.schema}")
+            logger.info("Creating %s", table.name)
             table.create(conn, checkfirst=True)
 
 
@@ -75,7 +115,8 @@ def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
         }
     except KeyError:
         logger.warning(
-            f"Failed to load item {record.get('id', str(record))}, required field is missing"
+            "Failed to load item %s, required field is missing",
+            record.get('id', str(record)),
         )
         raise
 
@@ -83,9 +124,7 @@ def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
 
 
 def _insert_related_records(
-    conn: sqlalchemy.engine.Connection,
-    table_config: TableConfig,
-    contexts: Tuple[Dict, ...],
+    conn: sa.engine.Connection, table_config: TableConfig, contexts: Tuple[Dict, ...],
 ):
     for key, related_table in table_config.related_table_configs:
         related_records = get_nested_key(contexts[-1], key) or []
@@ -145,7 +184,7 @@ def insert_data_into_db(
         )
 
         s3 = S3Data(table.name, kwargs["ts_nodash"])
-        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+        temp_table = get_temp_table(table, kwargs["ts_nodash"])
 
     else:
         raise RuntimeError(
@@ -159,7 +198,7 @@ def insert_data_into_db(
 
     count = 0
     for page, records in s3.iter_keys():
-        logger.info(f'Processing page {page}')
+        logger.info('Processing page %s', page)
         count += 1
 
         with engine.begin() as conn:
@@ -181,11 +220,11 @@ def insert_data_into_db(
             elif table is not None and field_mapping:
                 for record in records:
                     conn.execute(
-                        temp_table.insert(),
+                        temp_table.insert(),  # pylint: disable=E1120
                         **_get_data_to_insert(field_mapping, record),
                     )
 
-        logger.info(f'Page {page} ingested successfully')
+        logger.info('Page %s ingested successfully', page)
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")
@@ -216,7 +255,7 @@ def insert_csv_data_into_db(
     count = 0
     done = 0
     for page, data in s3.iter_keys(json=False):
-        logger.info(f'Processing page {page}')
+        logger.info('Processing page %s', page)
         count += 1
 
         with engine.begin() as conn:
@@ -227,7 +266,7 @@ def insert_csv_data_into_db(
                 if not records:
                     break
 
-                logger.info(f"Ingesting records {done} - {done+len(records)} ...")
+                logger.info("Ingesting records %s - %s ...", done, done + len(records))
                 transformed_records = []
                 for record in records:
                     for transform in table_config.transforms:
@@ -243,7 +282,7 @@ def insert_csv_data_into_db(
                 )
                 done += len(records)
 
-        logger.info(f'File {page} ingested successfully')
+        logger.info('File %s ingested successfully', page)
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")
@@ -252,7 +291,7 @@ def insert_csv_data_into_db(
 def _check_table(
     engine, conn, temp: sa.Table, target: sa.Table, allow_null_columns: bool
 ):
-    logger.info(f"Checking {temp.name}")
+    logger.info("Checking %s", temp.name)
 
     if engine.dialect.has_table(conn, target.name, schema=target.schema):
         logger.info("Checking record counts")
@@ -264,9 +303,7 @@ def _check_table(
         ).fetchone()[0]
 
         logger.info(
-            "Current records count {}, new import count {}".format(
-                target_count, temp_count
-            )
+            "Current records count %s, new import count %s", target_count, temp_count
         )
 
         if target_count > 0 and temp_count / target_count < 0.9:
@@ -289,9 +326,7 @@ def _check_table(
 def check_table_data(
     target_db: str, *tables: sa.Table, allow_null_columns: bool = False, **kwargs
 ):
-    """Verify basic constraints on temp table data.
-
-    """
+    """Verify basic constraints on temp table data."""
 
     engine = sa.create_engine(
         'postgresql+psycopg2://',
@@ -300,7 +335,7 @@ def check_table_data(
 
     with engine.begin() as conn:
         for table in tables:
-            temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+            temp_table = get_temp_table(table, kwargs["ts_nodash"])
             _check_table(engine, conn, temp_table, table, allow_null_columns)
 
 
@@ -319,7 +354,7 @@ def query_database(
 
         rows = cursor.fetchmany(batch_size)
         fields = [d[0] for d in cursor.description]
-        while len(rows):
+        while rows:
             records = []
             for row in rows:
                 record = {fields[col]: row[col] for col in range(len(row))}
@@ -334,7 +369,12 @@ def query_database(
             connection.close()
 
 
-def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
+def swap_dataset_tables(
+    target_db: str,
+    *tables: sa.Table,
+    use_utc_now_as_source_modified: bool = False,
+    **kwargs,
+):
     """Rename temporary tables to replace current dataset one.
 
     Given a one or more dataset tables `tables` this finds the temporary table created
@@ -354,27 +394,32 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
     for table in tables:
-        temp_table = _get_temp_table(table, kwargs["ts_nodash"])
+        temp_table = get_temp_table(table, kwargs["ts_nodash"])
 
-        logger.info(f"Moving {temp_table.name} to {table.name}")
+        logger.info("Moving %s to %s", temp_table.name, table.name)
         with engine.begin() as conn:
             conn.execute("SET statement_timeout = 600000")
-            grantees = conn.execute(
-                """
+            grantees = [
+                grantee[0]
+                for grantee in conn.execute(
+                    """
                 SELECT grantee
                 FROM information_schema.role_table_grants
                 WHERE table_name='{table_name}'
                 AND privilege_type = 'SELECT'
                 AND grantor != grantee
                 """.format(
-                    table_name=engine.dialect.identifier_preparer.quote(table.name)
-                )
-            ).fetchall()
+                        table_name=engine.dialect.identifier_preparer.quote(table.name)
+                    )
+                ).fetchall()
+            ]
 
             conn.execute(
                 """
+                SELECT dataflow.save_and_drop_dependencies('{schema}', '{target_temp_table}');
                 ALTER TABLE IF EXISTS {schema}.{target_temp_table} RENAME TO {swap_table_name};
                 ALTER TABLE {schema}.{temp_table} RENAME TO {target_temp_table};
+                SELECT dataflow.restore_dependencies('{schema}', '{target_temp_table}');
                 """.format(
                     schema=engine.dialect.identifier_preparer.quote(table.schema),
                     target_temp_table=engine.dialect.identifier_preparer.quote(
@@ -388,14 +433,41 @@ def swap_dataset_tables(target_db: str, *tables: sa.Table, **kwargs):
                     ),
                 )
             )
-            for grantee in grantees:
+            for grantee in grantees + config.DEFAULT_DATABASE_GRANTEES:
                 conn.execute(
                     'GRANT SELECT ON {schema}.{table_name} TO {grantee}'.format(
                         schema=engine.dialect.identifier_preparer.quote(table.schema),
                         table_name=engine.dialect.identifier_preparer.quote(table.name),
-                        grantee=grantee[0],
+                        grantee=grantee,
                     )
                 )
+
+            new_modified_utc = kwargs['task_instance'].xcom_pull(
+                key='source-modified-date-utc'
+            )
+            if new_modified_utc is None and use_utc_now_as_source_modified:
+                try:
+                    new_modified_utc = get_task_instance(
+                        kwargs['dag'].safe_dag_id,
+                        'run-fetch',
+                        kwargs['execution_date'],
+                    ).end_date
+                except TaskNotFound:
+                    new_modified_utc = datetime.datetime.utcnow()
+
+            conn.execute(
+                """
+                INSERT INTO dataflow.metadata
+                (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    table.schema,
+                    table.name,
+                    new_modified_utc,
+                    datetime.datetime.utcnow(),
+                ),
+            )
 
 
 def drop_temp_tables(target_db: str, *tables, **kwargs):
@@ -412,8 +484,8 @@ def drop_temp_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            temp_table = _get_temp_table(table, kwargs["ts_nodash"])
-            logger.info(f"Removing {temp_table.name}")
+            temp_table = get_temp_table(table, kwargs["ts_nodash"])
+            logger.info("Removing %s", temp_table.name)
             temp_table.drop(conn, checkfirst=True)
 
 
@@ -431,6 +503,138 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
     with engine.begin() as conn:
         conn.execute("SET statement_timeout = 600000")
         for table in tables:
-            swap_table = _get_temp_table(table, kwargs["ts_nodash"] + "_swap")
-            logger.info(f"Removing {swap_table.name}")
+            swap_table = get_temp_table(table, kwargs["ts_nodash"] + "_swap")
+            logger.info("Removing %s", swap_table.name)
             swap_table.drop(conn, checkfirst=True)
+
+
+def poll_for_new_data(
+    target_db: str,
+    table_config: TableConfig,
+    pipeline_instance: "_FastPollingPipeline",
+    **kwargs,
+):
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    with engine.begin() as conn:
+        db_data_last_modified_utc = conn.execute(
+            text(
+                "SELECT MAX(source_data_modified_utc) "
+                "FROM dataflow.metadata "
+                "WHERE table_schema = :schema AND table_name = :table"
+            ),
+            schema=engine.dialect.identifier_preparer.quote(table_config.schema),
+            table=engine.dialect.identifier_preparer.quote(table_config.table_name),
+        ).fetchall()[0][0]
+        logger.info(f"last_ingest_utc from previous run: {db_data_last_modified_utc}")
+
+    (
+        source_last_modified_utc,
+        source_next_release_utc,
+    ) = pipeline_instance.__class__.date_checker()
+    logger.info(
+        f"source_last_modified_utc={source_last_modified_utc}, source_next_release_utc={source_next_release_utc}"
+    )
+
+    if (
+        source_next_release_utc
+        and source_last_modified_utc == db_data_last_modified_utc
+        and datetime.datetime.utcnow().date() < source_next_release_utc.date()
+    ):
+        logger.info(
+            "No new data is available and it is before the next release date, so there's no need to poll. "
+            "source_last_modified_utc=%s, source_next_release_utc=%s, db_data_last_modified_utc=%s",
+            source_last_modified_utc,
+            source_next_release_utc,
+            db_data_last_modified_utc,
+        )
+        pipeline_instance.skip_downstream_tasks(**kwargs)
+        return
+
+    while (
+        db_data_last_modified_utc
+        and source_last_modified_utc <= db_data_last_modified_utc
+    ):
+        if (
+            datetime.datetime.now().time()
+            >= pipeline_instance.__class__.daily_end_time_utc
+        ):
+            logger.info(
+                "No newer data has been made available for today, "
+                "and it is now after the scheduled end time for polling (%s). "
+                "Ending the job and skipping remaining tasks.",
+                pipeline_instance.__class__.daily_end_time_utc,
+            )
+            pipeline_instance.skip_downstream_tasks(**kwargs)
+            return
+
+        sleep(pipeline_instance.__class__.polling_interval_in_seconds)
+        (
+            source_last_modified_utc,
+            source_next_release_utc,
+        ) = pipeline_instance.__class__.date_checker()
+        logger.info(
+            f"source_last_modified_utc from latest data: {source_last_modified_utc}"
+        )
+
+    logger.info("Newer data is available.")
+    kwargs['task_instance'].xcom_push(
+        'source-modified-date-utc', source_last_modified_utc
+    )
+
+
+def scrape_load_and_check_data(
+    target_db: str,
+    table_config: TableConfig,
+    pipeline_instance: "_FastPollingPipeline",
+    **kwargs,
+):
+    create_temp_tables(target_db, *table_config.tables, **kwargs)
+
+    temp_table = get_temp_table(table_config.table, suffix=kwargs['ts_nodash'])
+
+    data: DataFrame = pipeline_instance.__class__.data_getter()
+
+    with tempfile.NamedTemporaryFile('r') as data_file:
+        logger.info("Writing data to disk as CSV")
+
+        # We write to disk here instead of keeping it in memory as the latter is a more contested resource, and disk
+        # is still fast enough for the time being.
+        data.to_csv(
+            data_file.name,
+            index=False,
+            header=False,
+            sep='\t',
+            na_rep=r'\N',
+            columns=[data_column for data_column, sa_column in table_config.columns],
+        )
+        logger.info("Write complete.")
+
+        data_file.seek(0)
+
+        with PostgresHook(postgres_conn_id=target_db).get_conn() as connection:
+            with connection.cursor() as cursor:
+                logger.info("Starting data copy from disk to DB")
+
+                # We use a postgres-native copy in order to efficiently load larger datasets.
+                cursor.copy_from(
+                    data_file,
+                    f'"{temp_table.schema}"."{temp_table.name}"',
+                    sep='\t',
+                    null=r'\N',
+                    columns=[
+                        sa_column.name
+                        for data_column, sa_column in table_config.columns
+                    ],
+                )
+                logger.info("Copy complete.")
+
+    check_table_data(
+        target_db,
+        *table_config.tables,
+        allow_null_columns=pipeline_instance.allow_null_columns,
+        **kwargs,
+    )

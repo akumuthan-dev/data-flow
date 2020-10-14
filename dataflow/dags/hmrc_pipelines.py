@@ -14,6 +14,7 @@ class _HMRCPipeline(_PipelineDAG):
 
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -27,7 +28,8 @@ class _HMRCPipeline(_PipelineDAG):
 class HMRCNonEUExports(_HMRCPipeline):
     base_filename = "SMKE19"
     table_config = TableConfig(
-        table_name="non_eu_exports_hmrc",
+        schema="hmrc",
+        table_name="non_eu_exports",
         # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKE19.DOC
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
@@ -60,7 +62,8 @@ class HMRCNonEUExports(_HMRCPipeline):
 class HMRCNonEUImports(_HMRCPipeline):
     base_filename = "SMKI19"
     table_config = TableConfig(
-        table_name="non_eu_imports_hmrc",
+        schema="hmrc",
+        table_name="non_eu_imports",
         # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKI19.DOC
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
@@ -90,5 +93,63 @@ class HMRCNonEUImports(_HMRCPipeline):
             (23, sa.Column("value", sa.BigInteger)),
             (24, sa.Column("quantity_1", sa.BigInteger)),
             (25, sa.Column("quantity_2", sa.BigInteger)),
+        ],
+    )
+
+
+class HMRCEUExports(_HMRCPipeline):
+    base_filename = "SMKX46"
+    table_config = TableConfig(
+        schema="hmrc",
+        table_name="eu_exports",
+        # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKX46.DOC
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (0, sa.Column("comcode", sa.String(9))),
+            (1, sa.Column("record_type", sa.String(3))),
+            (2, sa.Column("cod_sequence", sa.String(3))),
+            (3, sa.Column("cod_alpha", sa.String(2))),
+            (4, sa.Column("trade_indicator", sa.String(1))),
+            (5, sa.Column("coo_seq", sa.String(3))),
+            (6, sa.Column("coo_alpha", sa.String(2))),
+            (7, sa.Column("nature_of_transaction", sa.String(3))),
+            (8, sa.Column("mode_of_transport", sa.String(3))),
+            (9, sa.Column("period_reference", sa.String(7))),
+            (10, sa.Column("suite_indicator", sa.String(3))),
+            (11, sa.Column("sitc", sa.String(5))),
+            (12, sa.Column("ip_comcode", sa.String(9))),
+            (13, sa.Column("num_consignments", sa.BigInteger)),
+            (14, sa.Column("value", sa.BigInteger)),
+            (15, sa.Column("nett_mass", sa.BigInteger)),
+            (16, sa.Column("supp_unit", sa.BigInteger)),
+        ],
+    )
+
+
+class HMRCEUImports(_HMRCPipeline):
+    base_filename = "SMKM46"
+    table_config = TableConfig(
+        schema="hmrc",
+        table_name="eu_imports",
+        # https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads/Tech_Spec_SMKX46.DOC
+        field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            (0, sa.Column("comcode", sa.String(9))),
+            (1, sa.Column("record_type", sa.String(3))),
+            (2, sa.Column("cod_sequence", sa.String(3))),
+            (3, sa.Column("cod_alpha", sa.String(2))),
+            (4, sa.Column("trade_indicator", sa.String(1))),
+            (5, sa.Column("coo_seq", sa.String(3))),
+            (6, sa.Column("coo_alpha", sa.String(2))),
+            (7, sa.Column("nature_of_transaction", sa.String(3))),
+            (8, sa.Column("mode_of_transport", sa.String(3))),
+            (9, sa.Column("period_reference", sa.String(7))),
+            (10, sa.Column("suite_indicator", sa.String(3))),
+            (11, sa.Column("sitc", sa.String(5))),
+            (12, sa.Column("ip_comcode", sa.String(9))),
+            (13, sa.Column("num_consignments", sa.BigInteger)),
+            (14, sa.Column("value", sa.BigInteger)),
+            (15, sa.Column("nett_mass", sa.BigInteger)),
+            (16, sa.Column("supp_unit", sa.BigInteger)),
         ],
     )

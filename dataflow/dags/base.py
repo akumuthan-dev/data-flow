@@ -1,11 +1,13 @@
 import sys
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Callable, Tuple
 
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.models import SkipMixin
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
 
 from dataflow import config
@@ -17,8 +19,12 @@ from dataflow.operators.db_tables import (
     drop_temp_tables,
     insert_data_into_db,
     swap_dataset_tables,
+    branch_on_modified_date,
+    scrape_load_and_check_data,
+    poll_for_new_data,
 )
-from dataflow.utils import TableConfig, slack_alert
+from dataflow.operators.email import send_dataset_update_emails
+from dataflow.utils import TableConfig, slack_alert, SingleTableConfig
 
 
 class PipelineMeta(type):
@@ -72,6 +78,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
     # exact time, NOT a range of "between now and 5 hours ago".
     dependencies_execution_delta: timedelta = timedelta(hours=0)
 
+    # If True, the source_data_modified_utc metadata field will be set to the swap table task run utc.
+    use_utc_now_as_source_modified: bool = False
+
     def get_fetch_operator(self) -> PythonOperator:
         raise NotImplementedError(
             f"{self.__class__} needs to override get_fetch_operator"
@@ -79,6 +88,42 @@ class _PipelineDAG(metaclass=PipelineMeta):
 
     def get_insert_data_callable(self):
         return insert_data_into_db
+
+    def get_source_data_modified_utc(self) -> Optional[datetime]:
+        return None
+
+    def get_source_data_modified_utc_callable(self) -> Optional[Callable]:
+        return None
+
+    def branch_on_modified_date(
+        self, dag: DAG, target_db: str, table_config: TableConfig
+    ) -> PythonOperator:
+        """Check whether data is newer than the previous run, else abort.
+
+        This task is executed if the DAG returns non-None from `get_source_data_modified_utc_callable` method. That
+        method should return a callable which itself returns a UTC timestamp that is compared gainst the
+        `dataflow.metadata` table for this pipeline. If the date is newer than our stored date, the pipeline will
+        continue, otherwise we'll abort.
+        """
+        return BranchPythonOperator(
+            task_id="branch-on-modified-date",
+            python_callable=branch_on_modified_date,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[target_db, table_config],
+            dag=dag,
+        )
+
+    def get_transform_operator(self):
+        """
+        Optional overridable task to transform/manipulate data
+        between insert-into-temp-table task and check-temp-table-data task
+        """
+        return None
+
+    @classmethod
+    def fq_table_name(cls):
+        return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
 
     def get_dag(self) -> DAG:
         dag = DAG(
@@ -89,7 +134,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
                 "depends_on_past": False,
                 "email_on_failure": False,
                 "email_on_retry": False,
-                "retries": 0,
+                "retries": 3,
                 "retry_delay": timedelta(minutes=5),
                 'catchup': self.catchup,
             },
@@ -104,6 +149,30 @@ class _PipelineDAG(metaclass=PipelineMeta):
             if self.alert_on_failure
             else None,
         )
+
+        # If we've configured a way for the pipeline to determine when the source data was last modified,
+        # then we should run checks to see if the data has been updated. If it hasn't, we will end the pipeline
+        # early (but gracefully) without pulling the data again.
+        _get_source_data_modified_utc_callable = (
+            self.get_source_data_modified_utc_callable()
+        )
+        if _get_source_data_modified_utc_callable:
+            _get_source_modified_date_utc = PythonOperator(
+                task_id="get-source-modified-date",
+                python_callable=_get_source_data_modified_utc_callable,
+                dag=dag,
+            )
+            _branch_on_modified_date = self.branch_on_modified_date(
+                dag, self.target_db, self.table_config
+            )
+
+            _stop = DummyOperator(task_id="stop", dag=dag)
+            _continue = DummyOperator(task_id="continue", dag=dag)
+        else:
+            _branch_on_modified_date = None
+            _get_source_modified_date_utc = None
+            _stop = None
+            _continue = None
 
         _fetch = self.get_fetch_operator()
         _fetch.dag = dag
@@ -124,6 +193,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
         )
 
+        _transform_tables = self.get_transform_operator()
+        if _transform_tables:
+            _transform_tables.dag = dag
+
         _check_tables = PythonOperator(
             task_id="check-temp-table-data",
             python_callable=check_table_data,
@@ -138,6 +211,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             execution_timeout=timedelta(minutes=10),
             provide_context=True,
             op_args=[self.target_db, *self.table_config.tables],
+            op_kwargs={
+                'use_utc_now_as_source_modified': self.use_utc_now_as_source_modified
+            },
         )
 
         _drop_temp_tables = PythonOperator(
@@ -157,15 +233,21 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
-        (
-            [_fetch, _create_tables]
-            >> _insert_into_temp_table
-            >> _check_tables
-            >> _swap_dataset_tables
-            >> _drop_swap_tables
-        )
+        if _get_source_modified_date_utc:
+            _get_source_modified_date_utc >> _branch_on_modified_date >> [
+                _stop,
+                _continue,
+            ]
+            _continue >> [_fetch, _create_tables]
 
-        _insert_into_temp_table >> _drop_temp_tables
+        [_fetch, _create_tables] >> _insert_into_temp_table >> _drop_temp_tables
+
+        if _transform_tables:
+            _insert_into_temp_table >> _transform_tables >> _check_tables
+        else:
+            _insert_into_temp_table >> _check_tables
+
+        _check_tables >> _swap_dataset_tables >> _drop_swap_tables
 
         for dependency in self.dependencies:
             sensor = ExternalTaskSensor(
@@ -225,7 +307,7 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
                 'depends_on_past': False,
                 'email_on_failure': False,
                 'email_on_retry': False,
-                'retries': 1,
+                'retries': 3,
                 'retry_delay': timedelta(minutes=5),
                 'start_date': datetime(2019, 1, 1),
             },
@@ -260,5 +342,160 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
             )
 
             sensor >> [_create_csv]
+
+        return dag
+
+
+class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
+    """
+    A pipeline that continuously polls (within a given period) for updates to a dataset and then aims to process
+    and upload that data as fast as practicable, to support more time-sensitive workflows. The pipeline minimises time
+    by skipping or condensing steps that are in the standard `_PipelineDAG`, e.g. uploading data to S3 and splitting
+    steps out into separate tasks.
+    """
+
+    target_db: str = config.DATASETS_DB_NAME
+    start_date: datetime = datetime(2019, 11, 5)
+    end_date: Optional[datetime] = None
+    catchup: bool = False
+
+    # Enable or disable Slack notification when DAG run finishes
+    alert_on_success: bool = False
+    alert_on_failure: bool = True
+
+    # Disables the null columns check that makes sure all DB columns
+    # have at least one non-null value
+    allow_null_columns: bool = False
+
+    # These two functions must be defined on any subclasses
+    date_checker: Callable[[], Tuple[datetime, Optional[datetime]]]
+    data_getter: Callable
+
+    table_config: SingleTableConfig
+
+    # How often to poll the data source to read it's "last modified" date.
+    polling_interval_in_seconds = 60
+
+    schedule_interval = "0 6 * * *"
+    daily_end_time_utc = time(17, 0, 0)
+
+    # Which worker to run the poll/scrape/clean/load task on.
+    worker_queue = 'default'
+
+    # If this is defined, it should point to an environment variable that provides a small blob of JSON data:
+    # {
+    #   "dataset_name": "A friendly name for the dataset",
+    #   "dataset_url": "https://www.data.trade.gov.uk/datasets/...",
+    #   "emails": ["subscriber@data.trade.gov.uk", ...]
+    # }
+    update_emails_data_environment_variable: Optional[str] = None
+
+    @classmethod
+    def fq_table_name(cls):
+        return f'"{cls.table_config.schema}"."{cls.table_config.table_name}"'
+
+    def skip_downstream_tasks(self, **kwargs):
+        downstream_tasks = kwargs['task'].get_flat_relatives(upstream=False)
+        self.skip(kwargs['dag_run'], kwargs['ti'].execution_date, downstream_tasks)
+
+    def get_dag(self) -> DAG:
+        dag = DAG(
+            self.__class__.__name__,
+            catchup=self.catchup,
+            default_args={
+                "owner": "airflow",
+                "depends_on_past": False,
+                "email_on_failure": False,
+                "email_on_retry": False,
+                "retries": 3,
+                "retry_delay": timedelta(seconds=30),
+                'catchup': self.catchup,
+            },
+            start_date=self.start_date,
+            end_date=self.end_date,
+            schedule_interval=self.schedule_interval,
+            max_active_runs=1,
+            on_success_callback=partial(slack_alert, success=True)
+            if self.alert_on_success
+            else None,
+            on_failure_callback=partial(slack_alert, success=False)
+            if self.alert_on_failure
+            else None,
+        )
+
+        _poll_for_updates = PythonOperator(
+            task_id='poll-for-new-data',
+            python_callable=poll_for_new_data,
+            op_kwargs=dict(
+                target_db=self.target_db,
+                table_config=self.table_config,
+                pipeline_instance=self,
+            ),
+            dag=dag,
+            provide_context=True,
+        )
+
+        _scrape_load_and_check = PythonOperator(
+            task_id='scrape-and-load-data',
+            python_callable=scrape_load_and_check_data,
+            op_kwargs=dict(
+                target_db=self.target_db,
+                table_config=self.table_config,
+                pipeline_instance=self,
+            ),
+            dag=dag,
+            provide_context=True,
+            queue=self.worker_queue,
+        )
+
+        _swap_dataset_tables = PythonOperator(
+            task_id="swap-dataset-table",
+            dag=dag,
+            python_callable=swap_dataset_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _send_dataset_updated_emails = None
+        if self.update_emails_data_environment_variable:
+            _send_dataset_updated_emails = PythonOperator(
+                task_id='send-dataset-updated-emails',
+                dag=dag,
+                retries=0,
+                python_callable=send_dataset_update_emails,
+                op_kwargs=dict(
+                    update_emails_data_environment_variable=self.update_emails_data_environment_variable
+                ),
+            )
+
+        _drop_temp_tables = PythonOperator(
+            task_id="drop-temp-tables",
+            dag=dag,
+            python_callable=drop_temp_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            trigger_rule="one_failed",
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        _drop_swap_tables = PythonOperator(
+            task_id="drop-swap-tables",
+            dag=dag,
+            python_callable=drop_swap_tables,
+            execution_timeout=timedelta(minutes=10),
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+        )
+
+        (
+            _poll_for_updates
+            >> _scrape_load_and_check
+            >> _swap_dataset_tables
+            >> [_drop_swap_tables, _drop_temp_tables]
+        )
+
+        if _send_dataset_updated_emails:
+            _swap_dataset_tables >> _send_dataset_updated_emails
 
         return dag

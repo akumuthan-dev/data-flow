@@ -1,16 +1,12 @@
-import uuid
-from datetime import datetime
 from typing import Optional
 
-
-import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
 from airflow.operators.python_operator import PythonOperator
+import sqlalchemy as sa
 
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.base import _FastPollingPipeline
 from dataflow.operators.ons import fetch_from_ons_sparql
-from dataflow.transforms import transform_ons_marker_field
-from dataflow.utils import TableConfig
+from dataflow.utils import SingleTableConfig
 
 
 class _ONSPipeline(_PipelineDAG):
@@ -26,72 +22,130 @@ class _ONSPipeline(_PipelineDAG):
         )
 
 
-class ONSUKSATradeInGoodsPipeline(_ONSPipeline):
-    table_config = TableConfig(
-        table_name="ons__uk_sa_trade_in_goods",
-        transforms=[
-            lambda record, table_config, contexts: {
-                **record,
-                "norm_period_type": "year"
-                if len(record["period"]["value"]) == 4
-                else "month",
-                "norm_total": int(float(record["total"]["value"]))
-                if "total" in record
-                else None,
-            },
-            transform_ons_marker_field,
-        ],
+class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
+    from dataflow.ons_scripts.uk_trade_in_goods_all_countries_seasonally_adjusted.main import (
+        get_current_and_next_release_date,
+        get_data,
+    )
+
+    date_checker = get_current_and_next_release_date
+    data_getter = get_data
+    table_config = SingleTableConfig(
+        schema='ons',
+        table_name="uk_sa_trade_in_goods",
         field_mapping=[
-            (
-                None,
-                sa.Column(
-                    "id", UUID, primary_key=True, default=lambda: str(uuid.uuid4())
-                ),
-            ),
-            (None, sa.Column("import_time", sa.DateTime, default=datetime.utcnow)),
-            (
-                ("geography_code", "value"),
-                sa.Column("og_ons_iso_alpha_2_code", sa.String),
-            ),
-            (("geography_name", "value"), sa.Column("og_ons_region_name", sa.String)),
-            (("period", "value"), sa.Column("og_period", sa.String)),
-            (("norm_period_type"), sa.Column("norm_period_type", sa.String)),
-            (("direction", "value"), sa.Column("og_direction", sa.String)),
-            (("total", "value"), sa.Column("og_total", sa.String)),
-            ("norm_total", sa.Column("norm_total", sa.Integer)),
-            (("unit", "value"), sa.Column("og_unit", sa.String)),
-            (("marker", "value"), sa.Column("og_marker", sa.String)),
-            ("norm_marker", sa.Column("norm_marker", sa.String)),
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('value', sa.Column('value', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
         ],
     )
 
-    query = """
-    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKSATradeInGoodsPollingPipeline'
+    )
 
-    SELECT ?period ?geography_name ?geography_code ?direction (xsd:decimal(?gbp_total) AS ?total) ?unit ?marker
-    WHERE {
-        ?s <http://purl.org/linked-data/cube#dataSet> <http://gss-data.org.uk/data/gss_data/trade/ons-uk-sa-trade-in-goods> ;
-            <http://gss-data.org.uk/def/dimension/flow-directions> ?direction_s ;
-            <http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> ?unit_s ;
-            <http://gss-data.org.uk/def/dimension/ons-partner-geography> ?geography_s ;
-            <http://purl.org/linked-data/sdmx/2009/dimension#refPeriod> ?period_s .
 
-        ?period_s <http://www.w3.org/2000/01/rdf-schema#label> ?period .
-        ?direction_s <http://www.w3.org/2000/01/rdf-schema#label> ?direction .
-        ?geography_s <http://www.w3.org/2000/01/rdf-schema#label> ?geography_name .
-        ?geography_s <http://www.w3.org/2004/02/skos/core#notation> ?geography_code .
-        ?unit_s <http://www.w3.org/2000/01/rdf-schema#label> ?unit .
+class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
+    from dataflow.ons_scripts.uk_trade_country_by_commodity.main import (
+        get_current_and_next_release_date,
+        get_data,
+    )
 
-        OPTIONAL {
-            ?s <http://gss-data.org.uk/def/measure/gbp-total> ?gbp_total .
-        }
+    date_checker = get_current_and_next_release_date
+    data_getter = get_data
+    table_config = SingleTableConfig(
+        schema='ons',
+        table_name='uk_trade_in_goods_by_country_and_commodity',
+        field_mapping=[
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('product_code', sa.Column('product_code', sa.Text)),
+            ('product_name', sa.Column('product_name', sa.Text)),
+            ('seasonal_adjustment', sa.Column('seasonal_adjustment', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('value', sa.Column('value', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
+        ],
+    )
+    worker_queue = 'high-memory-usage'
 
-        OPTIONAL {
-            ?s <http://purl.org/linked-data/sdmx/2009/attribute#obsStatus> ?marker_s .
-            ?marker_s <http://www.w3.org/2004/02/skos/core#notation> ?marker .
-        }
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline'
+    )
 
-    }
-    ORDER BY ?period ?geography_s
-    """
+
+class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipeline):
+    from dataflow.ons_scripts.uk_trade_in_services_service_type_by_partner_country_non_seasonally_adjusted.main import (
+        get_current_and_next_release_date,
+        get_data,
+    )
+
+    schedule_interval = "0 6 20-31 1,4,7,10 *"
+
+    date_checker = get_current_and_next_release_date
+    data_getter = get_data
+
+    table_config = SingleTableConfig(
+        schema='ons',
+        table_name='uk_trade_in_services_by_country_nsa',
+        field_mapping=[
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('product_code', sa.Column('product_code', sa.Text)),
+            ('product_name', sa.Column('product_name', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('value', sa.Column('value', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
+        ],
+    )
+
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline'
+    )
+
+
+class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_FastPollingPipeline):
+    from dataflow.ons_scripts.uk_total_trade_all_countries_non_seasonally_adjusted.main import (
+        get_current_and_next_release_date,
+        get_data,
+    )
+
+    schedule_interval = "0 6 20-31 1,4,7,10 *"
+
+    date_checker = get_current_and_next_release_date
+    data_getter = get_data
+
+    table_config = SingleTableConfig(
+        schema='ons',
+        table_name="uk_total_trade_all_countries_nsa",
+        field_mapping=[
+            ('ons_iso_alpha_2_code', sa.Column('ons_iso_alpha_2_code', sa.Text)),
+            ('ons_region_name', sa.Column('ons_region_name', sa.Text)),
+            ('period', sa.Column('period', sa.Text)),
+            ('period_type', sa.Column('period_type', sa.Text)),
+            ('direction', sa.Column('direction', sa.Text)),
+            ('product_name', sa.Column('product_name', sa.Text)),
+            ('measure_type', sa.Column('measure_type', sa.Text)),
+            ('value', sa.Column('value', sa.Numeric)),
+            ('unit', sa.Column('unit', sa.Text)),
+            ('marker', sa.Column('marker', sa.Text)),
+        ],
+    )
+
+    update_emails_data_environment_variable = (
+        'UPDATE_EMAILS_DATA__ONSUKTotalTradeAllCountriesNSAPollingPipeline'
+    )

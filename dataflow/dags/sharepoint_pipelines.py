@@ -14,6 +14,7 @@ from dataflow.utils import TableConfig
 class _SharepointPipeline(_PipelineDAG):
     sub_site_id: Optional[str]
     list_id: Optional[str]
+    use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(

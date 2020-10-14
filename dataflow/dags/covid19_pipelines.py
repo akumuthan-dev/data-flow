@@ -6,6 +6,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.common import fetch_from_hosted_csv
+from dataflow.operators.covid19 import fetch_apple_mobility_data
 from dataflow.operators.csv_inputs import fetch_mapped_hosted_csvs
 from dataflow.operators.db_tables import query_database
 from dataflow.utils import TableConfig
@@ -14,11 +15,14 @@ from dataflow.utils import TableConfig
 class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
     source_url = 'https://oxcgrtportal.azurewebsites.net/api/CSVDownload'
     allow_null_columns = True
+    use_utc_now_as_source_modified = True
     table_config = TableConfig(
         table_name='oxford_covid19_government_response_tracker',
         field_mapping=[
             ('CountryName', sa.Column('country_name', sa.String)),
             ('CountryCode', sa.Column('country_code', sa.String)),
+            ('RegionName', sa.Column('region_name', sa.String)),
+            ('RegionCode', sa.Column('region_code', sa.String)),
             ('Date', sa.Column('date', sa.Numeric)),
             ('C1_School closing', sa.Column('c1_school_closing', sa.Numeric)),
             ('C1_Flag', sa.Column('c1_flag', sa.Numeric)),
@@ -136,18 +140,22 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
             task_id='run-fetch',
             python_callable=partial(fetch_from_hosted_csv, allow_empty_strings=False),
             provide_context=True,
-            op_args=[self.table_config.table_name, self.source_url],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
+            ],
         )
 
 
 class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
     # Run after the daily update of data ~4am
     schedule_interval = '0 7 * * *'
-
+    use_utc_now_as_source_modified = True
+    _endpoint = "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series"
     source_urls = {
-        "confirmed": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
-        "recovered": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-        "deaths": "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+        "confirmed": f"{_endpoint}/time_series_covid19_confirmed_global.csv",
+        "recovered": f"{_endpoint}/time_series_covid19_recovered_global.csv",
+        "deaths": f"{_endpoint}/time_series_covid19_deaths_global.csv",
     }
 
     table_config = TableConfig(
@@ -180,7 +188,7 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
             python_callable=fetch_mapped_hosted_csvs,
             provide_context=True,
             op_args=[
-                self.table_config.table_name,
+                self.table_config.table_name,  # pylint: disable=no-member
                 self.source_urls,
                 self.transform_dataframe,
             ],
@@ -189,15 +197,16 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
 
 class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
     schedule_interval = '0 7 * * *'
-
+    use_utc_now_as_source_modified = True
     dependencies = [CSSECovid19TimeSeriesGlobal]
 
     query = """
     WITH unmatched_codes (country, iso2, iso3) AS (VALUES
         ('Bahamas', 'BS', 'BSS'),
-        ('Bonaire, Sint Eustatius and Saba', 'BQ', NULL),
+        ('Bonaire, Sint Eustatius and Saba', 'BQ', 'BES'),
         ('Burma', 'MM', 'MMR'),
         ('Cabo Verde', 'CV', 'CPV'),
+        ('Channel Islands', 'GB', 'GBR'),
         ('Congo (Brazzaville)', 'CG', 'COG'),
         ('Congo (Kinshasa)', 'CD', 'COD'),
         ('Cote d''Ivoire', 'CI', 'CIV'),
@@ -206,21 +215,27 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
         ('Gambia', 'GM', 'GMB'),
         ('Holy See', 'VA', 'VAT'),
         ('Korea, South', 'KR', 'KOR'),
+        ('Kosovo', 'XK', 'XKX'),
+        ('Reunion', 'RE', 'REU'),
+        ('Saint Barthelemy', 'BL', 'BLM'),
         ('Saint Kitts and Nevis', 'KN', 'KNA'),
         ('Saint Lucia', 'LC', 'LCA'),
         ('Saint Vincent and the Grenadines', 'VC', 'VCT'),
         ('Sint Maarten', 'SX', 'SXM'),
+        ('St Martin', 'MF', 'MAF'),
         ('Taiwan*', 'TW', 'TWN'),
         ('Timor-Leste', 'TL', 'TLS'),
-        ('US', 'US', 'USA')
+        ('United Kingdom', 'GB', 'GBR'),
+        ('US', 'US', 'USA'),
+        ('West Bank and Gaza', 'PS', 'PSE')
     )
     SELECT
-        COALESCE(country_or_territory_id, unmatched_codes.iso2) AS iso2_code,
-        COALESCE(country_or_territory_id3, unmatched_codes.iso3) AS iso3_code,
+        COALESCE(ref_countries_territories_and_regions.iso2_code, unmatched_codes.iso2) AS iso2_code,
+        COALESCE(ref_countries_territories_and_regions.iso3_code, unmatched_codes.iso3) AS iso3_code,
         country_or_region,
         CASE
-           WHEN type = 'confirmed' THEN 'cases'
-           ELSE type
+           WHEN csse_data.type = 'confirmed' THEN 'cases'
+           ELSE csse_data.type
         END AS type,
         date,
         sum(value) as value,
@@ -237,9 +252,9 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
             value,
             value - lag(value) OVER (PARTITION BY country_or_region, province_or_state, type ORDER BY date) as daily_value
         FROM csse_covid19_time_series_global) AS csse_data
-        LEFT JOIN ref_countries_and_territories ON csse_data.country_or_region = country_or_territory_name
+        LEFT JOIN ref_countries_territories_and_regions ON csse_data.country_or_region = ref_countries_territories_and_regions.name
         LEFT JOIN unmatched_codes ON csse_data.country_or_region = unmatched_codes.country
-    GROUP BY (date, country_or_region, country_or_territory_id, country_or_territory_id3, unmatched_codes.iso2, unmatched_codes.iso3, type)
+    GROUP BY (date, country_or_region, ref_countries_territories_and_regions.iso2_code, ref_countries_territories_and_regions.iso3_code, unmatched_codes.iso2, unmatched_codes.iso3, csse_data.type)
     ORDER BY date desc, country_or_region asc, type;
     """
 
@@ -261,6 +276,231 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
+
+
+class GoogleCovid19MobilityReports(_PipelineDAG):
+    use_utc_now_as_source_modified = True
+    source_urls = {
+        'global': 'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
+    }
+
+    table_config = TableConfig(
+        table_name="covid19_global_mobility_report",
+        schema='google',
+        field_mapping=[
+            ("country_region_code", sa.Column("country_region_code", sa.String)),
+            ("country_region", sa.Column("country_region", sa.String)),
+            ("sub_region_1", sa.Column("sub_region_1", sa.String)),
+            ("sub_region_2", sa.Column("sub_region_2", sa.String)),
+            ("adm_area_1", sa.Column("adm_area_1", sa.String)),
+            ("adm_area_1", sa.Column("adm_area_1", sa.String)),
+            ("metro_area", sa.Column("metro_area", sa.String)),
+            ("iso_3166_2_code", sa.Column("iso_3166_2_code", sa.String)),
+            ("census_fips_code", sa.Column("census_fips_code", sa.String)),
+            ("date", sa.Column("date", sa.Date)),
+            (
+                "retail_and_recreation_percent_change_from_baseline",
+                sa.Column("retail_recreation", sa.Numeric),
+            ),
+            (
+                "grocery_and_pharmacy_percent_change_from_baseline",
+                sa.Column("grocery_pharmacy", sa.Numeric),
+            ),
+            ("parks_percent_change_from_baseline", sa.Column("parks", sa.Numeric),),
+            (
+                "transit_stations_percent_change_from_baseline",
+                sa.Column("transit_stations", sa.Numeric),
+            ),
+            (
+                "workplaces_percent_change_from_baseline",
+                sa.Column("workplace", sa.Numeric),
+            ),
+            (
+                "residential_percent_change_from_baseline",
+                sa.Column("residential", sa.Numeric),
+            ),
+        ],
+    )
+
+    def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df['adm_area_1'] = None
+        df['adm_area_2'] = None
+
+        # Update administrative areas from sub regions
+        df.loc[df.sub_region_1.notnull(), 'adm_area_1'] = df.loc[
+            df.sub_region_1.notnull(), 'sub_region_1'
+        ].str.strip()
+        df.loc[df.sub_region_2.notnull(), 'adm_area_2'] = df.loc[
+            df.sub_region_2.notnull(), 'sub_region_2'
+        ].str.strip()
+
+        # Clean US administrative areas
+        df.loc[df.country_region_code == 'US', 'adm_area_2'] = (
+            df.loc[df.country_region_code == 'US', 'adm_area_2']
+            .replace(r'\s*County\s*|\s*Parish\s*', '', regex=True)
+            .replace(r'St\.', 'Saint', regex=True)
+            .str.strip()
+        )
+
+        # Do not set admin area 1 for GB
+        df.loc[df.country_region_code == 'GB', 'adm_area_2'] = df.loc[
+            df.country_region_code == 'GB', 'adm_area_1'
+        ]
+        df.loc[df.country_region_code == 'GB', 'adm_area_1'] = None
+
+        # Clean Jamaican administrative areas
+        df.loc[df.country_region_code == 'JM', 'adm_area_1'] = (
+            df.loc[df.country_region_code == 'JM', 'adm_area_1']
+            .replace('Parish', '')
+            .replace('St.', 'Saint')
+            .str.strip()
+        )
+
+        # Clean admin area 1 for remaining countries
+        df.loc[~df.country_region_code.isin(['US', 'GB', 'JM']), 'adm_area_1'] = (
+            df.loc[~df.country_region_code.isin(['US', 'GB', 'JM']), 'adm_area_1']
+            .replace(
+                r'\s*Province\s*|\s*District\s*|\s*County\s*|\s*Region\s*|\s*Governorate\s*|\s*State of\s*|\s*Department\s*',
+                '',
+                regex=True,
+            )
+            .str.strip()
+        )
+
+        return df
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='run-fetch',
+            python_callable=fetch_mapped_hosted_csvs,
+            provide_context=True,
+            queue='high-memory-usage',
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_urls,
+                self.transform_dataframe,
+            ],
+        )
+
+
+class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
+    base_url = 'https://covid19-static.cdn-apple.com'
+    config_path = '/covid19-mobility-data/current/v3/index.json'
+    use_utc_now_as_source_modified = True
+    table_config = TableConfig(
+        schema='apple',
+        table_name='covid19_mobility_data',
+        field_mapping=[
+            ('geo_type', sa.Column('geo_type', sa.String)),
+            ('country', sa.Column('country', sa.String)),
+            ('region', sa.Column('region', sa.String)),
+            ('sub-region', sa.Column('sub_region', sa.String)),
+            ('adm_area_1', sa.Column('adm_area_1', sa.String)),
+            ('adm_area_2', sa.Column('adm_area_2', sa.String)),
+            ('date', sa.Column('date', sa.Date)),
+            ('driving', sa.Column('driving', sa.Numeric)),
+            ('transit', sa.Column('transit', sa.Numeric)),
+            ('walking', sa.Column('walking', sa.Numeric)),
+        ],
+    )
+
+    def transform_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        df.drop(columns=['alternative_name'], inplace=True)
+
+        # Unpivot dates columns into a single date column
+        df = df.melt(
+            id_vars=[
+                'geo_type',
+                'region',
+                'sub-region',
+                'transportation_type',
+                'country',
+            ],
+            var_name='date',
+        )
+        df['value'] = df['value'] - 100
+
+        # Separate values out by transportation transportation type (driving, transit, walking)
+        df = (
+            df.set_index(
+                [
+                    'geo_type',
+                    'region',
+                    'sub-region',
+                    'country',
+                    'date',
+                    'transportation_type',
+                ]
+            )
+            .unstack('transportation_type')
+            .reset_index()
+        )
+
+        # Clean up transportation type field names
+        df.columns = [t + (v if v != 'value' else '') for v, t in df.columns]
+
+        # Set country to region name if geo type is "country/region"
+        df.loc[df.geo_type == 'country/region', 'country'] = df.loc[
+            df.geo_type == 'country/region', 'region'
+        ]
+
+        # Create administrative areas
+        df['adm_area_1'] = None
+        df['adm_area_2'] = None
+
+        # Clean administrative area for records with a geo type of "sub-region"
+        df.loc[df.geo_type == 'sub-region', 'adm_area_1'] = df.loc[
+            df.geo_type == 'sub-region', 'region'
+        ]
+        df.loc[df.geo_type == 'sub-region', 'adm_area_1'] = (
+            df.loc[df.geo_type == 'sub-region', 'adm_area_1']
+            .replace(
+                r'\s*County\s*|\s*Region\s*|\s*Province\s*|\s*Prefecture\s*',
+                '',
+                regex=True,
+            )
+            .str.strip()
+        )
+
+        # Clean administrative area for records with a geo type of "county"
+        df.loc[df.geo_type == 'county', 'adm_area_1'] = df.loc[
+            df.geo_type == 'county', 'sub-region'
+        ]
+        df.loc[df.geo_type == 'county', 'adm_area_2'] = df.loc[
+            df.geo_type == 'county', 'region'
+        ]
+        df.loc[df.geo_type == 'county', 'adm_area_2'] = (
+            df.loc[df.geo_type == 'county', 'adm_area_2']
+            .replace(r'\s*County\s*|\s*Parish\s*', '', regex=True)
+            .replace(r'St\.', 'Saint', regex=True)
+            .str.strip()
+        )
+
+        # Fix country name
+        df['country'] = df['country'].replace('Republic of Korea', 'South Korea')
+
+        df = df.sort_values(
+            by=['country', 'region', 'sub-region', 'adm_area_1', 'adm_area_2', 'date']
+        ).reset_index(drop=True)
+
+        return df
+
+    def get_fetch_operator(self):
+        return PythonOperator(
+            task_id='run-fetch-apple-mobility-data',
+            provide_context=True,
+            python_callable=fetch_apple_mobility_data,
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.base_url,
+                self.config_path,
+                self.transform_dataframe,
+            ],
+        )

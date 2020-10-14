@@ -9,12 +9,14 @@ from dataflow.utils import TableConfig
 class CompaniesHouseCompaniesPipeline(_PipelineDAG):
     schedule_interval = '0 0 10 * *'
     allow_null_columns = True
+    use_utc_now_as_source_modified = True
     number_of_files = 6
     source_url = 'http://download.companieshouse.gov.uk/BasicCompanyData-{file_date}-part{file_num}_{num_files}.zip'
     table_config = TableConfig(
         schema='companieshouse',
         table_name='companies',
         field_mapping=[
+            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             ('CompanyName', sa.Column('company_name', sa.String)),
             ('CompanyNumber', sa.Column('company_number', sa.String)),
             ('RegAddress.CareOf', sa.Column('care_of', sa.String)),

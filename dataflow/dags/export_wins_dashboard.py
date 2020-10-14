@@ -17,6 +17,7 @@ from dataflow.utils import TableConfig
 
 
 class ExportWinsDashboardPipeline(_PipelineDAG):
+    use_utc_now_as_source_modified = True
     dependencies = [
         CompaniesDatasetPipeline,
         ExportWinsAdvisersDatasetPipeline,

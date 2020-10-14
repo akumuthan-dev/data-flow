@@ -111,7 +111,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
 
 class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     """View pipeline for all OMIS orders created up to the end
-     of the last calendar month"""
+    of the last calendar month"""
 
     dependencies = [
         CompaniesDatasetPipeline,
@@ -429,7 +429,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                             is_primary,
                             phone AS contact_phone,
                             email AS contact_email,
-                            accepts_dit_email_marketing AS contact_accepts_dit_email_marketing
+                            email_marketing_consent AS contact_accepts_dit_email_marketing
                         FROM contacts_dataset
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts

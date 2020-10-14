@@ -8,16 +8,19 @@ from sqlalchemy.dialects.postgresql import UUID
 from dataflow import config
 from dataflow.config import DATAHUB_HAWK_CREDENTIALS
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
+from dataflow.operators.contact_consent import update_datahub_contact_consent
+from dataflow.operators.db_tables import query_database
 from dataflow.utils import TableConfig
 
 
 class _DatasetPipeline(_PipelineDAG):
     cascade_drop_tables = True
-
+    use_utc_now_as_source_modified = True
     source_url: str
 
-    fetch_retries = 0
+    fetch_retries = 3
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -170,6 +173,10 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
                 'competing_countries',
                 sa.Column('competing_countries', sa.ARRAY(sa.Text)),
             ),
+            (
+                'country_investment_originates_from__name',
+                sa.Column('country_investment_originates_from', sa.String),
+            ),
             ('created_by_id', sa.Column('created_by_id', UUID)),
             ('created_on', sa.Column('created_on', sa.DateTime)),
             (
@@ -302,7 +309,6 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
             ),
         ],
     )
-    fetch_retries = 3
 
 
 class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
@@ -326,14 +332,11 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
 class ContactsDatasetPipeline(_DatasetPipeline):
     """Pipeline meta object for ContactsDataset."""
 
+    dependencies = [ConsentPipeline]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
         table_name='contacts_dataset',
         field_mapping=[
-            (
-                'accepts_dit_email_marketing',
-                sa.Column('accepts_dit_email_marketing', sa.Boolean),
-            ),
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
             ('address_country__name', sa.Column('address_country', sa.Text)),
@@ -350,6 +353,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('created_on', sa.Column('date_added_to_datahub', sa.Date)),
             ('email', sa.Column('email', sa.String)),
             ('email_alternative', sa.Column('email_alternative', sa.String)),
+            (None, sa.Column("email_marketing_consent", sa.Boolean, default=False)),
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('job_title', sa.Column('job_title', sa.String)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
@@ -361,6 +365,53 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             ('created_by_id', sa.Column('created_by_id', UUID)),
         ],
     )
+
+    def get_transform_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='update-contact-email-consent',
+            python_callable=update_datahub_contact_consent,
+            provide_context=True,
+            op_args=[self.target_db, self.table_config.tables[0]],
+        )
+
+
+class ContactsLastInteractionPipeline(_DatasetPipeline):
+
+    dependencies = [ContactsDatasetPipeline, InteractionsDatasetPipeline]
+
+    query = """
+        with interactions as (
+            select
+                id,
+                interaction_date,
+                unnest(contact_ids) as contact_id
+            from interactions_dataset
+        )
+        select distinct on (contact_id)
+            t1.id as contact_id,
+            t2.id as last_interaction_id
+        from contacts_dataset t1
+        left join interactions t2 on t1.id::text = t2.contact_id
+        order by contact_id, interaction_date desc nulls last
+    """
+
+    table_config = TableConfig(
+        schema='dit',
+        table_name='data_hub__contacts_latest_interactions',
+        field_mapping=[
+            ('contact_id', sa.Column('contact_id', UUID, primary_key=True)),
+            ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
+        ],
+    )
+
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_config.table_name],
+        )
+        return op
 
 
 class CompaniesDatasetPipeline(_DatasetPipeline):
@@ -451,8 +502,48 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
             ('dit_team_id', sa.Column('team_id', UUID)),
             ('is_active', sa.Column('is_active', sa.Boolean)),
             ('last_login', sa.Column('last_login', sa.DateTime)),
+            ('sso_email_user_id', sa.Column('sso_email_user_id', sa.String)),
         ],
     )
+
+
+class AdvisersLastInteractionPipeline(_DatasetPipeline):
+
+    dependencies = [AdvisersDatasetPipeline, InteractionsDatasetPipeline]
+
+    query = """
+        with interactions as (
+            select
+                id,
+                interaction_date,
+                unnest(adviser_ids) as adviser_id
+            from interactions_dataset
+        )
+        select distinct on (adviser_id)
+            t1.id as adviser_id,
+            t2.id as last_interaction_id
+        from advisers_dataset t1
+        left join interactions t2 on t1.id::text = t2.adviser_id
+        order by adviser_id, interaction_date desc nulls last
+    """
+
+    table_config = TableConfig(
+        schema='dit',
+        table_name='data_hub__advisers_latest_interactions',
+        field_mapping=[
+            ('adviser_id', sa.Column('adviser_id', UUID, primary_key=True)),
+            ('last_interaction_id', sa.Column('last_interaction_id', UUID)),
+        ],
+    )
+
+    def get_fetch_operator(self):
+        op = PythonOperator(
+            task_id='query-database',
+            provide_context=True,
+            python_callable=query_database,
+            op_args=[self.query, self.target_db, self.table_config.table_name],
+        )
+        return op
 
 
 class TeamsDatasetPipeline(_DatasetPipeline):

@@ -91,10 +91,8 @@ airflow/
 .coverage
 
 
-aws/
-awscliv2.zip
+
 *.zip
-models*/
 *.csv
-*.pickle
-*.pkl
+aws/
+models*/

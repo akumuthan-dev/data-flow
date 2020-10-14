@@ -2,9 +2,5 @@
 applications:
 - name: data-flow
   buildpacks:
-   - python_buildpack
+   - https://github.com/cloudfoundry/python-buildpack.git#v1.7.15
   memory: 5gb
-  services:
-    - data-flow-db
-    - data-flow-redis
-    - data-flow-s3

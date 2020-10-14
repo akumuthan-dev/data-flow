@@ -1,8 +1,8 @@
 from typing import Dict, List, cast
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.activity_stream import fetch_from_activity_stream
@@ -18,7 +18,11 @@ class _ActivityStreamPipeline(_PipelineDAG):
             task_id="fetch-activity-stream-data",
             python_callable=fetch_from_activity_stream,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.index, self.query],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.index,
+                self.query,
+            ],
         )
 
 
@@ -26,7 +30,7 @@ class ERPPipeline(_ActivityStreamPipeline):
     index = "objects"
     table_name = "erp_submissions"
     table_config = TableConfig(
-        table_name='erp',
+        table_name="erp",
         field_mapping=[
             ("id", sa.Column("id", sa.String, primary_key=True)),
             ("url", sa.Column("url", sa.String, primary_key=True)),
@@ -334,7 +338,8 @@ class GreatGOVUKExportOpportunitiesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunitites"
     index = "objects"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunities",
+        schema="dit",
+        table_name="great_gov_uk__export_opportunities",
         field_mapping=[
             ("id", sa.Column("id", sa.String, primary_key=True)),
             ("name", sa.Column("name", sa.String, nullable=False)),
@@ -357,7 +362,8 @@ class GreatGOVUKExportOpportunityEnquiriesPipeline(_ActivityStreamPipeline):
     name = "great-gov-uk-export-opportunity-enquiries"
     index = "activities"
     table_config = TableConfig(
-        table_name="great_gov_uk_export_opportunity_enquiries",
+        schema="dit",
+        table_name="great_gov_uk__export_opportunity_enquiries",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "published"), sa.Column("published", sa.DateTime)),
@@ -444,7 +450,7 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
 def staff_sso_users_get_app_names(apps: JSONType) -> JSONType:
     # Happy with a runtime error if apps is is not a list, since the data would not
     # be of the expected structure
-    return [app['name'] for app in cast(List[Dict[str, str]], apps)]
+    return [app["name"] for app in cast(List[Dict[str, str]], apps)]
 
 
 class StaffSSOUsersPipeline(_ActivityStreamPipeline):
@@ -478,3 +484,124 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
     )
 
     query = {"bool": {"filter": [{"term": {"type": "dit:StaffSSO:User"}}]}}
+
+
+class GreatGovUKFormsPipeline(_ActivityStreamPipeline):
+    name = "great-gov-uk-forms"
+    index = "activities"
+
+    table_config = TableConfig(
+        schema="dit",
+        table_name="great_gov_uk__forms",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "norm_id": record["object"]["id"].replace(
+                    "dit:directoryFormsApi:Submission:", ""
+                ),
+                "submission_type": record["object"]["attributedTo"]["id"].replace(
+                    "dit:directoryFormsApi:SubmissionType:", ""
+                ),
+                "submission_action": record["object"]["attributedTo"]["type"].replace(
+                    "dit:directoryFormsApi:SubmissionAction:", ""
+                ),
+            }
+        ],
+        field_mapping=[
+            ("norm_id", sa.Column("id", sa.Integer, primary_key=True)),
+            (("object", "url"), sa.Column("url", sa.String)),
+            (("object", "published"), sa.Column("created_at", sa.DateTime)),
+            ("submission_type", sa.Column("submission_type", sa.String)),
+            ("submission_action", sa.Column("submission_action", sa.String)),
+            (("actor", "dit:emailAddress"), sa.Column("actor_email", sa.String)),
+            (("actor"), sa.Column("actor", sa.JSON),),
+            (
+                ("object", "dit:directoryFormsApi:Submission:Data"),
+                sa.Column("data", sa.JSON),
+            ),
+            (
+                ("object", "dit:directoryFormsApi:Submission:Meta"),
+                sa.Column("meta", sa.JSON),
+            ),
+        ],
+    )
+
+    query = {
+        "bool": {
+            "filter": [
+                {"term": {"object.type": "dit:directoryFormsApi:Submission"}},
+                {"term": {"type": "Create"}},
+            ]
+        }
+    }
+
+
+class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
+    index = "objects"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="return_to_office__bookings",
+        field_mapping=[
+            (
+                "dit:ReturnToOffice:Booking:bookingId",
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
+            ("dit:ReturnToOffice:Booking:userId", sa.Column("user_id", sa.Integer)),
+            ("dit:ReturnToOffice:Booking:userEmail", sa.Column("user_email", sa.Text)),
+            (
+                "dit:ReturnToOffice:Booking:userFullName",
+                sa.Column("user_name", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:onBehalfOfName",
+                sa.Column("on_behalf_of_name", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:onBehalfOfEmail",
+                sa.Column("on_behalf_of_email", sa.Text),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:bookingDate",
+                sa.Column("booking_date", sa.Date),
+            ),
+            (
+                "dit:ReturnToOffice:Booking:building",
+                sa.Column("building_name", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:floor", sa.Column("floor_name", sa.Text)),
+            (
+                "dit:ReturnToOffice:Booking:directorate",
+                sa.Column("directorate", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:group", sa.Column("group", sa.Text),),
+            (
+                "dit:ReturnToOffice:Booking:businessUnit",
+                sa.Column("business_unit", sa.Text),
+            ),
+            ("dit:ReturnToOffice:Booking:created", sa.Column("created", sa.DateTime)),
+            (
+                "dit:ReturnToOffice:Booking:cancelled",
+                sa.Column("cancelled", sa.DateTime),
+            ),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"type": "dit:ReturnToOffice:Booking"}}]}}
+
+
+class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
+    name = "maxemail-campaigns-sent"
+    index = "activities"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="maxemail__email_campaigns_sent",
+        field_mapping=[
+            (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
+            (("object", "dit:emailAddress"), sa.Column("email_address", sa.String)),
+            (("object", "attributedTo", "name"), sa.Column("campaign_name", sa.String)),
+            (("object", "attributedTo", "published"), sa.Column("sent", sa.DateTime)),
+            (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Email"}}]}}

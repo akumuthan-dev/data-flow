@@ -15,6 +15,7 @@ from dataflow.utils import TableConfig
 
 class PeopleFinderPeoplePipeline(_PipelineDAG):
     schedule_interval = "@daily"
+    use_utc_now_as_source_modified = True
     path = "/api/v2/data_workspace_export"
     source_url = f"{config.PEOPLE_FINDER_BASE_URL}{path}"
     table_config = TableConfig(
@@ -26,6 +27,7 @@ class PeopleFinderPeoplePipeline(_PipelineDAG):
             ),
             ("staff_sso_id", sa.Column("staff_sso_id", UUID)),
             ("email", sa.Column("email", sa.Text)),
+            ("contact_email", sa.Column("contact_email", sa.Text)),
             ("full_name", sa.Column("full_name", sa.Text)),
             ("first_name", sa.Column("first_name", sa.Text)),
             ("last_name", sa.Column("last_name", sa.Text)),
@@ -47,7 +49,6 @@ class PeopleFinderPeoplePipeline(_PipelineDAG):
             ("works_sunday", sa.Column("works_sunday", sa.Boolean)),
             ("primary_phone_number", sa.Column("primary_phone_number", sa.Text)),
             ("secondary_phone_number", sa.Column("secondary_phone_number", sa.Text)),
-            ("skype_name", sa.Column("skype_name", sa.Text)),
             ("formatted_location", sa.Column("formatted_location", sa.Text)),
             ("buildings", sa.Column("buildings", sa.ARRAY(sa.String))),
             ("formatted_buildings", sa.Column("formatted_buildings", sa.Text)),

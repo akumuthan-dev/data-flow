@@ -12,6 +12,7 @@ from dataflow.utils import TableConfig
 
 class _ConsentPipeline(_PipelineDAG):
     cascade_drop_tables = True
+    use_utc_now_as_source_modified = True
 
     source_url: str
     table_config: TableConfig
@@ -20,9 +21,7 @@ class _ConsentPipeline(_PipelineDAG):
         return PythonOperator(
             task_id="fetch-consent-api-data",
             python_callable=partial(
-                fetch_from_hawk_api,
-                hawk_credentials=config.CONSENT_HAWK_CREDENTIALS,
-                force_http=True,
+                fetch_from_hawk_api, hawk_credentials=config.CONSENT_HAWK_CREDENTIALS,
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
@@ -35,7 +34,8 @@ class ConsentPipeline(_ConsentPipeline):
         config.CONSENT_BASE_URL, config.CONSENT_RESULTS_PER_PAGE
     )
     table_config = TableConfig(
-        table_name="consent_dataset",
+        schema="dit",
+        table_name="consent_service__current_consents",
         field_mapping=[
             ("id", sa.Column("id", sa.Integer)),
             ("key", sa.Column("key", sa.String)),

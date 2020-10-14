@@ -147,6 +147,12 @@ class TableConfig:
                 related_table.configure(**kwargs)
 
 
+class SingleTableConfig(TableConfig):
+    # A TableConfig that doesn't support any nested tables, for cases where our current code doesn't support building
+    # related tables (e.g. _FastPollingPipeline).
+    field_mapping: SingleTableFieldMapping
+
+
 def slack_alert(context, success=False):
     if not config.SLACK_TOKEN:
         logger.info("No Slack token, skipping Slack notification")
@@ -253,3 +259,20 @@ def get_nested_key(
             else:
                 return None
     return data
+
+
+def get_temp_table(table, suffix):
+    """Get a Table object for the temporary dataset table.
+
+    Given a dataset `table` instance creates a new table with
+    a unique temporary name for the given DAG run and the same
+    columns as the dataset table.
+
+    """
+    return sqlalchemy.Table(
+        f"{table.name}_{suffix}".lower(),
+        table.metadata,
+        *[column.copy() for column in table.columns],
+        schema=table.schema,
+        keep_existing=True,
+    )

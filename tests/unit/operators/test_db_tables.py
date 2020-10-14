@@ -1,11 +1,15 @@
+from datetime import datetime, time
 from unittest import mock
 from unittest.mock import call
 
+import freezegun
 import pytest
 import sqlalchemy
 
+from dataflow.dags import _FastPollingPipeline
 from dataflow.operators import db_tables
-from dataflow.utils import TableConfig
+from dataflow.operators.db_tables import branch_on_modified_date
+from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig
 
 
 @pytest.fixture
@@ -37,7 +41,7 @@ def postgres_hook(mocker):
 
 
 def test_get_temp_table(table):
-    assert db_tables._get_temp_table(table, "temp").name == "test_table_temp"
+    assert get_temp_table(table, "temp").name == "test_table_temp"
     assert table.name == "test_table"
 
 
@@ -45,7 +49,7 @@ def test_create_temp_tables(mocker):
     mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
 
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     db_tables.create_temp_tables("test-db", mock.Mock(), ts_nodash="123")
 
@@ -54,7 +58,7 @@ def test_create_temp_tables(mocker):
 
 def test_insert_data_into_db(mocker, mock_db_conn, s3):
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     s3.iter_keys.return_value = [
         ('1', [{"id": 1, "extra": "ignored", "data": "text"}]),
@@ -114,7 +118,7 @@ def test_insert_data_into_db_using_db_config(mocker, mock_db_conn, s3):
 
 def test_insert_data_into_db_required_field_missing(mocker, mock_db_conn, s3):
     table = mock.Mock()
-    mocker.patch.object(db_tables, "_get_temp_table", autospec=True, return_value=table)
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
 
     s3.iter_keys.return_value = [('1', [{"data": "text"}])]
 
@@ -245,9 +249,46 @@ def test_query_database_closes_cursor_and_connection(mock_db_conn, postgres_hook
     connection.close.assert_called_once_with()
 
 
-def test_swap_dataset_tables(mock_db_conn, table):
+@pytest.mark.parametrize(
+    "xcom_modified_date, use_utc_now_as_source_modified, expected_result",
+    (
+        (datetime(2020, 1, 1, 12, 0, 0), False, datetime(2020, 1, 1, 12, 0)),
+        (None, True, datetime(2020, 2, 2, 12, 0)),
+    ),
+)
+def test_swap_dataset_tables(
+    mock_db_conn,
+    table,
+    mocker,
+    xcom_modified_date,
+    use_utc_now_as_source_modified,
+    expected_result,
+):
     mock_db_conn.execute().fetchall.return_value = (('testuser',),)
-    db_tables.swap_dataset_tables("test-db", table, ts_nodash="123")
+    mocker.patch.object(
+        db_tables.config,
+        'DEFAULT_DATABASE_GRANTEES',
+        ['default-grantee-1', 'default-grantee-2'],
+    )
+    xcom_mock = mock.Mock()
+    xcom_mock.xcom_pull.return_value = xcom_modified_date
+
+    mock_get_task_instance = mocker.patch(
+        'dataflow.operators.db_tables.get_task_instance'
+    )
+    mock_get_task_instance().end_date = expected_result
+
+    with freezegun.freeze_time('20200202t12:00:00'):
+        db_tables.swap_dataset_tables(
+            "test-db",
+            table,
+            ts_nodash="123",
+            task_instance=xcom_mock,
+            use_utc_now_as_source_modified=use_utc_now_as_source_modified,
+            dag=mock.Mock(),
+            execution_date=datetime(2020, 2, 2, 12, 0),
+        )
+
     mock_db_conn.execute.assert_has_calls(
         [
             call(),
@@ -264,11 +305,27 @@ def test_swap_dataset_tables(mock_db_conn, table):
             call().fetchall(),
             call(
                 '''
+                SELECT dataflow.save_and_drop_dependencies('QUOTED<public>', 'QUOTED<test_table>');
                 ALTER TABLE IF EXISTS QUOTED<public>.QUOTED<test_table> RENAME TO QUOTED<test_table_123_swap>;
                 ALTER TABLE QUOTED<public>.QUOTED<test_table_123> RENAME TO QUOTED<test_table>;
+                SELECT dataflow.restore_dependencies('QUOTED<public>', 'QUOTED<test_table>');
                 '''
             ),
             call('GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO testuser'),
+            call(
+                'GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO default-grantee-1'
+            ),
+            call(
+                'GRANT SELECT ON QUOTED<public>.QUOTED<test_table> TO default-grantee-2'
+            ),
+            call(
+                """
+                INSERT INTO dataflow.metadata
+                (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
+                VALUES (%s, %s, %s, %s)
+                """,
+                ('public', 'test_table', expected_result, datetime(2020, 2, 2, 12, 0),),
+            ),
         ]
     )
 
@@ -277,7 +334,7 @@ def test_drop_temp_tables(mocker, mock_db_conn):
     tables = [mock.Mock()]
     tables[0].name = "test_table"
 
-    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+    target = mocker.patch.object(db_tables, "get_temp_table", side_effect=tables)
 
     db_tables.drop_temp_tables("test-db", mock.Mock(), ts_nodash="123")
 
@@ -291,7 +348,7 @@ def test_drop_swap_tables(mocker, mock_db_conn):
     tables = [mock.Mock()]
     tables[0].name = "test_table_swap"
 
-    target = mocker.patch.object(db_tables, "_get_temp_table", side_effect=tables)
+    target = mocker.patch.object(db_tables, "get_temp_table", side_effect=tables)
 
     db_tables.drop_swap_tables("test-db", mock.Mock(), ts_nodash="123")
 
@@ -299,3 +356,298 @@ def test_drop_swap_tables(mocker, mock_db_conn):
 
     for table in tables:
         table.drop.assert_called_once_with(mock_db_conn, checkfirst=True)
+
+
+@pytest.mark.parametrize(
+    "db_result, new_modified_utc, expected_result",
+    (
+        (((None,),), datetime(2020, 1, 2), "continue"),
+        (((datetime(2020, 1, 1),),), datetime(2020, 1, 2), "continue"),
+        (((datetime(2020, 1, 1),),), datetime(2019, 12, 31), "stop"),
+        (tuple(), None, "continue"),
+    ),
+)
+def test_branch_on_modified_date(
+    mocker, mock_db_conn, db_result, new_modified_utc, expected_result
+):
+    target_db = 'target_db'
+    table_config = TableConfig(
+        table_name="my-table",
+        field_mapping=(
+            ("id", sqlalchemy.Column("id", sqlalchemy.Integer(), nullable=False)),
+            ("data", sqlalchemy.Column("data", sqlalchemy.String())),
+        ),
+    )
+    task_instance_mock = mock.Mock()
+    task_instance_mock.xcom_pull.return_value = new_modified_utc
+    mock_db_conn.execute().fetchall.return_value = db_result
+
+    next_task = branch_on_modified_date(
+        target_db, table_config, task_instance=task_instance_mock
+    )
+
+    assert next_task == expected_result
+
+
+class TestPollForNewData:
+    class TestPipeline(_FastPollingPipeline):
+        @staticmethod
+        def date_checker():
+            return (datetime.now(), datetime.now())
+
+        data_getter = mock.Mock()
+        daily_end_time_utc = time(17, 0, 0)
+        allow_null_columns = False
+        table_config = SingleTableConfig(
+            schema='test', table_name="test_table", field_mapping=[],
+        )
+
+    @pytest.mark.parametrize(
+        'run_time_utc, db_data_last_modified_utc, source_last_modified_utc, source_next_release_utc, should_skip',
+        (
+            (  # We have the latest data, and new data isn't expected today, so skip the rest of the pipeline.
+                datetime(2020, 1, 15),
+                datetime(2020, 1, 1),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                True,
+            ),
+            (  # Newer data is available, so we shouldn't skip anything.
+                datetime(2020, 1, 15),
+                datetime(2019, 12, 1),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                False,
+            ),
+            (  # Newer data is available but the data provider has missed a release - we should still keep going.
+                datetime(2020, 2, 15),
+                datetime(2020, 1, 1),
+                datetime(2020, 2, 1),
+                datetime(2020, 3, 1),
+                False,
+            ),
+        ),
+    )
+    def test_skips_downstream_tasks_if_has_latest_data_and_not_expecting_imminent_release(
+        self,
+        run_time_utc,
+        db_data_last_modified_utc,
+        source_last_modified_utc,
+        source_next_release_utc,
+        should_skip,
+        mocker,
+        monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = (
+            (db_data_last_modified_utc,),
+        )
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (source_last_modified_utc, source_next_release_utc),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time(run_time_utc):
+            db_tables.poll_for_new_data(
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
+            )
+
+        if should_skip:
+            assert len(mock_skip.call_args_list) == 1
+            assert kwargs['task_instance'].xcom_push.call_args_list == []
+        else:
+            assert len(mock_skip.call_args_list) == 0
+            assert kwargs['task_instance'].xcom_push.call_args_list == [
+                mock.call('source-modified-date-utc', source_last_modified_utc)
+            ]
+
+    def test_skips_downstream_tasks_if_polling_time_is_after_daily_end_time(
+        self, mocker, monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = ((datetime(2020, 1, 1),),)
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (datetime(2020, 1, 1), datetime(2020, 2, 1)),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time('20200115t19:00:00'):
+            db_tables.poll_for_new_data(
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
+            )
+
+        assert len(mock_skip.call_args_list) == 1
+        assert kwargs['task_instance'].xcom_push.call_args_list == []
+
+    def test_pushes_source_modified_date_if_newer_data_is_available(
+        self, mocker, monkeypatch,
+    ):
+        engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
+        conn = engine.return_value.begin.return_value.__enter__.return_value
+        conn.execute.return_value.fetchall.return_value = ((datetime(2019, 12, 1),),)
+        mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+        monkeypatch.setattr(
+            self.TestPipeline,
+            'date_checker',
+            lambda: (datetime(2020, 1, 1), datetime(2020, 2, 1)),
+        )
+        mock_skip = mocker.patch.object(
+            self.TestPipeline, 'skip_downstream_tasks', autospec=True
+        )
+
+        kwargs = dict(
+            ts_nodash='123',
+            dag=mock.Mock(),
+            dag_run=mock.Mock(),
+            ti=mock.Mock(),
+            task_instance=mock.Mock(),
+        )
+
+        with freezegun.freeze_time('20200101t12:00:00'):
+            db_tables.poll_for_new_data(
+                "test-db",
+                self.TestPipeline.table_config,  # pylint: disable=no-member
+                self.TestPipeline(),
+                **kwargs
+            )
+
+        assert len(mock_skip.call_args_list) == 0
+        assert kwargs['task_instance'].xcom_push.call_args_list == [
+            mock.call('source-modified-date-utc', datetime(2020, 1, 1))
+        ]
+
+
+def test_poll_scrape_and_load_data(mocker):
+    class TestPipeline(_FastPollingPipeline):
+        @staticmethod
+        def date_checker():
+            return datetime.now()
+
+        data_getter = mock.Mock()
+        daily_end_time_utc = time(17, 0, 0)
+        allow_null_columns = False
+        table_config = TableConfig(
+            schema='test',
+            table_name="test_table",
+            field_mapping=[("data_id", sqlalchemy.Column("db_id", sqlalchemy.Integer))],
+        )
+
+    table = mock.Mock()
+    mock_create_tables = mocker.patch.object(
+        db_tables, "create_temp_tables", autospec=True
+    )
+    mock_temp_table = mocker.patch.object(
+        db_tables, "get_temp_table", autospec=True, return_value=table
+    )
+    mock_temp_table.return_value.name = 'tmp_test_table'
+    mock_temp_table.return_value.schema = 'test'
+    mock_check_table_data = mocker.patch.object(
+        db_tables, "check_table_data", autospec=True
+    )
+    mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
+    mock_postgres = mocker.patch(
+        "dataflow.operators.db_tables.PostgresHook", autospec=True
+    )
+    mock_conn = mock_postgres.return_value.get_conn.return_value.__enter__.return_value
+    mock_cursor = mock_conn.cursor.return_value.__enter__.return_value
+    mock_tempfile = mocker.patch("dataflow.operators.db_tables.tempfile", autospec=True)
+    mock_namedtempfile = (
+        mock_tempfile.NamedTemporaryFile.return_value.__enter__.return_value
+    )
+    mock_namedtempfile.name = "tmp_file"
+
+    kwargs = dict(
+        ts_nodash='123',
+        dag=mock.Mock(),
+        dag_run=mock.Mock(),
+        ti=mock.Mock(),
+        task_instance=mock.Mock(),
+    )
+
+    with freezegun.freeze_time('20200101t19:00:00'):
+        db_tables.scrape_load_and_check_data(
+            "test-db",
+            TestPipeline.table_config,  # pylint: disable=no-member
+            TestPipeline(),
+            **kwargs
+        )
+
+    assert mock_create_tables.call_args_list == [
+        mock.call(
+            "test-db",
+            mock.ANY,
+            ts_nodash='123',
+            dag=mock.ANY,
+            dag_run=mock.ANY,
+            ti=mock.ANY,
+            task_instance=mock.ANY,
+        )
+    ]
+    assert (
+        TestPipeline.data_getter.return_value.to_csv.call_args_list  # pylint: disable=no-member
+        == [
+            mock.call(
+                mock_namedtempfile.name,
+                index=False,
+                header=False,
+                sep='\t',
+                na_rep=r'\N',
+                columns=["data_id"],
+            )
+        ]
+    )
+    assert mock_cursor.copy_from.call_args_list == [
+        mock.call(
+            mock_namedtempfile,
+            '"test"."tmp_test_table"',
+            sep='\t',
+            null=r'\N',
+            columns=["db_id"],
+        )
+    ]
+    assert mock_check_table_data.call_args_list == [
+        mock.call(
+            'test-db',
+            mock.ANY,
+            allow_null_columns=False,
+            ts_nodash='123',
+            dag=mock.ANY,
+            dag_run=mock.ANY,
+            ti=mock.ANY,
+            task_instance=mock.ANY,
+        )
+    ]

@@ -1,15 +1,21 @@
-from typing import Type
+from typing import Type, Union
 
 import sqlalchemy as sa
+from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.activity_stream_pipelines import (
+    GreatGOVUKExportOpportunityEnquiriesPipeline,
+)
+from dataflow.dags.companies_house_pipelines import CompaniesHouseCompaniesPipeline
 from dataflow.dags.dataset_pipelines import (
     ContactsDatasetPipeline,
     CompaniesDatasetPipeline,
     ExportWinsWinsDatasetPipeline,
 )
+from dataflow.dags.dss_generic_pipelines import DSSGenericPipeline
 from dataflow.operators.company_matching import fetch_from_company_matching
 from dataflow.utils import TableConfig
 
@@ -19,7 +25,8 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         super().__init__(*args, **kwargs)
 
         self.table_config = TableConfig(
-            table_name=f'{self.controller_pipeline.table_config.table_name}_match_ids',
+            schema=self.schema_name,
+            table_name=self.table_name,
             field_mapping=[
                 ("id", sa.Column("id", sa.Text, primary_key=True)),
                 ("match_id", sa.Column("match_id", sa.Integer)),
@@ -31,7 +38,16 @@ class _CompanyMatchingPipeline(_PipelineDAG):
         self.schedule_interval = self.controller_pipeline.schedule_interval
 
     company_match_query: str
-    controller_pipeline: Type[_PipelineDAG]
+    controller_pipeline: Union[Type[_PipelineDAG], Type[DSSGenericPipeline]]
+    update: bool = False
+
+    @property
+    def table_name(self):
+        return f'{self.controller_pipeline.table_config.table_name}_match_ids'
+
+    @property
+    def schema_name(self):
+        return self.controller_pipeline.table_config.schema
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -43,11 +59,13 @@ class _CompanyMatchingPipeline(_PipelineDAG):
                 self.table_config.table_name,
                 self.company_match_query,
                 config.MATCHING_SERVICE_BATCH_SIZE,
+                self.update,
             ],
         )
 
 
 class DataHubMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
     controller_pipeline = CompaniesDatasetPipeline
     dependencies = [CompaniesDatasetPipeline, ContactsDatasetPipeline]
     company_match_query = f"""
@@ -60,14 +78,15 @@ class DataHubMatchingPipeline(_CompanyMatchingPipeline):
             companies.company_number as companies_house_id,
             'dit.datahub' as source,
             companies.modified_on as datetime
-        FROM {CompaniesDatasetPipeline.table_config.table_name} companies
-        LEFT JOIN {ContactsDatasetPipeline.table_config.table_name} contacts
+        FROM {CompaniesDatasetPipeline.fq_table_name()} companies
+        LEFT JOIN {ContactsDatasetPipeline.fq_table_name()} contacts
         ON contacts.company_id = companies.id
         ORDER BY companies.id asc, companies.modified_on desc
     """
 
 
 class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
     controller_pipeline = ExportWinsWinsDatasetPipeline
     dependencies = [ExportWinsWinsDatasetPipeline]
     company_match_query = f"""
@@ -77,9 +96,102 @@ class ExportWinsMatchingPipeline(_CompanyMatchingPipeline):
             customer_email_address as contact_email,
             NULLIF(cdms_reference, '') AS cdms_ref,
             null as postcode,
-            null as copmanies_house_id,
+            null as companies_house_id,
             'dit.export-wins' as source,
             created::timestamp as datetime
-        FROM {ExportWinsWinsDatasetPipeline.table_config.table_name}
+        FROM {ExportWinsWinsDatasetPipeline.fq_table_name()}
         ORDER BY id asc, created::timestamp desc
+    """
+
+
+class GreatGOVUKExportOpportunityEnquiriesMatchingPipeline(_CompanyMatchingPipeline):
+    table_name = 'great_gov_uk__ex_opp_enquiries__match_ids'
+    controller_pipeline = GreatGOVUKExportOpportunityEnquiriesPipeline
+    dependencies = [GreatGOVUKExportOpportunityEnquiriesPipeline]
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            contact_email_address as contact_email,
+            null AS cdms_ref,
+            upper(replace(trim("postcode"), ' ', '')) as postcode,
+            company_number as companies_house_id,
+            'dit.export-opps-enquiries' as source,
+            published as datetime
+        FROM {GreatGOVUKExportOpportunityEnquiriesPipeline.fq_table_name()}
+        ORDER BY id asc, published desc
+    """
+
+
+class CompaniesHouseMatchingPipeline(_CompanyMatchingPipeline):
+    update = True
+    controller_pipeline = CompaniesHouseCompaniesPipeline
+    dependencies = [CompaniesHouseCompaniesPipeline]
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            null as contact_email,
+            null as cdms_ref,
+            upper(replace(trim("postcode"), ' ', '')) as postcode,
+            company_number as companies_house_id,
+            'companies_house.companies' as source,
+            publish_date::timestamp as datetime
+        FROM {CompaniesHouseCompaniesPipeline.fq_table_name()}
+        ORDER BY id asc, publish_date::timestamp desc
+    """
+
+
+class _DSSGenericMatchingPipeline(_CompanyMatchingPipeline):
+
+    controller_pipeline = DSSGenericPipeline
+    schema_name: str
+    controller_table_name: str
+    table_name: str
+
+    def get_dag(self) -> DAG:
+        dag = super().get_dag()
+        tag = f'DSSGenericMatchingPipeline-{self.schema_name}-{self.controller_table_name}'
+        if dag.tags:
+            dag.tags.append(tag)
+        else:
+            dag.tags = [tag]
+        return dag
+
+
+class DSSHMRCFieldForceMatchingPipeline(_DSSGenericMatchingPipeline):
+    schema_name = 'hmrc'
+    controller_table_name = 'field_force__triage_call_responses'
+    table_name = 'field_force_match_ids'
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            turn_business_name as company_name,
+            contact_email as contact_email,
+            null as cdms_ref,
+            null as postcode,
+            null as companies_house_id,
+            'hmrc.field_force' as source,
+            entry_last_modified::timestamp as datetime
+        FROM "{schema_name}"."{controller_table_name}"
+        ORDER BY id asc, entry_last_modified::timestamp desc
+    """
+
+
+class DSSHMRCExportersMatchingPipeline(_DSSGenericMatchingPipeline):
+    schema_name = 'hmrc'
+    controller_table_name = 'exporters'
+    table_name = 'exporters_match_ids'
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            company_name as company_name,
+            null as contact_email,
+            null as cdms_ref,
+            postcode as postcode,
+            null as companies_house_id,
+            'hmrc.exporters' as source,
+            datetime::timestamp as datetime
+        FROM "{schema_name}"."{controller_table_name}"
+        ORDER BY id asc, datetime::timestamp desc
     """

@@ -4,11 +4,293 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-10-13
+
+### Changed
+
+- Retry all _DatasetPipeline 3 times to work around them being killed somewhat randomly
+
+## 2020-10-05
+
+### Added
+- Add [prometheus metrics exporter](https://github.com/uktrade/data-flow-metrics) to data-flow.
+
+### Changed
+- Set default retries across almost all DAGs at three, to (hopefully) reduce the need for manually restarting failed pipelines that are caused by transient issues.
+
+## 2020-10-02
+
+### Added
+
+- Pipeline for interaction tags classifier (TagsClassifierPipeline).
+
+### Changed
+
+- More export wins derived fetch task to the high mem queue
+
+## 2020-09-30
+
+### Changed
+
+- Update country code mapping for the JHU covid dataset
+
+## 2020-09-29
+
+### Changed
+
+- Join on original rather than transformed sectors for DataHubMonthlyInvesmentProjectsPipline query
+
+## 2020-09-24
+
+### Added
+
+- Maxemail campaigns sent emails pipeline.
+- Email alerts for the remaining 3 ONS pipeline runs.
+
+### Changed
+
+- Preserve views/materialised views dependencies on table swap
+
+## 2020-09-23
+
+### Added
+
+- New activity stream pipeline for the return-to-office service
+
+### Changed
+
+- Fix typos in export wins derived config
+- Fix incorrect field type bug in return to office pipeline
+- Add correct id field to return to office pipeline
+- Use matching service update endpoint for some matching pipeline 
+
+## 2020-09-22
+
+### Added
+
+- HMRC Exporters matching pipeline
+
+### Changed
+
+- Support Array types in DSSGenericPipeline
+
+## 2020-09-21
+
+### Changed
+
+- Run the google covid pipeline daily 
+- Allow null columns on the derived export wins pipeline
+- Use the high memory queue for the google covid dataset fetch operation
+- Add region name and region code fields to oxford covid dataset
+
+## 2020-09-18
+
+### Added
+
+- Add a new derived table for reporting on export wins
+
+## 2020-09-15
+
+### Changed
+- Use postgres's native `copy_from` rather than `DataFrame.to_sql` to load data in postgres for the "fast polling" pipelines for significant speed gains (~15x).
+
+## 2020-09-14
+
+### Added
+
+- Contact and advisor last interaction pipelines.
+
+### Changed
+- ONS UK trade in services migrated to new polling pipeline.
+- ONS UK total trade migrated to new polling pipeline.
+
+## 2020-09-12
+
+### Added
+
+- The ability to send notification emails to users when a pipeline has completed successfully, configured through env vars.
+
+### Changed
+
+- ONS UK SA Trade in Goods dataset to scrape/clean/transform/load directly from the ONS spreadsheet rather than their alpha API, which has been flaky. This will also use our condensed polling pipeline to load this data more quickly.
+- ONS UK Trade in goods by country and commodity dataset to a condensed polling pipeline.
+
+## 2020-09-11
+
+### Added
+
+- Allow for pipelines to specify setting `source_data_modified_utc` to run time (utc)
+
+### Changed
+
+- Update daily dataset dags to set `source_data_modified_utc` to utc now
+
+## 2020-09-08
+
+### Changed
+
+- Update queries using legacy `ref_countries_and_territories` reference datasets to use new `ref_countries_territories_and_regions` dataset
+
+## 2020-09-04
+
+### Added
+
+- HMRC Field Force matching pipeline
+
+## 2020-09-03
+
+### Changed
+
+- Fix incorrect column name in People Finder people pipeline
+
+## 2020-09-01
+
+### Added
+
+- 'country_investment_originates_from' to Investment Projects dataset.
+
+## 2020-08-28
+
+### Added
+
+- New investment projects pipeline DataHubMonthlyInvesmentProjectsPipline
+
+## 2020-08-26
+
+### Changed
+
+- Updated fields in People Finder people pipeline
+
+## 2020-08-25
+
+### Added
+
+- 'SSO email' to Advisers dataset.
+
+## 2020-08-24
+
+### Changed
+
+- Add numeric data type to generic dss pipeline
+
+## 2020-08-24
+
+### Changed
+
+- Renamed DirectoryFormsPipeline to GreatGovUKFormsPipeline.
+
+## 2020-08-21
+
+### Changed
+
+- Update maintenance dag to include all (non user and postgres) schemas
+
+## 2020-08-20
+
+### Added
+
+- Directory Forms API pipeline.
+- New HMRC pipeline for exports to the EU
+- New HMRC pipeline for import from the EU 
+
+### Changed
+
+- Use hmrc schema for all hmrc pipelines
+
+## 2020-08-18
+
+### Added
+
+- Metadata table to the datasets DB under a `dataflow` schema, used to track various information related to pipeline runs/data pulled in. To begin with, we record the last modification date for ONS datasets and the timestamp when dataflow swapped temporary ingest tables with the "real" tables.
+- Updated ONS parsing pipelines to only continue if there is more recent data available, based on the source data modified timestamp stored in the metadata table.
+
+## 2020-08-17
+
+### Added
+
+- New pipeline to sync changes from the dnb company service to the dnb global companies table
+
+## 2020-08-13
+
+### Changed
+
+- Move dun and bradstreet tables to dun_and_bradstreet schema
+- Rename dun and bradstreet tables to differentiate from global data
+
+## 2020-08-10
+
+### Changed
+
+- Remove Data Hub's obslete field `accepts_dit_email_marketing`, using new field `email_marketing_consent` should be used instead.
+- Updated market access trade barriers endpoint and small change to the resulting table structure.
+
+## 2020-08-05
+
+### Added
+
+- A new pipeline task between `insert-into-temp-table` task and `check-temp-table-data` task for transforming data before making public.
+- A new field `email_marketing_consent` to Contacts dataset to hold Email consent data joined from Consent dataset.
+- Additional transformations for google covid19 mobility data
+
+## 2020-08-03
+
+### Added
+
+- Apple covid19 mobility report pipeline
+
+## 2020-07-28
+
+### Added
+
+- Google covid19 mobility report pipeline
+
+## 2020-07-28
+
+### Added
+
+- Export opps enquiries and companies house matching pipeline
+
+## 2020-07-28
+
+### Changed
+
+- Remove checks from DSSGenericPipeline
+
+## 2020-07-28
+
+### Changed
+
+- `consent_dataset` schema and table name were altered to match our new standards. It will be `dit`.`consent_service__current_consents` now.
+
+## 2020-07-23
+
+### Changed
+
+- Disable `force_http` when making api calls to Consent Service
+
+## 2020-07-22
+
+### Changed
+
+- Allow for granting table access to a list of default db users
+
+## 2020-07-21
+
+### Changed
+
+- New field `commercial_value_explanation` added to market access trade barriers pipeline
+
 ## 2020-07-17
 
 ### Added
 
 - Joined date to SSO users
+
+## 2020-07-16
+
+### Added
+
+- Generic pipeline to ingest DSS datasets
 
 ## 2020-07-16
 
