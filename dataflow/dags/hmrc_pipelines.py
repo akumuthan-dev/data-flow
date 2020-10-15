@@ -5,23 +5,27 @@ import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.hmrc import fetch_uktradeinfo_non_eu_data
+from dataflow.operators.hmrc import fetch_hmrc_trade_data
 from dataflow.utils import TableConfig
 
 
 class _HMRCPipeline(_PipelineDAG):
     base_filename: str
-
+    records_start_date: datetime = datetime(2019, 4, 1)
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
     use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
-            task_id="fetch-uktradeinfo-non-eu-exports",
-            python_callable=fetch_uktradeinfo_non_eu_data,
+            task_id="fetch-hmrc-trade-data",
+            python_callable=fetch_hmrc_trade_data,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.base_filename],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.base_filename,
+                self.records_start_date,
+            ],
         )
 
 

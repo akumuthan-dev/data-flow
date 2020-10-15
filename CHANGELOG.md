@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Retry all _DatasetPipeline 3 times to work around them being killed somewhat randomly
+- Ensure hmrc pipelines include all available historic data
 
 ## 2020-10-05
 
