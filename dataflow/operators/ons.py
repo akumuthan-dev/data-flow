@@ -7,6 +7,8 @@ from typing import Optional
 
 import backoff
 import requests
+import sqlalchemy as sa
+from airflow.hooks.postgres_hook import PostgresHook
 
 from dataflow import config
 from dataflow.utils import logger, S3Data
@@ -90,4 +92,62 @@ def run_ipython_ons_extraction(table_name: str, script_name: str, **kwargs):
             logger.info(f"Writing {filename} to S3.")
             s3.write_key(
                 os.path.basename(filename), open(filename, "r").read(), jsonify=False,
+            )
+
+
+def create_views(
+    target_db: str, schema_name: str, table_name: str, **kwargs,
+):
+    """
+    Create views for available publication dates
+    """
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+    with engine.begin() as conn:
+        fq_table_name = f'"{schema_name}"."{table_name}"'
+        result_set = conn.execute(
+            f"""
+                select
+                    distinct publication_date
+                from {fq_table_name}
+            """
+        )
+        resultproxy = result_set.fetchall()
+        if resultproxy:
+            dates = [
+                [value for column, value in rowproxy.items()][0]
+                for rowproxy in resultproxy
+            ]
+            for date in dates:
+                postfix = date.strftime("%b%Y").lower()
+                fq_view_name = f'"{schema_name}"."{table_name}__{postfix}"'
+                logger.info(f'Creating materialized view {fq_view_name}')
+                conn.execute(
+                    f"""
+                    create materialized view if not exists {fq_view_name} as (
+                        select
+                            *
+                        from {fq_table_name}
+                        where publication_date = '{date.strftime("%Y-%m-%d")}'
+                    )
+                """
+                )
+            fq_view_name = f'"{schema_name}"."{table_name}__latest"'
+            logger.info(f'Creating materialized view {fq_view_name}')
+            conn.execute(
+                f"""
+                create materialized view if not exists {fq_view_name} as (
+                    select
+                        *
+                    from {fq_table_name}
+                    where publication_date = (
+                        select
+                            max(publication_date)
+                        from {fq_table_name}
+                    )
+                );
+                refresh materialized view {fq_view_name}
+            """
             )

@@ -2,6 +2,7 @@
 from functools import partial
 
 import sqlalchemy as sa
+from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -12,6 +13,7 @@ from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.operators.contact_consent import update_datahub_contact_consent
 from dataflow.operators.db_tables import query_database
+from dataflow.operators.ons import create_views
 from dataflow.utils import TableConfig
 
 
@@ -850,8 +852,10 @@ class ONSPostcodePipeline(_DatasetPipeline):
         config.DATA_STORE_SERVICE_BASE_URL
     )
     table_config = TableConfig(
-        table_name='ons_postcodes',
+        schema='ons',
+        table_name='postcode_directory',
         field_mapping=[
+            ('id', sa.Column('id', sa.Integer, primary_key=True)),
             ('pcd', sa.Column('pcd', sa.Text)),
             ('pcd2', sa.Column('pcd2', sa.Text)),
             ('pcds', sa.Column('pcds', sa.Text)),
@@ -902,8 +906,27 @@ class ONSPostcodePipeline(_DatasetPipeline):
             ('imd', sa.Column('imd', sa.Text)),
             ('calncv', sa.Column('calncv', sa.Text)),
             ('stp', sa.Column('stp', sa.Text)),
+            ('publication_date', sa.Column('publication_date', sa.Date, index=True)),
         ],
     )
+
+    def get_dag(self) -> DAG:
+        dag = super().get_dag()
+
+        _create_views = PythonOperator(
+            task_id='create-views',
+            provide_context=True,
+            python_callable=create_views,
+            op_args=[
+                self.target_db,
+                self.table_config.schema,
+                self.table_config.table_name,
+            ],
+        )
+        dag.add_task(_create_views)
+        _swap_task = dag.get_task('swap-dataset-table')
+        _swap_task >> _create_views
+        return dag
 
 
 class RawWorldBankTariffPipeline(_DatasetPipeline):
