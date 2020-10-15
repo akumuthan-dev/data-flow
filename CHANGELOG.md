@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-10-14
+
+### Changed
+
+- Split the requests for sharepoint columns/data to allow for pagination  
+
 ## 2020-10-13
 
 ### Changed
