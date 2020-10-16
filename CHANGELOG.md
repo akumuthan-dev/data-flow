@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-10-16
+
+### Added
+
+- Add 5 new fields to the market access dataset
+    - trading_bloc_code
+    - trading_bloc_name
+    - end_date
+    - summary
+    - wto_profile
+
 ## 2020-10-15
 
 ### Changed

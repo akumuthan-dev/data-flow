@@ -2,8 +2,8 @@ from datetime import datetime
 from functools import partial
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.config import MARKET_ACCESS_HAWK_CREDENTIALS
@@ -104,6 +104,14 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                     ),
                 ),
             ),
+            (("trading_bloc", "code"), sa.Column("trading_bloc_code", sa.String)),
+            (("trading_bloc", "name"), sa.Column("trading_bloc_name", sa.String)),
+            ("end_date", sa.Column("end_date", sa.Date)),
+            ("summary", sa.Column("summary", sa.Text)),
+            (
+                ("wto_profile", "wto_has_been_notified"),
+                sa.Column("wto_has_been_notified", sa.Boolean),
+            ),
         ],
     )
 
@@ -114,5 +122,8 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                 fetch_from_hawk_api, hawk_credentials=MARKET_ACCESS_HAWK_CREDENTIALS,
             ),
             provide_context=True,
-            op_args=[self.table_config.table.name, self.source_url],
+            op_args=[
+                self.table_config.table.name,  # pylint: disable=no-member
+                self.source_url,
+            ],
         )
