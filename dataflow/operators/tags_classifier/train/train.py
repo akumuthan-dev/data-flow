@@ -26,22 +26,11 @@ import datetime
 import os
 
 print(os.getcwd(), __package__, __name__, __file__)
-from keras_preprocessing.text import tokenizer_from_json
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, Conv1D, GlobalMaxPooling1D, Flatten
-from tensorflow.keras.preprocessing import sequence
-import tensorflow as tf
 
-tf.random.set_seed(2)
-
-from tensorflow.keras.preprocessing.text import Tokenizer
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 import numpy as np
-from tensorflow.keras import layers
 from itertools import compress
 import json
-import sys
 
 
 
@@ -102,6 +91,9 @@ def fetch_interaction_labelled_data(training_file):
 
 
 def build_tokens(df, model_path):
+    from tensorflow.keras.preprocessing.text import Tokenizer
+
+
     # model_path = "models_" + today + "/models_general/"
     # print(df.columns)
     tokenizer = Tokenizer(
@@ -133,6 +125,9 @@ def build_tokens(df, model_path):
 
 
 def build_train_set(df, tokenizer, tags):
+    from tensorflow.keras.preprocessing import sequence
+
+
     print('MAX_SEQUENCE_LENGTH', MAX_SEQUENCE_LENGTH)
     X = tokenizer.texts_to_sequences(df['sentence'].values)
     X = sequence.pad_sequences(
@@ -172,6 +167,10 @@ def build_train_set(df, tokenizer, tags):
 
 
 def cnn():
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras import layers
+    from tensorflow.keras.layers import Embedding
+
     model = Sequential()
     # model.add(layers.Embedding(input_dim=vocab_size,
     #                            output_dim=embedding_dim,
@@ -233,6 +232,10 @@ def model_training_with_labelled_data(table_name, **context):
 
 
 def train_model(model, X_train, Y_train, X_val, Y_val, class_weight):
+    from tensorflow.keras.callbacks import EarlyStopping
+    import tensorflow as tf
+    tf.random.set_seed(2)
+
     model.compile(
         loss='binary_crossentropy',
         optimizer='adam',
