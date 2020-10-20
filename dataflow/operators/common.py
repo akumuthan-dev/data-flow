@@ -42,7 +42,7 @@ def _hawk_api_request(
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logger.error(f"Request failed: {response.text}")
+        logger.warning(f"Request failed: {response.text}")
         raise
 
     if validate_response:
