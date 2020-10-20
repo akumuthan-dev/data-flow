@@ -7,7 +7,9 @@ from mohawk import Sender
 from dataflow.utils import logger
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+@backoff.on_exception(
+    backoff.expo, requests.exceptions.RequestException, max_tries=8, factor=4
+)
 def _hawk_api_request(
     url: str,
     method: str,
@@ -30,7 +32,7 @@ def _hawk_api_request(
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logger.error(f"Request failed: {response.text}")
+        logger.warning(f"Request failed: {response.text}")
         raise
 
     response_json = response.json()
