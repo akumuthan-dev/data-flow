@@ -98,4 +98,5 @@ def test_pipelines_dags():
         'StaffSSOUsersPipeline',
         'TagsClassifierPipeline',
         'TeamsDatasetPipeline',
+        'ZendeskUKTradeTicketsPipeline',
     }

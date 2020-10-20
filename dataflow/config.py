@@ -124,3 +124,10 @@ DEFAULT_DATABASE_GRANTEES = (
 COMPANIES_HOUSE_PSC_TOTAL_FILES = int(
     os.environ.get('COMPANIES_HOUSE_PSC_TOTAL_FILES', 1)
 )
+ZENDESK_CREDENTIALS = {
+    'uktrade': {
+        'url': os.environ.get("ZENDESK_UKTRADE_URL") or "<invalid>",
+        'email': os.environ.get("ZENDESK_UKTRADE_EMAIL") or "<invalid>",
+        'secret': os.environ.get("ZENDESK_UKTRADE_SECRET") or "<invalid>",
+    },
+}
