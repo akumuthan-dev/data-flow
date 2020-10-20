@@ -12,7 +12,9 @@ from mohawk.exc import HawkFail
 from dataflow.utils import S3Data, get_nested_key, logger
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+@backoff.on_exception(
+    backoff.expo, requests.exceptions.RequestException, max_tries=8, factor=4
+)
 def _hawk_api_request(
     url: str,
     credentials: dict,
@@ -42,7 +44,7 @@ def _hawk_api_request(
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logger.error(f"Request failed: {response.text}")
+        logger.warning(f"Request failed: {response.text}")
         raise
 
     if validate_response:
