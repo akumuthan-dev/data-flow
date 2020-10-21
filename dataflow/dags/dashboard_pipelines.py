@@ -428,6 +428,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 'super_region_or_da_in_team',
                 sa.Column('super_region_or_da_in_team', sa.Text),
             ),
+            ('export_revenue', sa.Column('export_revenue', sa.Boolean)),
         ],
     )
     query = '''
@@ -845,7 +846,8 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         END AS post_team,
         project_team.delivery_partner_teams,
         project_team.lep_or_da_in_team,
-        project_team.super_region_or_da_in_team
+        project_team.super_region_or_da_in_team,
+        investment_projects.export_revenue
     FROM investment_projects
     JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
     JOIN project_team ON project_team.project_id = investment_projects.id
