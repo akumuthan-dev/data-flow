@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Add `export_revenue` field to investment projects datashboard pipeline
 
+### Added
+
+- New, cabinet office gender pay gap pipeline
+
 ## 2020-10-20
 
 ### Changed
