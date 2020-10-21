@@ -42,7 +42,9 @@ def fetch_companies_house_companies(
     ).strftime('%Y-%m-01')
     for file_num in range(1, number_of_files + 1):
         url = source_url.format(
-            file_date=publish_date, file_num=file_num, num_files=number_of_files,
+            file_date=publish_date,
+            file_num=file_num,
+            num_files=number_of_files,
         )
         logger.info(f'Fetching zip file from {url}')
         with zipfile.ZipFile(io.BytesIO(_download(url))) as archive:

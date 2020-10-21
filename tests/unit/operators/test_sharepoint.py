@@ -24,7 +24,10 @@ def test_sharepoint_request_auth_fail(mock_msal_app):
     }
     with pytest.raises(sharepoint.InvalidAuthCredentialsError):
         sharepoint.fetch_from_sharepoint_list(
-            'test_table', 'test-site-2', 'test-list', ts_nodash='test',
+            'test_table',
+            'test-site-2',
+            'test-list',
+            ts_nodash='test',
         )
 
 
@@ -37,14 +40,20 @@ def test_sharepoint_request_fail(mock_msal_app, requests_mock):
     )
     with pytest.raises(HTTPError):
         sharepoint.fetch_from_sharepoint_list(
-            'test_table', 'test-site-2', 'test-list', ts_nodash='test',
+            'test_table',
+            'test-site-2',
+            'test-list',
+            ts_nodash='test',
         )
 
 
 def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
     s3_mock = mock.MagicMock()
     mocker.patch.object(
-        sharepoint, "S3Data", return_value=s3_mock, autospec=True,
+        sharepoint,
+        "S3Data",
+        return_value=s3_mock,
+        autospec=True,
     )
     sharepoint.DIT_SHAREPOINT_CREDENTIALS['tenant_domain'] = 'tenant.sharepoint.com'
     sharepoint.DIT_SHAREPOINT_CREDENTIALS['site_name'] = 'test-site-1'
@@ -90,7 +99,10 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
     )
 
     sharepoint.fetch_from_sharepoint_list(
-        'test_table', 'test-site-2', 'test-list', ts_nodash='test',
+        'test_table',
+        'test-site-2',
+        'test-list',
+        ts_nodash='test',
     )
     s3_mock.write_key.assert_has_calls(
         [

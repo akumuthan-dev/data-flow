@@ -20,5 +20,8 @@ def fetch_gender_pay_gap_files(
         for x in range(records_start_year, records_end_year + 1)
     }
     fetch_mapped_hosted_csvs(
-        table_name, source_urls, transform_dataframe, ts_nodash=kwargs['ts_nodash'],
+        table_name,
+        source_urls,
+        transform_dataframe,
+        ts_nodash=kwargs['ts_nodash'],
     )

@@ -91,12 +91,17 @@ def run_ipython_ons_extraction(table_name: str, script_name: str, **kwargs):
         ):
             logger.info(f"Writing {filename} to S3.")
             s3.write_key(
-                os.path.basename(filename), open(filename, "r").read(), jsonify=False,
+                os.path.basename(filename),
+                open(filename, "r").read(),
+                jsonify=False,
             )
 
 
 def create_views(
-    target_db: str, schema_name: str, table_name: str, **kwargs,
+    target_db: str,
+    schema_name: str,
+    table_name: str,
+    **kwargs,
 ):
     """
     Create views for available publication dates

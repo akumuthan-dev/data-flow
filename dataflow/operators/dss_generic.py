@@ -17,14 +17,20 @@ from dataflow.utils import TableConfig
 def create_temp_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     return dataflow.operators.db_tables.create_temp_tables(
-        DATASETS_DB_NAME, *table_config.tables, *args, **context,
+        DATASETS_DB_NAME,
+        *table_config.tables,
+        *args,
+        **context,
     )
 
 
 def drop_swap_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     return dataflow.operators.db_tables.drop_swap_tables(
-        DATASETS_DB_NAME, *table_config.tables, *args, **context,
+        DATASETS_DB_NAME,
+        *table_config.tables,
+        *args,
+        **context,
     )
 
 
@@ -32,7 +38,10 @@ def drop_temp_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     if table_config:
         return dataflow.operators.db_tables.drop_temp_tables(
-            DATASETS_DB_NAME, *table_config.tables, *args, **context,
+            DATASETS_DB_NAME,
+            *table_config.tables,
+            *args,
+            **context,
         )
 
 
@@ -100,14 +109,20 @@ def get_table_config(**context):
 def insert_into_temp_table(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     return dataflow.operators.db_tables.insert_data_into_db(
-        target_db=DATASETS_DB_NAME, table_config=table_config, *args, **context,
+        target_db=DATASETS_DB_NAME,
+        table_config=table_config,
+        *args,
+        **context,
     )
 
 
 def swap_dataset_tables(*args, **context):
     table_config = context['task_instance'].xcom_pull(task_ids='get-table-config')
     return dataflow.operators.db_tables.swap_dataset_tables(
-        DATASETS_DB_NAME, *table_config.tables, *args, **context,
+        DATASETS_DB_NAME,
+        *table_config.tables,
+        *args,
+        **context,
     )
 
 

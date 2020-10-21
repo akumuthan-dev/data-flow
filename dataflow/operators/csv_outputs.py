@@ -12,7 +12,11 @@ from dataflow.utils import logger
 
 
 def create_csv(
-    target_db: str, base_file_name: str, timestamp_output: bool, query: str, **kwargs,
+    target_db: str,
+    base_file_name: str,
+    timestamp_output: bool,
+    query: str,
+    **kwargs,
 ):
     """
     Given a db, view name and a query create a csv file and upload it to s3.
@@ -62,7 +66,11 @@ def create_csv(
 
 
 def create_compressed_csv(
-    target_db: str, base_file_name: str, timestamp_output: bool, query: str, **kwargs,
+    target_db: str,
+    base_file_name: str,
+    timestamp_output: bool,
+    query: str,
+    **kwargs,
 ):
     """
     Given a db, view name and a query create a csv file and upload it to s3.
