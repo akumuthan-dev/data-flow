@@ -7,6 +7,7 @@ def test_pipelines_dags():
         'AdvisersDatasetPipeline',
         'AdvisersLastInteractionPipeline',
         'AppleCovid19MobilityTrendsPipeline',
+        'CabinetOfficeGenderPayGapPipeline',
         'CSSECovid19TimeSeriesGlobal',
         'CSSECovid19TimeSeriesGlobalGroupedByCountry',
         'CompaniesDatasetPipeline',
