@@ -56,10 +56,7 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
             ('Asset Format', sa.Column('asset_format', sa.String)),
             ('Who has access?', sa.Column('who_has_access', sa.String)),
             ('Who is it shared with?', sa.Column('who_is_it_shared_with', sa.String)),
-            (
-                'Date the asset was created',
-                sa.Column('date_asset_created', sa.Date),
-            ),
+            ('Date the asset was created', sa.Column('date_asset_created', sa.Date),),
             ('Retention Period', sa.Column('retention_period', sa.String)),
             (
                 'Is a sharing agreement in place?',

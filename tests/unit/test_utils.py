@@ -171,10 +171,7 @@ class TestTableConfig:
         id_col = ("id", Column("id", Integer))
         name_col = ("name", Column("name", String))
 
-        single_table_config = TableConfig(
-            table_name="test",
-            field_mapping=[id_col],
-        )
+        single_table_config = TableConfig(table_name="test", field_mapping=[id_col],)
 
         nested_table_config = TableConfig(
             table_name="test",
@@ -196,8 +193,7 @@ class TestTableConfig:
 
     def test_table_property_returns_sqlalchemy_table(self):
         single_table_config = TableConfig(
-            table_name="test",
-            field_mapping=[("id", Column("id", Integer))],
+            table_name="test", field_mapping=[("id", Column("id", Integer))],
         )
 
         table = single_table_config.table

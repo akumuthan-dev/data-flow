@@ -13,11 +13,7 @@ def test_fetch_gender_pay_gap_files(mocker):
 
     with freezegun.freeze_time('2020-09-01T12:00:00Z'):
         cabinet_office.fetch_gender_pay_gap_files(
-            'gender_pay_gap',
-            'http://test/{year}',
-            2018,
-            transform,
-            ts_nodash="123",
+            'gender_pay_gap', 'http://test/{year}', 2018, transform, ts_nodash="123",
         )
 
     mock_fetch_csvs.fetch_called_once_with(

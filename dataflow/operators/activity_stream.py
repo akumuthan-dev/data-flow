@@ -20,11 +20,7 @@ def fetch_from_activity_stream(table_name: str, index_name: str, query: dict, **
     while next_page:
         logger.info(f"Fetching page {next_page} of {source_url}")
         data = _hawk_api_request(
-            source_url,
-            "GET",
-            query,
-            ACTIVITY_STREAM_HAWK_CREDENTIALS,
-            'hits',
+            source_url, "GET", query, ACTIVITY_STREAM_HAWK_CREDENTIALS, 'hits',
         )
         if "failures" in data["_shards"]:
             logger.warning(

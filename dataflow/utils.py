@@ -90,9 +90,7 @@ class TableConfig:
         ]
 
     @cached_property
-    def related_table_configs(
-        self,
-    ) -> TableMapping:
+    def related_table_configs(self,) -> TableMapping:
         """Return directly-related TableConfigs, as a sequence of (key, TableConfig) pairs"""
         return [
             (key, column_or_table_config)

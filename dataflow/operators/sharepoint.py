@@ -11,9 +11,7 @@ class InvalidAuthCredentialsError(ValueError):
 
 def _make_request(url, access_token, params):
     response = requests.get(
-        url,
-        params=params,
-        headers={'Authorization': f'Bearer {access_token}'},
+        url, params=params, headers={'Authorization': f'Bearer {access_token}'},
     )
     try:
         response.raise_for_status()

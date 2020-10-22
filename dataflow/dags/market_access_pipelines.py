@@ -119,8 +119,7 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
         return PythonOperator(
             task_id='run-fetch',
             python_callable=partial(
-                fetch_from_hawk_api,
-                hawk_credentials=MARKET_ACCESS_HAWK_CREDENTIALS,
+                fetch_from_hawk_api, hawk_credentials=MARKET_ACCESS_HAWK_CREDENTIALS,
             ),
             provide_context=True,
             op_args=[
