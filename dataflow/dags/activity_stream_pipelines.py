@@ -416,7 +416,8 @@ class LITECasesPipeline(_ActivityStreamPipeline):
     name = "lite-cases"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_cases",
+        schema='dit',
+        table_name="lite__cases",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:caseOfficer"), sa.Column("case_officer", sa.String)),
@@ -434,7 +435,8 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
     name = "lite-case-changes"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_case_changes",
+        schema='dit',
+        table_name="lite__case_changes",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:from"), sa.Column("case_from", sa.JSON)),
