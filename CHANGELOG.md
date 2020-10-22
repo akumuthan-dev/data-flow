@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - Rename and move LITE to tables to dit schema 
+- Use the new "latest" postcodes materialized view in dashboards
 
 ## 2020-10-21
 
