@@ -244,8 +244,8 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             companies_dataset.address_country AS company_country,
             companies_dataset.address_postcode AS company_postcode,
             CASE
-                WHEN ons_postcodes.long IS NOT NULL
-                THEN CONCAT(ons_postcodes.lat, ', ', ons_postcodes.long)
+                WHEN postcode_directory__latest.long IS NOT NULL
+                THEN CONCAT(postcode_directory__latest.lat, ', ', postcode_directory__latest.long)
                 END AS company_address_latitude_longitude,
             companies_dataset.uk_region AS company_uk_region,
             companies_dataset.number_of_employees AS company_number_of_employees,
@@ -269,7 +269,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
         FROM minister_interactions
         JOIN companies_dataset ON companies_dataset.id = minister_interactions.company_id
         JOIN advisers_dataset ON advisers_dataset.id = minister_interactions.adviser_id::uuid
-        LEFT JOIN ons_postcodes ON REPLACE(ons_postcodes.pcd2,' ','') = REPLACE(companies_dataset.address_postcode, ' ','')
+        LEFT JOIN ons.postcode_directory__latest ON REPLACE(postcode_directory__latest.pcd2,' ','') = REPLACE(companies_dataset.address_postcode, ' ','')
         WHERE adviser_id IN (
             '19d855be-a8bb-4004-8ae7-d52902e3f85a',
             'c3680c0e-fd4b-4b1b-8def-46c23f8cd97c',
