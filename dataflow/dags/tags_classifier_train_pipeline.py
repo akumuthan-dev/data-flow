@@ -3,7 +3,10 @@ from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
 from dataflow.utils import TableConfig
 from dataflow.dags.dataset_pipelines import InteractionsDatasetPipeline
-from dataflow.operators.tags_classifier.train.train import model_training_with_labelled_data
+from dataflow.operators.tags_classifier.train.train import (
+    model_training_with_labelled_data,
+)
+
 
 class TagsClassifierTrainPipelineRefactor(_PipelineDAG):
     table_config = TableConfig(

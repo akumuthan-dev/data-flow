@@ -28,7 +28,11 @@ def test_invalid_hawk_id(mocker):
     )
     credentials = {'id': 'invalid-id', 'key': TEST_CLIENT_KEY, 'algorithm': 'sha256'}
     sender = mohawk.Sender(
-        credentials=credentials, url='/', method='GET', content='', content_type='',
+        credentials=credentials,
+        url='/',
+        method='GET',
+        content='',
+        content_type='',
     )
     headers = {'Authorization': sender.request_header, 'Content-Type': ''}
     with app.test_request_context('/', headers=headers):
@@ -47,7 +51,11 @@ def test_invalid_hawk_key(mocker):
     )
     credentials = {'id': TEST_CLIENT_ID, 'key': 'invalid-key', 'algorithm': 'sha256'}
     sender = mohawk.Sender(
-        credentials=credentials, url='/', method='GET', content='', content_type='',
+        credentials=credentials,
+        url='/',
+        method='GET',
+        content='',
+        content_type='',
     )
     headers = {'Authorization': sender.request_header, 'Content-Type': ''}
     with app.test_request_context('/', headers=headers):

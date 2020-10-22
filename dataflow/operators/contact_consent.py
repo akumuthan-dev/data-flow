@@ -7,7 +7,9 @@ from dataflow.utils import get_temp_table, logger
 
 
 def update_datahub_contact_consent(
-    target_db: str, table: sqlalchemy.Table, **kwargs,
+    target_db: str,
+    table: sqlalchemy.Table,
+    **kwargs,
 ):
     """
     Updates Contacts temp table with email marketing consent data from Consent dataset.

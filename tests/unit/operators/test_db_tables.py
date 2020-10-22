@@ -103,7 +103,9 @@ def test_insert_data_into_db_using_db_config(mocker, mock_db_conn, s3):
     mocker.patch.object(table_config, '_temp_table', mock_table)
 
     db_tables.insert_data_into_db(
-        target_db="test-db", table_config=table_config, ts_nodash="123",
+        target_db="test-db",
+        table_config=table_config,
+        ts_nodash="123",
     )
 
     mock_db_conn.execute.assert_has_calls(
@@ -324,7 +326,12 @@ def test_swap_dataset_tables(
                 (table_schema, table_name, source_data_modified_utc, dataflow_swapped_tables_utc)
                 VALUES (%s, %s, %s, %s)
                 """,
-                ('public', 'test_table', expected_result, datetime(2020, 2, 2, 12, 0),),
+                (
+                    'public',
+                    'test_table',
+                    expected_result,
+                    datetime(2020, 2, 2, 12, 0),
+                ),
             ),
         ]
     )
@@ -399,7 +406,9 @@ class TestPollForNewData:
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
         table_config = SingleTableConfig(
-            schema='test', table_name="test_table", field_mapping=[],
+            schema='test',
+            table_name="test_table",
+            field_mapping=[],
         )
 
     @pytest.mark.parametrize(
@@ -479,7 +488,9 @@ class TestPollForNewData:
             ]
 
     def test_skips_downstream_tasks_if_polling_time_is_after_daily_end_time(
-        self, mocker, monkeypatch,
+        self,
+        mocker,
+        monkeypatch,
     ):
         engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
         conn = engine.return_value.begin.return_value.__enter__.return_value
@@ -514,7 +525,9 @@ class TestPollForNewData:
         assert kwargs['task_instance'].xcom_push.call_args_list == []
 
     def test_pushes_source_modified_date_if_newer_data_is_available(
-        self, mocker, monkeypatch,
+        self,
+        mocker,
+        monkeypatch,
     ):
         engine = mocker.patch.object(db_tables.sa, "create_engine", autospec=True)
         conn = engine.return_value.begin.return_value.__enter__.return_value

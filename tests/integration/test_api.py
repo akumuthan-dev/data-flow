@@ -24,13 +24,19 @@ def test_no_hawk_auth(auth_backend, expected_status):
 
 
 @pytest.mark.parametrize(
-    'key, expected_status', (('validkey', 200), ('invalidkey', 401),),
+    'key, expected_status',
+    (
+        ('validkey', 200),
+        ('invalidkey', 401),
+    ),
 )
 def test_hawk_auth(key, expected_status, mocker):
     os.environ['AIRFLOW__API__AUTH_BACKEND'] = 'dataflow.api_auth_backend'
     url = 'http://0.0.0.0:8000/api/experimental/test'
     mocker.patch.object(
-        api_auth_backend.config, 'AIRFLOW_API_HAWK_CREDENTIALS', {'hawkid': 'validkey'},
+        api_auth_backend.config,
+        'AIRFLOW_API_HAWK_CREDENTIALS',
+        {'hawkid': 'validkey'},
     )
     app = create_app(testing=True)
     with app.test_client() as client:

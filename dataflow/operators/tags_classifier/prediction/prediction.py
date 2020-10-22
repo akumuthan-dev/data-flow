@@ -4,7 +4,12 @@ import zipfile
 import numpy as np
 from itertools import compress
 from dataflow.operators.tags_classifier.utils import preprocess
-from dataflow.operators.tags_classifier.setting import MAX_SEQUENCE_LENGTH, model_version, tags_covid, tags_general
+from dataflow.operators.tags_classifier.setting import (
+    MAX_SEQUENCE_LENGTH,
+    model_version,
+    tags_covid,
+    tags_general,
+)
 import operator
 import pandas as pd
 from airflow.hooks.postgres_hook import PostgresHook

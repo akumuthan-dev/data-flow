@@ -38,14 +38,38 @@ def test_cleanup_old_s3_files(s3):
 
 def test_cleanup_old_dataset_db_tables(mock_db_conn):
     mock_db_conn.execute.return_value = [
-        ('public', 'table1',),
-        ('public', 'table1_20000101t000000',),
-        ('public', 'table1_20000101t000000_swap',),
-        ('public', 'table1_20000108t000000',),
-        ('public', 'table1_20000108t000000_swap',),
-        ('public', 'table2_20000101t000000',),
-        ('dit', 'table3',),
-        ('dit', 'table3_20000101t000000',),
+        (
+            'public',
+            'table1',
+        ),
+        (
+            'public',
+            'table1_20000101t000000',
+        ),
+        (
+            'public',
+            'table1_20000101t000000_swap',
+        ),
+        (
+            'public',
+            'table1_20000108t000000',
+        ),
+        (
+            'public',
+            'table1_20000108t000000_swap',
+        ),
+        (
+            'public',
+            'table2_20000101t000000',
+        ),
+        (
+            'dit',
+            'table3',
+        ),
+        (
+            'dit',
+            'table3_20000101t000000',
+        ),
     ]
 
     maintenance.cleanup_old_datasets_db_tables(ts_nodash="20000110T000000")

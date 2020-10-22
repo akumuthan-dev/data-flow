@@ -33,7 +33,6 @@ from itertools import compress
 import json
 
 
-
 #
 # def fetch_interaction_labelled_data(
 #     target_db: str,  query: str
@@ -93,7 +92,6 @@ def fetch_interaction_labelled_data(training_file):
 def build_tokens(df, model_path):
     from tensorflow.keras.preprocessing.text import Tokenizer
 
-
     # model_path = "models_" + today + "/models_general/"
     # print(df.columns)
     tokenizer = Tokenizer(
@@ -126,7 +124,6 @@ def build_tokens(df, model_path):
 
 def build_train_set(df, tokenizer, tags):
     from tensorflow.keras.preprocessing import sequence
-
 
     print('MAX_SEQUENCE_LENGTH', MAX_SEQUENCE_LENGTH)
     X = tokenizer.texts_to_sequences(df['sentence'].values)
@@ -234,6 +231,7 @@ def model_training_with_labelled_data(table_name, **context):
 def train_model(model, X_train, Y_train, X_val, Y_val, class_weight):
     from tensorflow.keras.callbacks import EarlyStopping
     import tensorflow as tf
+
     tf.random.set_seed(2)
 
     model.compile(
@@ -511,28 +509,36 @@ def save_model(train_data_date):
 
     shutil.make_archive('models_' + train_data_date, 'zip', 'models_' + train_data_date)
 
-    # s3 = boto3.client('s3', region_name='eu-west-2')
-    # s3.upload_file(
-    #     'models_' + train_data_date + '.zip',
-    #     bucket,
-    #     'models/data_hub_policy_feedback_tags_classifier/' + 'models_' + train_data_date + '.zip',
-    # )
-
-    print('bucket', bucket)
-
-    # cf service-key data-flow-s3-a dev-key-name-for-LL
-    bucket = "paas-s3-broker-prod-lon-8c167200-ac5c-4a68-80c0-dd079c35b1be" ##instance name: data-flow-s3-a
-    print('bucket', bucket)
-    aws_access_key_id = 'AKIAV3ON3AJYBPYZLL6V' ##data-flow-s3-a
-    aws_secret_access_key  = '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'  ##data-flow-s3-a
-    s3 = boto3.client('s3', region_name='eu-west-2', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-    # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/operators/tags_classifier_train/models_20200907.zip',bucket,
-    #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
+    s3 = boto3.client('s3', region_name='eu-west-2')
     s3.upload_file(
         'models_' + train_data_date + '.zip',
         bucket,
         'models/data_hub_policy_feedback_tags_classifier/' + 'models_' + train_data_date + '.zip',
     )
+
+    # print('bucket', bucket)
+    #
+    # # cf service-key data-flow-s3-a dev-key-name-for-LL
+    # bucket = "paas-s3-broker-prod-lon-8c167200-ac5c-4a68-80c0-dd079c35b1be"  ##instance name: data-flow-s3-a
+    # print('bucket', bucket)
+    # aws_access_key_id = 'AKIAV3ON3AJYBPYZLL6V'  ##data-flow-s3-a
+    # aws_secret_access_key = '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'  ##data-flow-s3-a
+    # s3 = boto3.client(
+    #     's3',
+    #     region_name='eu-west-2',
+    #     aws_access_key_id=aws_access_key_id,
+    #     aws_secret_access_key=aws_secret_access_key,
+    # )
+    # # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/operators/tags_classifier_train/models_20200907.zip',bucket,
+    # #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
+    # s3.upload_file(
+    #     'models_' + train_data_date + '.zip',
+    #     bucket,
+    #     'models/data_hub_policy_feedback_tags_classifier/'
+    #     + 'models_'
+    #     + train_data_date
+    #     + '.zip',
+    # )
 
     return None
 

@@ -37,7 +37,9 @@ def test_dag_cls():
 
         def get_fetch_operator(self) -> PythonOperator:
             return PythonOperator(
-                task_id="fetch-data", python_callable=_fetch, provide_context=True,
+                task_id="fetch-data",
+                python_callable=_fetch,
+                provide_context=True,
             )
 
     return TestDAG

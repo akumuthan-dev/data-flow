@@ -124,7 +124,9 @@ def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
 
 
 def _insert_related_records(
-    conn: sa.engine.Connection, table_config: TableConfig, contexts: Tuple[Dict, ...],
+    conn: sa.engine.Connection,
+    table_config: TableConfig,
+    contexts: Tuple[Dict, ...],
 ):
     for key, related_table in table_config.related_table_configs:
         related_records = get_nested_key(contexts[-1], key) or []
@@ -231,7 +233,10 @@ def insert_data_into_db(
 
 
 def insert_csv_data_into_db(
-    target_db: str, table_config: TableConfig, contexts: Tuple = tuple(), **kwargs,
+    target_db: str,
+    table_config: TableConfig,
+    contexts: Tuple = tuple(),
+    **kwargs,
 ):
     """Insert fetched response data into temporary DB tables.
 
