@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## 2020-10-26
+
+### Added
+
+- New pipeline for companies house significant persons of control 
+
 ## 2020-10-22
 
 ### Changed

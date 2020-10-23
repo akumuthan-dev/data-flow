@@ -24,7 +24,7 @@ DATAHUB_HAWK_CREDENTIALS = {
 DATAHUB_BASE_URL = os.environ.get("DATAHUB_BASE_URL")
 EXPORT_WINS_BASE_URL = os.environ.get("EXPORT_WINS_BASE_URL")
 
-DEBUG = True if os.environ.get("DEBUG") == "True" else False
+DEBUG = os.environ.get("DEBUG") == "True"
 REDIS_URL = os.environ.get("AIRFLOW__CELERY__BROKER_URL")
 COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
     "COUNTRIES_OF_INTEREST_BASE_URL", "localhost:5000"
@@ -119,4 +119,8 @@ DEFAULT_DATABASE_GRANTEES = (
     os.environ.get('DEFAULT_DATABASE_GRANTEES', '').split(',')
     if os.environ.get('DEFAULT_DATABASE_GRANTEES') is not None
     else []
+)
+
+COMPANIES_HOUSE_PSC_TOTAL_FILES = int(
+    os.environ.get('COMPANIES_HOUSE_PSC_TOTAL_FILES', 1)
 )
