@@ -4,7 +4,13 @@ import zipfile
 import numpy as np
 from itertools import compress
 from .utils import preprocess
-from .setting import MAX_SEQUENCE_LENGTH, model_version, tags_covid, tags_general
+from .setting import (
+    MAX_SEQUENCE_LENGTH,
+    model_version,
+    tags_covid,
+    tags_general,
+    probability_threshold,
+)
 import operator
 import pandas as pd
 from airflow.hooks.postgres_hook import PostgresHook
@@ -63,7 +69,9 @@ def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
         logger.info(f"Predicting for tag {ind}, {tag_i}")
         m = tf.keras.models.load_model(model_path + tag_i)
         test_predictions_prob_tag = m.predict(X_to_predict)
-        test_predictions_class_tag = (test_predictions_prob_tag > 0.5) + 0
+        test_predictions_class_tag = (
+            test_predictions_prob_tag > probability_threshold
+        ) + 0
         Y_test_predict_prob[:, ind] = np.concatenate(test_predictions_prob_tag)
         Y_test_predict[:, ind] = np.concatenate(test_predictions_class_tag)
 
@@ -73,7 +81,13 @@ def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
 
     for i in np.arange(0, X_to_predict.shape[0]):
         sentence.append(X_to_predict[i])
-        predict.append(list(compress(tags_to_predict, Y_test_predict_prob[i] > 0.5)))
+        predict.append(
+            list(
+                compress(
+                    tags_to_predict, Y_test_predict_prob[i] > probability_threshold
+                )
+            )
+        )
         predict_prob.append(dict(zip(tags_to_predict, Y_test_predict_prob[i])))
 
     prediction_on_data = pd.DataFrame(
@@ -204,7 +218,8 @@ def predict_tags(df):
         predictions = prediction_on_general_data.copy()
 
     predictions['prediction_prob_top_5'] = predictions.apply(
-        lambda x: top_5_labels(x['prediction_prob'], threshold=0.5), axis=1
+        lambda x: top_5_labels(x['prediction_prob'], threshold=probability_threshold),
+        axis=1,
     )
     predictions['tags_prediction'] = predictions.apply(
         lambda x: list(x['prediction_prob_top_5'].keys()), axis=1
