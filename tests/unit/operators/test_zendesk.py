@@ -31,13 +31,17 @@ def test_zendesk_fetch_daily_tickets(mocker):
     )
 
     query = mock.Mock(on_exception=mock.Mock())
-    data = [{"results": [{"a": 1}], "count": 1, "next_page": None}]
+    data = [{"results": [{"id": 1}], "count": 1, "next_page": None}]
+    metrics = {"solved_at": "date", "full_resolution_time_in_minutes": 10}
 
     mocker.patch.object(zendesk.config, "ZENDESK_CREDENTIALS", ZENDESK_CREDENTIALS)
     mocker.patch.object(zendesk, "S3Data", return_value=s3_data, autospec=True)
     mocker.patch.object(zendesk, "S3Upstream", return_value=s3_upstream, autospec=True)
     mocker.patch.object(
         zendesk, "_query", return_value=query, side_effect=data, autospec=True
+    )
+    mocker.patch.object(
+        zendesk, "_get_ticket_metrics", return_value=metrics,
     )
 
     zendesk.fetch_daily_tickets(
@@ -48,7 +52,7 @@ def test_zendesk_fetch_daily_tickets(mocker):
         ts_nodash="20001223T001122",
     )
     assert s3_upstream.write_key.call_args == mock.call(
-        "20001222.json", [{"a": 1}], jsonify=True
+        "20001222.json", [{'id': 1, **metrics}], jsonify=True,
     )
     assert s3_data.client.copy_object.call_args == mock.call(
         source_bucket_key=f"{s3_upstream.prefix}/{fn}",

@@ -10,7 +10,12 @@ FIELD_MAPPING = [
     ("external_id", sa.Column("external_id", sa.BigInteger)),
     ("via", sa.Column("via", sa.JSON)),
     ("created_at", sa.Column("created_at", sa.DateTime)),
+    ("solved_at", sa.Column("solved_at", sa.DateTime)),
     ("updated_at", sa.Column("updated_at", sa.DateTime)),
+    (
+        "full_resolution_time_in_minutes",
+        sa.Column("full_resolution_time_in_minutes", sa.Integer),
+    ),
     ("subject", sa.Column("subject", sa.String)),
     ("description", sa.Column("description", sa.String)),
     ("service", sa.Column("service", sa.String)),
@@ -65,6 +70,10 @@ def field_transformation(record, table_config, contexts):
             if record.get("organization")
             else None,
             "service": service["value"],
+            "solved_at": record["metric_set"]["solved_at"],
+            "full_resolution_time_in_minutes": record["metric_set"][
+                "full_resolution_time_in_minutes"
+            ]["calendar"],
         }
     else:
         return {**record, "service": service["value"]}

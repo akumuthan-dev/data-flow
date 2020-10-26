@@ -26,6 +26,18 @@ def _query(url, account):
     return response.json()
 
 
+def _get_ticket_metrics(id: int, account: str):
+    base_url = config.ZENDESK_CREDENTIALS[account]["url"]
+    ticket_url = f"{base_url}/tickets/{id}/metrics.json"
+    response = _query(url=ticket_url, account=account)
+    return {
+        "solved_at": response["ticket_metric"]["solved_at"],
+        "full_resolution_time_in_minutes": response['ticket_metric'][
+            "full_resolution_time_in_minutes"
+        ]["calendar"],
+    }
+
+
 def fetch_daily_tickets(
     schema_name: str, table_name: str, account: str, **kwargs,
 ):
@@ -49,6 +61,11 @@ def fetch_daily_tickets(
             break
         if page >= 11:
             raise Exception("Too many iterations")
+
+    # Get metrics fields which aren't returned from the search endpoint
+    for ticket in results:
+        metrics = _get_ticket_metrics(id=ticket["id"], account=account)
+        ticket.update(metrics)
 
     s3upstream = S3Upstream(f"{schema_name}_{table_name}")
     s3upstream.write_key(f"{yesterday}.json", results, jsonify=True)
