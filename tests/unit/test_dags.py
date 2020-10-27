@@ -13,6 +13,7 @@ def test_pipelines_dags():
         'CompaniesDatasetPipeline',
         'CompaniesHouseCompaniesPipeline',
         'CompaniesHouseMatchingPipeline',
+        'CompaniesHousePeopleWithSignificantControlPipeline',
         'CompanyExportCountry',
         'CompanyExportCountryHistory',
         'ConsentPipeline',
