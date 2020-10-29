@@ -38,6 +38,15 @@ def _get_ticket_metrics(id: int, account: str):
     }
 
 
+def _remove_covid_related_tickets(tickets: list):
+    return [
+        ticket
+        for ticket in tickets
+        if ticket["via"]["source"]["to"].get("address")
+        != config.ZENDESK_COVID_EMAIL_ADDRESS
+    ]
+
+
 def fetch_daily_tickets(
     schema_name: str, table_name: str, account: str, **kwargs,
 ):
@@ -66,6 +75,10 @@ def fetch_daily_tickets(
     for ticket in results:
         metrics = _get_ticket_metrics(id=ticket["id"], account=account)
         ticket.update(metrics)
+
+    # Remove covid-19 related tickets from dit zendesk tickets
+    if account == 'dit':
+        results = _remove_covid_related_tickets(results)
 
     s3upstream = S3Upstream(f"{schema_name}_{table_name}")
     s3upstream.write_key(f"{yesterday}.json", results, jsonify=True)
