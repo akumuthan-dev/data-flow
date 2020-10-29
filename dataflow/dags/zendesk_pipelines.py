@@ -1,7 +1,12 @@
+from functools import partial
+
+import base64
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 
+from dataflow import config
 from dataflow.dags import _PipelineDAG
+from dataflow.operators.common import fetch_from_api_endpoint
 from dataflow.operators.zendesk import fetch_daily_tickets
 from dataflow.utils import TableConfig
 
@@ -188,4 +193,80 @@ class ZendeskUKTradeTicketsPipeline(_PipelineDAG):
                 self.table_config.table_name,
                 "uktrade",
             ],
+        )
+
+
+class ZendeskUKTRadeGroupsPipeline(_PipelineDAG):
+    schedule_interval = "0 0 * * MON"
+    allow_null_columns = True
+    use_utc_as_new_source_modified = True
+    table_config = TableConfig(
+        schema="zendesk",
+        table_name="uktrade_groups",
+        field_mapping=[
+            ("id", sa.Column("id", sa.BigInteger, primary_key=True)),
+            ("name", sa.Column("name", sa.String)),
+            ("description", sa.Column("description", sa.String)),
+            ("default", sa.Column("default", sa.Boolean)),
+            ("deleted", sa.Column("deleted", sa.Boolean)),
+            ("created_at", sa.Column("created_at", sa.DateTime)),
+            ("updated_at", sa.Column("updated_at", sa.DateTime)),
+        ],
+    )
+    source_url = f"{config.ZENDESK_CREDENTIALS['uktrade']['url']}/groups.json"
+    email = config.ZENDESK_CREDENTIALS["uktrade"]["email"]
+    secret = config.ZENDESK_CREDENTIALS["uktrade"]["secret"]
+    auth_token = base64.b64encode(f"{email}/token:{secret}".encode()).decode()
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id="run-fetch",
+            python_callable=partial(
+                fetch_from_api_endpoint,
+                auth_token=self.auth_token,
+                results_key='groups',
+                next_key='next_page',
+                auth_type="Basic",
+                extra_headers={"Content-Type": "application/json"},
+            ),
+            provide_context=True,
+            op_args=[self.table_config.table_name, self.source_url],
+        )
+
+
+class ZendeskDITGroupsPipeline(_PipelineDAG):
+    schedule_interval = "0 0 * * MON"
+    allow_null_columns = True
+    use_utc_as_new_source_modified = True
+    table_config = TableConfig(
+        schema="zendesk",
+        table_name="dit_groups",
+        field_mapping=[
+            ("id", sa.Column("id", sa.BigInteger, primary_key=True)),
+            ("name", sa.Column("name", sa.String)),
+            ("description", sa.Column("description", sa.String)),
+            ("default", sa.Column("default", sa.Boolean)),
+            ("deleted", sa.Column("deleted", sa.Boolean)),
+            ("created_at", sa.Column("created_at", sa.DateTime)),
+            ("updated_at", sa.Column("updated_at", sa.DateTime)),
+        ],
+    )
+    source_url = f"{config.ZENDESK_CREDENTIALS['dit']['url']}/groups.json"
+    email = config.ZENDESK_CREDENTIALS["dit"]["email"]
+    secret = config.ZENDESK_CREDENTIALS["dit"]["secret"]
+    auth_token = base64.b64encode(f"{email}/token:{secret}".encode()).decode()
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id="run-fetch",
+            python_callable=partial(
+                fetch_from_api_endpoint,
+                auth_token=self.auth_token,
+                results_key='groups',
+                next_key='next_page',
+                auth_type="Basic",
+                extra_headers={"Content-Type": "application/json"},
+            ),
+            provide_context=True,
+            op_args=[self.table_config.table_name, self.source_url],
         )
