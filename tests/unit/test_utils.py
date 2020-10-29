@@ -166,6 +166,21 @@ def test_s3_data_list_keys_retries_requests(mocker):
     assert s3.list_keys() == []
 
 
+@pytest.mark.parametrize(
+    "table_name, extra_path, expected",
+    [
+        ("table", None, "upstream/table/"),
+        ("table", "", "upstream/table/"),
+        ("table", "path", "upstream/table/path/"),
+        ("table", "path/", "upstream/table/path/"),
+        ("table", "/", "upstream/table//"),
+    ],
+)
+def test_s3_upstream(table_name, extra_path, expected):
+    s3 = utils.S3Upstream(table_name=table_name, extra_path=extra_path)
+    assert s3.prefix == expected
+
+
 class TestTableConfig:
     def test_columns_property_only_returns_immediate_columns(self):
         id_col = ("id", Column("id", Integer))
