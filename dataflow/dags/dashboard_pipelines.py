@@ -68,36 +68,36 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
     )
     query = '''
         SELECT
-            investment_projects_dataset.id,
-            investment_projects_dataset.project_reference,
-            CONCAT('https://datahub.trade.gov.uk/investments/projects/', investment_projects_dataset.id, '/details') AS project_link,
-            investment_projects_dataset.total_investment,
-            investment_projects_dataset.number_new_jobs,
-            investment_projects_dataset.number_safeguarded_jobs,
-            investment_projects_dataset.stage,
-            investment_projects_dataset.status::TEXT,
-            investment_projects_dataset.fdi_value,
+            data_hub__investment_projects.id,
+            data_hub__investment_projects.project_reference,
+            CONCAT('https://datahub.trade.gov.uk/investments/projects/', data_hub__investment_projects.id, '/details') AS project_link,
+            data_hub__investment_projects.total_investment,
+            data_hub__investment_projects.number_new_jobs,
+            data_hub__investment_projects.number_safeguarded_jobs,
+            data_hub__investment_projects.stage,
+            data_hub__investment_projects.status::TEXT,
+            data_hub__investment_projects.fdi_value,
             data_hub__companies.address_country::TEXT AS investor_company_country,
             ref_countries_territories_and_regions.region::TEXT as overseas_region,
-            SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
+            SPLIT_PART(data_hub__investment_projects.sector, ' : ', 1) AS project_sector,
             ref_dit_sectors.field_03::TEXT AS sector_cluster,
             CASE
-                WHEN investment_projects_dataset.stage IN ('Prospect', 'Assign PM', 'Active')
-                THEN investment_projects_dataset.estimated_land_date
-                ELSE investment_projects_dataset.actual_land_date
+                WHEN data_hub__investment_projects.stage IN ('Prospect', 'Assign PM', 'Active')
+                THEN data_hub__investment_projects.estimated_land_date
+                ELSE data_hub__investment_projects.actual_land_date
             END AS project_end_date
-        FROM investment_projects_dataset
-        JOIN dit.data_hub__companies ON data_hub__companies.id = investment_projects_dataset.investor_company_id
-        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
+        FROM dit.data_hub__investment_projects
+        JOIN dit.data_hub__companies ON data_hub__companies.id = data_hub__investment_projects.investor_company_id
+        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = data_hub__investment_projects.sector
         LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = data_hub__companies.address_country
         WHERE (
-            investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+            data_hub__investment_projects.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
             OR
-            investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+            data_hub__investment_projects.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
         )
-        AND investment_projects_dataset.investment_type = 'FDI'
-        AND investment_projects_dataset.level_of_involvement != 'No Involvement'
-        AND (investment_projects_dataset.status = 'ongoing' OR investment_projects_dataset.status = 'won')
+        AND data_hub__investment_projects.investment_type = 'FDI'
+        AND data_hub__investment_projects.level_of_involvement != 'No Involvement'
+        AND (data_hub__investment_projects.status = 'ongoing' OR data_hub__investment_projects.status = 'won')
     '''
 
 
@@ -435,13 +435,13 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         WITH
         --Table converting all 'Retail' related projects to the Consumer and retail sector
         investment_projects AS (
-            SELECT investment_projects_dataset.*,
+            SELECT data_hub__investment_projects.*,
                 CASE
-                    WHEN 'Retail' = ANY (investment_projects_dataset.business_activities::TEXT[])
+                    WHEN 'Retail' = ANY (data_hub__investment_projects.business_activities::TEXT[])
                         THEN 'Consumer and retail'
-                    ELSE investment_projects_dataset.sector
+                    ELSE data_hub__investment_projects.sector
                 END AS project_sector
-            FROM investment_projects_dataset
+            FROM dit.data_hub__investment_projects
             WHERE (
                 (actual_land_date >= '2018-04-01' OR estimated_land_date >= '2018-04-01')
                 AND LOWER(status) IN ('ongoing', 'won')

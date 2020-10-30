@@ -541,7 +541,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                 ARRAY_TO_STRING(fdi.strategic_drivers, '; ') as strategic_drivers,
                 fdi.gross_value_added,
                 fdi.gva_multiplier
-            FROM investment_projects_dataset fdi
+            FROM dit.data_hub__investment_projects fdi
              LEFT JOIN companies_last_version inv ON fdi.investor_company_id = inv.id
              LEFT JOIN companies_last_version ukc ON fdi.uk_company_id = ukc.id
              LEFT JOIN dit.data_hub__advisers crm ON fdi.client_relationship_manager_id = crm.id

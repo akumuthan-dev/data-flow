@@ -150,7 +150,8 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
     )
     allow_null_columns = True
     table_config = TableConfig(
-        table_name='investment_projects_dataset',
+        schema='dit',
+        table_name='data_hub__investment_projects',
         field_mapping=[
             ('actual_land_date', sa.Column('actual_land_date', sa.Date)),
             (
