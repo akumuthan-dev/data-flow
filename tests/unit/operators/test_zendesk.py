@@ -60,3 +60,23 @@ def test_zendesk_fetch_daily_tickets(mocker):
         source_bucket_name="bucket",
         dest_bucket_name="bucket",
     )
+
+
+def test_remove_covid_related_tickets(mocker):
+    mocker.patch.object(
+        zendesk.config, "ZENDESK_COVID_EMAIL_ADDRESS", "covid@email.test"
+    )
+    non_covid_ticket = {
+        "id": 1,
+        "via": {"channel": "api", "source": {"from": {}, "to": {}}},
+    }
+    covid_ticket = {
+        "id": 2,
+        "via": {
+            "channel": "email",
+            "source": {"to": {"name": "test", "address": "covid@email.test"}},
+        },
+    }
+    results = [non_covid_ticket, covid_ticket, covid_ticket]
+
+    assert zendesk._remove_covid_related_tickets(results) == [non_covid_ticket]

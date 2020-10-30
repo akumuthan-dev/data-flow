@@ -26,6 +26,22 @@ def transforms_fields_dit(record, table_config, contexts):
             "value"
         ]
 
+    if "assignee" in record:
+        return {
+            **record,
+            "assignee_id": record.get("assignee")["id"]
+            if record.get("assignee")
+            else None,
+            "group_id": record.get("group")["id"] if record.get("group") else None,
+            "organization_id": record["organization"]["id"]
+            if record.get("organization")
+            else None,
+            "solved_at": record["metric_set"]["solved_at"],
+            "full_resolution_time_in_minutes": record["metric_set"][
+                "full_resolution_time_in_minutes"
+            ]["calendar"],
+        }
+
     return record
 
 

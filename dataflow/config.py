@@ -124,6 +124,9 @@ DEFAULT_DATABASE_GRANTEES = (
 COMPANIES_HOUSE_PSC_TOTAL_FILES = int(
     os.environ.get('COMPANIES_HOUSE_PSC_TOTAL_FILES', 1)
 )
+
+ZENDESK_COVID_EMAIL_ADDRESS = os.environ.get("ZENDESK_COVID_EMAIL_ADDRESS", "")
+
 ZENDESK_CREDENTIALS = {
     'dit': {
         'url': os.environ.get("ZENDESK_DIT_URL") or "<invalid>",
