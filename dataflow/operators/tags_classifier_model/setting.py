@@ -34,4 +34,4 @@ MAX_NB_WORDS = 10000
 MAX_SEQUENCE_LENGTH = 500
 EMBEDDING_DIM = 100
 model_version = 'models_20201001.zip'
-probability_threshold = 0.5
+probability_threshold = 0.4
