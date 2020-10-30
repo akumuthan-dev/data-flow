@@ -130,7 +130,7 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     )
 
     query = '''
-    with covid_interactions as (select * from interactions_dataset
+    with covid_interactions as (select * from dit.data_hub__interactions
     where
     (
         (interaction_subject ILIKE '%coronavirus%' or interaction_subject ILIKE '%covid%')
@@ -223,9 +223,9 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
     query = '''
         WITH minister_interactions AS (
         SELECT
-            unnest(interactions_dataset.adviser_ids) AS adviser_id,
-            interactions_dataset.*
-        FROM interactions_dataset
+            unnest(data_hub__interactions.adviser_ids) AS adviser_id,
+            data_hub__interactions.*
+        FROM dit.data_hub__interactions
         WHERE
             '19d855be-a8bb-4004-8ae7-d52902e3f85a' = ANY(adviser_ids)
             OR 'c3680c0e-fd4b-4b1b-8def-46c23f8cd97c' = ANY(adviser_ids)
@@ -454,11 +454,11 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
 
         --Table of latest interaction date for each investment project
         latest_interactions AS (
-            SELECT interactions_dataset.investment_project_id,
-                MAX(interactions_dataset.interaction_date) AS date_of_latest_interaction
-            FROM interactions_dataset
-            WHERE interactions_dataset.investment_project_id IS NOT NULL
-            GROUP BY interactions_dataset.investment_project_id),
+            SELECT data_hub__interactions.investment_project_id,
+                MAX(data_hub__interactions.interaction_date) AS date_of_latest_interaction
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.investment_project_id IS NOT NULL
+            GROUP BY data_hub__interactions.investment_project_id),
 
         --Extract team member ids, names and teams
         project_team AS (

@@ -183,7 +183,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
              LEFT JOIN teams_dataset acmt ON acm.team_id = acmt.id
              LEFT JOIN (
                 SELECT investment_project_id, max(interaction_date)::text as date_of_latest_interaction
-                FROM interactions_dataset i
+                FROM dit.data_hub__interactions i
                 WHERE investment_project_id IS NOT NULL
                 GROUP BY investment_project_id
              ) i ON fdi.id = i.investment_project_id
@@ -241,9 +241,9 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE)
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -332,9 +332,9 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'interaction'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'interaction'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE)
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -420,9 +420,9 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -511,9 +511,9 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'interaction'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'interaction'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id

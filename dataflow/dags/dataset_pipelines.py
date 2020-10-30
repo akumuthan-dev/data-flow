@@ -275,7 +275,8 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='interactions_dataset',
+        schema='dit',
+        table_name='data_hub__interactions',
         field_mapping=[
             ('adviser_ids', sa.Column('adviser_ids', sa.ARRAY(sa.Text))),
             (
@@ -323,7 +324,8 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='interactions_export_country',
+        schema='dit',
+        table_name='data_hub__interactions_export_country',
         field_mapping=[
             ('country__name', sa.Column('country_name', sa.Text)),
             ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.Text)),
@@ -396,7 +398,7 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
                 id,
                 interaction_date,
                 unnest(contact_ids) as contact_id
-            from interactions_dataset
+            from dit.data_hub__interactions
         )
         select distinct on (contact_id)
             t1.id as contact_id,
@@ -534,7 +536,7 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
                 id,
                 interaction_date,
                 unnest(adviser_ids) as adviser_id
-            from interactions_dataset
+            from dit.data_hub__interactions
         )
         select distinct on (adviser_id)
             t1.id as adviser_id,

@@ -211,9 +211,9 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', :run_date)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('month', data_hub__interactions.interaction_date) = date_trunc('month', :run_date)
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -227,7 +227,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
         ),
         adviser_ids AS (
             SELECT id AS interaction_id, UNNEST(adviser_ids)::uuid AS adviser_id
-            FROM interactions_dataset
+            FROM dit.data_hub__interactions
         ),
         team_names AS (
             SELECT adviser_ids.interaction_id as iid, STRING_AGG(teams_dataset.name, '; ') AS names
@@ -317,9 +317,9 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     query = '''
         WITH service_deliveries AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('month', interactions_dataset.interaction_date) = date_trunc('month', :run_date)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('month', data_hub__interactions.interaction_date) = date_trunc('month', :run_date)
         ),
         contact_ids AS (
             SELECT id AS service_delivery_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -558,7 +558,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
              LEFT JOIN teams_dataset acmt ON acm.team_id = acmt.id
              LEFT JOIN (
                 SELECT investment_project_id, max(interaction_date)::text as date_of_latest_interaction
-                FROM interactions_dataset i
+                FROM dit.data_hub__interactions i
                 WHERE investment_project_id IS NOT NULL
                 GROUP BY investment_project_id
              ) i ON fdi.id = i.investment_project_id
