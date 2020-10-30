@@ -342,7 +342,8 @@ class ContactsDatasetPipeline(_DatasetPipeline):
     dependencies = [ConsentPipeline]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='contacts_dataset',
+        schema='dit',
+        table_name='data_hub__contacts',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -400,7 +401,7 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
         select distinct on (contact_id)
             t1.id as contact_id,
             t2.id as last_interaction_id
-        from contacts_dataset t1
+        from dit.data_hub__contacts t1
         left join interactions t2 on t1.id::text = t2.contact_id
         order by contact_id, interaction_date desc nulls last
     """

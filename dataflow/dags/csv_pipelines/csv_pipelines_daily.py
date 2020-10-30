@@ -54,7 +54,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                             phone AS contact_phone,
                             email AS contact_email,
                             email_marketing_consent AS contact_accepts_dit_email_marketing
-                        FROM contacts_dataset
+                        FROM dit.data_hub__contacts
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
                 ON data_hub__companies.id = contacts.joined_id
@@ -251,9 +251,9 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
@@ -342,9 +342,9 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
@@ -430,9 +430,9 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
@@ -521,9 +521,9 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",

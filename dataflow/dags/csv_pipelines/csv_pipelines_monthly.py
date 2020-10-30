@@ -164,9 +164,9 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     query = '''
         SELECT
             data_hub__companies.name AS "Company Name",
-            contacts_dataset.contact_name AS "Contact Name",
-            contacts_dataset.phone AS "Contact Phone Number",
-            contacts_dataset.email AS "Contact Email",
+            data_hub__contacts.contact_name AS "Contact Name",
+            data_hub__contacts.phone AS "Contact Phone Number",
+            data_hub__contacts.email AS "Contact Email",
             data_hub__companies.address_1 AS "Company Trading Address Line 1",
             data_hub__companies.address_2 AS "Company Trading Address Line 2",
             data_hub__companies.address_town AS "Company Trading Address Town",
@@ -186,7 +186,7 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis_dataset
         JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
-        JOIN contacts_dataset ON omis_dataset.contact_id=contacts_dataset.id
+        JOIN dit.data_hub__contacts ON omis_dataset.contact_id=data_hub__contacts.id
         WHERE omis_dataset.order_status = 'complete'
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
         ORDER BY omis_dataset.completion_date
@@ -221,9 +221,9 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         ),
         adviser_ids AS (
             SELECT id AS interaction_id, UNNEST(adviser_ids)::uuid AS adviser_id
@@ -327,9 +327,9 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
         ),
         contacts AS (
                 SELECT DISTINCT ON (contact_ids.service_delivery_id) *
-                FROM contacts_dataset
-                JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-                ORDER BY contact_ids.service_delivery_id, contacts_dataset.is_primary DESC NULLS LAST
+                FROM dit.data_hub__contacts
+                JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+                ORDER BY contact_ids.service_delivery_id, data_hub__contacts.is_primary DESC NULLS LAST
         ),
         adviser_ids AS (
             SELECT id AS service_delivery_id, UNNEST(adviser_ids)::uuid AS adviser_id
@@ -430,7 +430,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                             phone AS contact_phone,
                             email AS contact_email,
                             email_marketing_consent AS contact_accepts_dit_email_marketing
-                        FROM contacts_dataset
+                        FROM dit.data_hub__contacts
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
                 ON data_hub__companies.id = contacts.joined_id

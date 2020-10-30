@@ -149,8 +149,8 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
         where data_hub__advisers.id in (select unnest(covid_interactions.adviser_ids)::uuid from covid_interactions)
     ),
     c_contacts as (
-        select contacts_dataset.id, contact_name from contacts_dataset
-        where contacts_dataset.id in (select unnest(covid_interactions.contact_ids)::uuid from covid_interactions)
+        select data_hub__contacts.id, contact_name from dit.data_hub__contacts
+        where data_hub__contacts.id in (select unnest(covid_interactions.contact_ids)::uuid from covid_interactions)
     )
     select
     ci.interaction_date::text as "interaction_date",
