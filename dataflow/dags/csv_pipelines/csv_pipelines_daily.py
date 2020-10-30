@@ -44,7 +44,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
         WITH fdi_report AS (
             WITH companies_last_version AS (
                 SELECT *
-                FROM companies_dataset
+                FROM dit.data_hub__companies
                     LEFT JOIN (
                         SELECT
                             DISTINCT ON (company_id)
@@ -57,7 +57,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                         FROM contacts_dataset
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
-                ON companies_dataset.id = contacts.joined_id
+                ON data_hub__companies.id = contacts.joined_id
             )
             SELECT
                 fdi.id AS unique_id,
@@ -258,21 +258,21 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -286,7 +286,7 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
             teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
@@ -306,12 +306,12 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
             CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
-        LEFT JOIN data_hub__advisers lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -349,21 +349,21 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -377,7 +377,7 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
             teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
@@ -395,7 +395,7 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
@@ -437,21 +437,21 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -465,7 +465,7 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
             teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
@@ -485,12 +485,12 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
             CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
-        LEFT JOIN data_hub__advisers lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -528,21 +528,21 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -556,7 +556,7 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
             teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
@@ -574,7 +574,7 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id

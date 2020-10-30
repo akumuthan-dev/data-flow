@@ -45,7 +45,8 @@ class CompanyExportCountryHistory(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_history_dataset',
+        schema='dit',
+        table_name='data_hub__company_export_country_history_dataset',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -67,7 +68,8 @@ class CompanyExportCountry(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_dataset',
+        schema='dit',
+        table_name='data_hub__company_export_country_dataset',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -431,7 +433,8 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/companies-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='companies_dataset',
+        schema='dit',
+        table_name='data_hub__companies',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -993,8 +996,8 @@ class DataHubCompanyReferralsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        schema='data_hub',
-        table_name='company_referrals',
+        schema='dit',
+        table_name='data_hub__company_referrals',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('completed_by_id', sa.Column('completed_by_id', UUID)),

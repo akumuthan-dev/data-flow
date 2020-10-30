@@ -77,7 +77,7 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
             investment_projects_dataset.stage,
             investment_projects_dataset.status::TEXT,
             investment_projects_dataset.fdi_value,
-            companies_dataset.address_country::TEXT AS investor_company_country,
+            data_hub__companies.address_country::TEXT AS investor_company_country,
             ref_countries_territories_and_regions.region::TEXT as overseas_region,
             SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
             ref_dit_sectors.field_03::TEXT AS sector_cluster,
@@ -87,9 +87,9 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
                 ELSE investment_projects_dataset.actual_land_date
             END AS project_end_date
         FROM investment_projects_dataset
-        JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
+        JOIN dit.data_hub__companies ON data_hub__companies.id = investment_projects_dataset.investor_company_id
         JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
-        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = companies_dataset.address_country
+        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = data_hub__companies.address_country
         WHERE (
             investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
             OR
@@ -166,7 +166,7 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     ci.policy_areas as "policy_areas",
     ci.created_on::text as "entered_into_data_hub"
     from covid_interactions ci
-    join companies_dataset co on co.id = ci.company_id
+    join dit.data_hub__companies co on co.id = ci.company_id
     order by ci.interaction_date DESC;
     '''
 
@@ -239,19 +239,19 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
         SELECT
             minister_interactions.id AS interaction_id,
             minister_interactions.interaction_link AS interaction_link,
-            companies_dataset.name AS company_name,
-            CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/activity') AS company_link,
-            companies_dataset.address_country AS company_country,
-            companies_dataset.address_postcode AS company_postcode,
+            data_hub__companies.name AS company_name,
+            CONCAT('https://datahub.trade.gov.uk/companies/',data_hub__companies.id,'/activity') AS company_link,
+            data_hub__companies.address_country AS company_country,
+            data_hub__companies.address_postcode AS company_postcode,
             CASE
                 WHEN postcode_directory__latest.long IS NOT NULL
                 THEN CONCAT(postcode_directory__latest.lat, ', ', postcode_directory__latest.long)
                 END AS company_address_latitude_longitude,
-            companies_dataset.uk_region AS company_uk_region,
-            companies_dataset.number_of_employees AS company_number_of_employees,
-            companies_dataset.turnover AS company_turnover,
-            companies_dataset.one_list_tier AS company_one_list_tier,
-            SPLIT_PART(companies_dataset.sector, ' : ', 1) AS company_sector,
+            data_hub__companies.uk_region AS company_uk_region,
+            data_hub__companies.number_of_employees AS company_number_of_employees,
+            data_hub__companies.turnover AS company_turnover,
+            data_hub__companies.one_list_tier AS company_one_list_tier,
+            SPLIT_PART(data_hub__companies.sector, ' : ', 1) AS company_sector,
             minister_interactions.interaction_date AS interaction_date,
             minister_interactions.adviser_id::UUID AS adviser_id,
             CONCAT(data_hub__advisers.first_name,' ',data_hub__advisers.last_name) AS adviser_name,
@@ -261,13 +261,13 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             minister_interactions.policy_feedback_notes AS policy_feedback_notes,
             array_to_string(minister_interactions.policy_issue_types, ', ') AS policy_issue_types,
             CASE
-                WHEN companies_dataset.duns_number IS NULL
+                WHEN data_hub__companies.duns_number IS NULL
                 THEN 'No'
                 ELSE 'Yes'
             END AS dun_and_bradstreet_linked_record,
             minister_interactions.service_delivery AS service
         FROM minister_interactions
-        JOIN companies_dataset ON companies_dataset.id = minister_interactions.company_id
+        JOIN dit.data_hub__companies ON data_hub__companies.id = minister_interactions.company_id
         JOIN dit.data_hub__advisers ON data_hub__advisers.id = minister_interactions.adviser_id::uuid
         LEFT JOIN ons.postcode_directory__latest ON REPLACE(postcode_directory__latest.pcd2,' ','') = REPLACE(data_hub__companies.address_postcode, ' ','')
         WHERE adviser_id IN (
@@ -280,7 +280,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             '763f4b9f-0f61-4273-85cd-d5c16b17c8a0',
             '3dbade20-03f2-45f1-b073-09f096c19990'
         )
-        ORDER BY companies_dataset.name ASC
+        ORDER BY data_hub__companies.name ASC
     '''
 
 
@@ -614,7 +614,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                ))
             AS super_region_or_da_in_team
             FROM investment_projects
-                 JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
+                 JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
                  LEFT JOIN dit.data_hub__advisers created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
                  LEFT JOIN teams_dataset created_by_team ON created_by_team.id = created_by_adviser.team_id
                  LEFT JOIN dit.data_hub__advisers modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
@@ -849,9 +849,9 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         project_team.super_region_or_da_in_team,
         investment_projects.export_revenue
     FROM investment_projects
-    JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
+    JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
     JOIN project_team ON project_team.project_id = investment_projects.id
-    LEFT JOIN companies_dataset uk_company ON uk_company.id = investment_projects.uk_company_id
+    LEFT JOIN dit.data_hub__companies uk_company ON uk_company.id = investment_projects.uk_company_id
     LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
     LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.sector
     LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.sector

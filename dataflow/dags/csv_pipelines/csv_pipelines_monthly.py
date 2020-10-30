@@ -35,7 +35,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     query = '''
         SELECT
             omis_dataset.omis_order_reference AS "OMIS Order Reference",
-            companies_dataset.name AS "Company name",
+            data_hub__companies.name AS "Company name",
             teams_dataset.name AS "DIT Team",
             ROUND(omis_dataset.subtotal::numeric/100::numeric,2) AS "Net price",
             omis_dataset.uk_region AS "UK Region",
@@ -54,7 +54,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
             (omis_dataset.total_cost/100)::numeric(15, 2) AS "Gross Amount",
             to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis_dataset
-        LEFT JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
+        LEFT JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
         LEFT JOIN teams_dataset ON omis_dataset.dit_team_id=teams_dataset.id
         WHERE omis_dataset.order_status = 'complete'
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
@@ -88,7 +88,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
         )
         SELECT
             omis.omis_order_reference AS "OMIS Order Reference",
-            companies_dataset.name AS "Company Name",
+            data_hub__companies.name AS "Company Name",
             ROUND(omis.subtotal::numeric/100::numeric,2) AS "Net price",
             teams_dataset.name AS "DIT Team",
             omis.market AS "Market",
@@ -101,7 +101,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
             (omis.total_cost/100)::numeric(15, 2) AS "Gross Amount",
             to_char(omis.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis
-        LEFT JOIN companies_dataset ON omis.company_id=companies_dataset.id
+        LEFT JOIN dit.data_hub__companies ON omis.company_id=data_hub__companies.id
         LEFT JOIN teams_dataset ON omis.dit_team_id=teams_dataset.id
         WHERE omis.order_status = 'cancelled'
         AND omis.cancelled_date_financial_year = omis.current_financial_year
@@ -125,12 +125,12 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
         SELECT
             omis_dataset.omis_order_reference AS "Order ID",
             omis_dataset.order_status AS "Order status",
-            companies_dataset.name AS "Company",
+            data_hub__companies.name AS "Company",
             teams_dataset.name AS "Creator team",
             omis_dataset.uk_region AS "UK region",
             omis_dataset.market AS "Primary market",
             omis_dataset.sector AS "Sector",
-            companies_dataset.sector AS "Company sector",
+            data_hub__companies.sector AS "Company sector",
             omis_dataset.net_price AS "Net price",
             omis_dataset.services AS "Services",
             TO_CHAR(omis_dataset.created_date, 'YYYY-MM-DD')::DATE AS "Order created",
@@ -144,7 +144,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
             omis_dataset.refund_created AS "Refund date",
             omis_dataset.refund_total_amount AS "Refund amount"
         FROM omis_dataset
-        JOIN companies_dataset ON omis_dataset.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON omis_dataset.company_id = data_hub__companies.id
         JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
         WHERE omis_dataset.created_date < date_trunc('month', :run_date)  + interval '1 month'
     '''
@@ -163,29 +163,29 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
     static = True
     query = '''
         SELECT
-            companies_dataset.name AS "Company Name",
+            data_hub__companies.name AS "Company Name",
             contacts_dataset.contact_name AS "Contact Name",
             contacts_dataset.phone AS "Contact Phone Number",
             contacts_dataset.email AS "Contact Email",
-            companies_dataset.address_1 AS "Company Trading Address Line 1",
-            companies_dataset.address_2 AS "Company Trading Address Line 2",
-            companies_dataset.address_town AS "Company Trading Address Town",
-            companies_dataset.address_county AS "Company Trading Address County",
-            companies_dataset.address_country AS "Company Trading Address Country",
-            companies_dataset.address_postcode AS "Company Trading Address Postcode",
-            companies_dataset.registered_address_1 AS "Company Registered Address Line 1",
-            companies_dataset.registered_address_2 AS "Company Registered Address Line 2",
-            companies_dataset.registered_address_town AS "Company Registered Address Town",
-            companies_dataset.registered_address_county AS "Company Registered Address County",
-            companies_dataset.registered_address_country AS "Company Registered Address Country",
-            companies_dataset.registered_address_postcode AS "Company Registered Address Postcode",
+            data_hub__companies.address_1 AS "Company Trading Address Line 1",
+            data_hub__companies.address_2 AS "Company Trading Address Line 2",
+            data_hub__companies.address_town AS "Company Trading Address Town",
+            data_hub__companies.address_county AS "Company Trading Address County",
+            data_hub__companies.address_country AS "Company Trading Address Country",
+            data_hub__companies.address_postcode AS "Company Trading Address Postcode",
+            data_hub__companies.registered_address_1 AS "Company Registered Address Line 1",
+            data_hub__companies.registered_address_2 AS "Company Registered Address Line 2",
+            data_hub__companies.registered_address_town AS "Company Registered Address Town",
+            data_hub__companies.registered_address_county AS "Company Registered Address County",
+            data_hub__companies.registered_address_country AS "Company Registered Address Country",
+            data_hub__companies.registered_address_postcode AS "Company Registered Address Postcode",
             to_char(omis_dataset.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
             (omis_dataset.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
             (omis_dataset.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
             (omis_dataset.total_cost/100)::numeric(15, 2) AS "Gross Amount",
             to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis_dataset
-        JOIN companies_dataset ON omis_dataset.company_id=companies_dataset.id
+        JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
         JOIN contacts_dataset ON omis_dataset.contact_id=contacts_dataset.id
         WHERE omis_dataset.order_status = 'complete'
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
@@ -239,21 +239,21 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -267,7 +267,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
             team_names.names AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
@@ -284,16 +284,16 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link",
-            companies_dataset.one_list_tier as "Company Classification",
+            data_hub__companies.one_list_tier as "Company Classification",
             CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
             CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
         LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         LEFT JOIN team_names ON team_names.iid = interactions.id
-        LEFT JOIN data_hub__advisers lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -351,22 +351,22 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
         )
         SELECT
             to_char(service_deliveries.interaction_date, 'DD/MM/YYYY') AS "Service Delivery Interaction",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number as "Companies House ID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number as "Companies House ID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -376,7 +376,7 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
             team_names.names AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__companies.uk_region AS "Company UK Region",
             service_deliveries.service_delivery AS "Service Delivery",
             service_deliveries.interaction_subject AS "Subject",
             service_deliveries.interaction_notes AS "Notes",
@@ -393,7 +393,7 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             team_roles.roles AS "Team Role",
             to_char(service_deliveries.created_on, 'DD/MM/YYYY') AS "Created On Date"
         FROM service_deliveries
-        JOIN companies_dataset ON service_deliveries.company_id = companies_dataset.id
+        JOIN dit.data_hub__companies ON service_deliveries.company_id = data_hub__companies.id
         LEFT JOIN events_dataset ON service_deliveries.event_id = events_dataset.id
         LEFT JOIN contacts ON contacts.service_delivery_id = service_deliveries.id
         LEFT JOIN team_names ON team_names.sid = service_deliveries.id
@@ -420,7 +420,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
         WITH fdi_report AS (
             WITH companies_last_version AS (
                 SELECT *
-                FROM companies_dataset
+                FROM dit.data_hub__companies
                     LEFT JOIN (
                         SELECT
                             DISTINCT ON (company_id)
@@ -433,7 +433,7 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                         FROM contacts_dataset
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
-                ON companies_dataset.id = contacts.joined_id
+                ON data_hub__companies.id = contacts.joined_id
             )
             SELECT
                 fdi.id AS unique_id,
