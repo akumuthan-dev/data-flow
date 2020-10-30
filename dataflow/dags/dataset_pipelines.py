@@ -2,9 +2,9 @@
 from functools import partial
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import UUID
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from sqlalchemy.dialects.postgresql import UUID
 
 from dataflow import config
 from dataflow.config import DATAHUB_HAWK_CREDENTIALS
@@ -31,7 +31,10 @@ class _DatasetPipeline(_PipelineDAG):
                 fetch_from_hawk_api, hawk_credentials=DATAHUB_HAWK_CREDENTIALS
             ),
             provide_context=True,
-            op_args=[self.table_config.table_name, self.source_url],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
+            ],
             retries=self.fetch_retries,
         )
 
@@ -373,7 +376,10 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             task_id='update-contact-email-consent',
             python_callable=update_datahub_contact_consent,
             provide_context=True,
-            op_args=[self.target_db, self.table_config.tables[0]],
+            op_args=[
+                self.target_db,
+                self.table_config.tables[0],  # pylint: disable=no-member
+            ],
         )
 
 
@@ -411,7 +417,11 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
 
@@ -493,7 +503,8 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='advisers_dataset',
+        schema='dit',
+        table_name='data_hub__advisers',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('date_joined', sa.Column('date_joined', sa.Date)),
@@ -524,7 +535,7 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
         select distinct on (adviser_id)
             t1.id as adviser_id,
             t2.id as last_interaction_id
-        from advisers_dataset t1
+        from dit.data_hub__advisers t1
         left join interactions t2 on t1.id::text = t2.adviser_id
         order by adviser_id, interaction_date desc nulls last
     """
@@ -543,7 +554,11 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
 
@@ -919,13 +934,13 @@ class ONSPostcodePipeline(_DatasetPipeline):
             python_callable=create_views,
             op_args=[
                 self.target_db,
-                self.table_config.schema,
-                self.table_config.table_name,
+                self.table_config.schema,  # pylint: disable=no-member
+                self.table_config.table_name,  # pylint: disable=no-member
             ],
         )
         dag.add_task(_create_views)
         _swap_task = dag.get_task('swap-dataset-table')
-        _swap_task >> _create_views
+        _swap_task >> _create_views  # pylint: disable=pointless-statement
         return dag
 
 
@@ -978,7 +993,7 @@ class DataHubCompanyReferralsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        schema='datahub',
+        schema='data_hub',
         table_name='company_referrals',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
