@@ -274,13 +274,13 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
             interactions.net_company_receipt AS "Net Company Receipt",
             interactions.grant_amount_offered AS "Grant Amount Offered",
             interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link",
@@ -290,7 +290,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
         FROM interactions
         JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
+        LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         LEFT JOIN team_names ON team_names.iid = interactions.id
         LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
@@ -383,18 +383,18 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             service_deliveries.net_company_receipt AS "Net Company Receipt",
             service_deliveries.grant_amount_offered AS "Grant Amount Offered",
             service_deliveries.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             team_roles.roles AS "Team Role",
             to_char(service_deliveries.created_on, 'DD/MM/YYYY') AS "Created On Date"
         FROM service_deliveries
         JOIN dit.data_hub__companies ON service_deliveries.company_id = data_hub__companies.id
-        LEFT JOIN events_dataset ON service_deliveries.event_id = events_dataset.id
+        LEFT JOIN dit.data_hub__events ON service_deliveries.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.service_delivery_id = service_deliveries.id
         LEFT JOIN team_names ON team_names.sid = service_deliveries.id
         LEFT JOIN team_roles ON team_roles.sid = service_deliveries.id

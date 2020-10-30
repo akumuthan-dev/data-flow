@@ -589,7 +589,8 @@ class EventsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/events-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='events_dataset',
+        schema='dit',
+        table_name='data_hub__events',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
