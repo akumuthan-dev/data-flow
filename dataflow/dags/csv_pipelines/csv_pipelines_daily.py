@@ -132,9 +132,9 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                 fdi.associated_non_fdi_r_and_d_project_id,
                 ARRAY_TO_STRING(fdi.competing_countries, '; ') as competing_countries,
                 (
-                    SELECT STRING_AGG(CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name, ')'), '; ')
+                    SELECT STRING_AGG(CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name, ')'), '; ')
                     FROM dit.data_hub__advisers
-                    JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE data_hub__advisers.id = ANY(fdi.team_member_ids::uuid[])
                 ) AS team_members,
                 fdi.investor_type,
@@ -170,17 +170,17 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
              LEFT JOIN companies_last_version inv ON fdi.investor_company_id = inv.id
              LEFT JOIN companies_last_version ukc ON fdi.uk_company_id = ukc.id
              LEFT JOIN dit.data_hub__advisers crm ON fdi.client_relationship_manager_id = crm.id
-             LEFT JOIN teams_dataset crmt ON crm.team_id = crmt.id
+             LEFT JOIN dit.data_hub__teams crmt ON crm.team_id = crmt.id
              LEFT JOIN dit.data_hub__advisers paa ON fdi.project_assurance_adviser_id = paa.id
-             LEFT JOIN teams_dataset paat ON paa.team_id = paat.id
+             LEFT JOIN dit.data_hub__teams paat ON paa.team_id = paat.id
              LEFT JOIN dit.data_hub__advisers pm ON fdi.project_manager_id = pm.id
-             LEFT JOIN teams_dataset pmt ON pm.team_id = pmt.id
+             LEFT JOIN dit.data_hub__teams pmt ON pm.team_id = pmt.id
              LEFT JOIN dit.data_hub__advisers cre ON fdi.created_by_id = cre.id
-             LEFT JOIN teams_dataset cret ON cre.team_id = cret.id
+             LEFT JOIN dit.data_hub__teams cret ON cre.team_id = cret.id
              LEFT JOIN dit.data_hub__advisers mod ON fdi.modified_by_id = mod.id
-             LEFT JOIN teams_dataset modt ON mod.team_id = modt.id
+             LEFT JOIN dit.data_hub__teams modt ON mod.team_id = modt.id
              LEFT JOIN dit.data_hub__advisers acm ON inv.one_list_account_owner_id = acm.id
-             LEFT JOIN teams_dataset acmt ON acm.team_id = acmt.id
+             LEFT JOIN dit.data_hub__teams acmt ON acm.team_id = acmt.id
              LEFT JOIN (
                 SELECT investment_project_id, max(interaction_date)::text as date_of_latest_interaction
                 FROM dit.data_hub__interactions i
@@ -285,7 +285,7 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.last_name AS "DIT Adviser Last Name",
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
@@ -308,7 +308,7 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         FROM interactions
         JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
-        JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
         LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
@@ -376,7 +376,7 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.last_name AS "DIT Adviser Last Name",
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
@@ -397,7 +397,7 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         FROM interactions
         JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
-        JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
         LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         ORDER BY interactions.interaction_date
@@ -464,7 +464,7 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.last_name AS "DIT Adviser Last Name",
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
@@ -487,7 +487,7 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         FROM interactions
         JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
-        JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
         LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
@@ -555,7 +555,7 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             data_hub__advisers.last_name AS "DIT Adviser Last Name",
             data_hub__advisers.telephone_number AS "DIT Adviser Phone",
             data_hub__advisers.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
@@ -576,7 +576,7 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         FROM interactions
         JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
         JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
-        JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
         LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         ORDER BY interactions.interaction_date    '''

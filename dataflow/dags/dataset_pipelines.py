@@ -575,7 +575,8 @@ class TeamsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/teams-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='teams_dataset',
+        schema='dit',
+        table_name='data_hub__teams',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('name', sa.Column('name', sa.String)),

@@ -36,7 +36,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
         SELECT
             omis_dataset.omis_order_reference AS "OMIS Order Reference",
             data_hub__companies.name AS "Company name",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             ROUND(omis_dataset.subtotal::numeric/100::numeric,2) AS "Net price",
             omis_dataset.uk_region AS "UK Region",
             omis_dataset.market AS "Market",
@@ -55,7 +55,7 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
             to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis_dataset
         LEFT JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
-        LEFT JOIN teams_dataset ON omis_dataset.dit_team_id=teams_dataset.id
+        LEFT JOIN dit.data_hub__teams ON omis_dataset.dit_team_id=data_hub__teams.id
         WHERE omis_dataset.order_status = 'complete'
         AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
         ORDER BY omis_dataset.completion_date
@@ -90,7 +90,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
             omis.omis_order_reference AS "OMIS Order Reference",
             data_hub__companies.name AS "Company Name",
             ROUND(omis.subtotal::numeric/100::numeric,2) AS "Net price",
-            teams_dataset.name AS "DIT Team",
+            data_hub__teams.name AS "DIT Team",
             omis.market AS "Market",
             to_char(omis.created_date, 'DD/MM/YYYY') AS "Created Date",
             to_char(omis.cancelled_date, 'DD/MM/YYYY') AS "Cancelled Date",
@@ -102,7 +102,7 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
             to_char(omis.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
         FROM omis
         LEFT JOIN dit.data_hub__companies ON omis.company_id=data_hub__companies.id
-        LEFT JOIN teams_dataset ON omis.dit_team_id=teams_dataset.id
+        LEFT JOIN dit.data_hub__teams ON omis.dit_team_id=data_hub__teams.id
         WHERE omis.order_status = 'cancelled'
         AND omis.cancelled_date_financial_year = omis.current_financial_year
         ORDER BY omis.cancelled_date
@@ -126,7 +126,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
             omis_dataset.omis_order_reference AS "Order ID",
             omis_dataset.order_status AS "Order status",
             data_hub__companies.name AS "Company",
-            teams_dataset.name AS "Creator team",
+            data_hub__teams.name AS "Creator team",
             omis_dataset.uk_region AS "UK region",
             omis_dataset.market AS "Primary market",
             omis_dataset.sector AS "Sector",
@@ -145,7 +145,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
             omis_dataset.refund_total_amount AS "Refund amount"
         FROM omis_dataset
         JOIN dit.data_hub__companies ON omis_dataset.company_id = data_hub__companies.id
-        JOIN teams_dataset on omis_dataset.dit_team_id = teams_dataset.id
+        JOIN dit.data_hub__teams on omis_dataset.dit_team_id = data_hub__teams.id
         WHERE omis_dataset.created_date < date_trunc('month', :run_date)  + interval '1 month'
     '''
 
@@ -230,10 +230,10 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
             FROM dit.data_hub__interactions
         ),
         team_names AS (
-            SELECT adviser_ids.interaction_id as iid, STRING_AGG(teams_dataset.name, '; ') AS names
+            SELECT adviser_ids.interaction_id as iid, STRING_AGG(data_hub__teams.name, '; ') AS names
             FROM dit.data_hub__advisers
             JOIN adviser_ids ON data_hub__advisers.id = adviser_ids.adviser_id
-            JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+            JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
             GROUP BY 1
         )
         SELECT
@@ -336,17 +336,17 @@ class DataHubExportClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             FROM service_deliveries
         ),
         team_names AS (
-            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(teams_dataset.name, '; ') AS names
+            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(data_hub__teams.name, '; ') AS names
             FROM dit.data_hub__advisers
             JOIN adviser_ids ON data_hub__advisers.id = adviser_ids.adviser_id
-            JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+            JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
             GROUP BY 1
         ),
         team_roles AS (
-            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(teams_dataset.role, '; ') AS roles
+            SELECT adviser_ids.service_delivery_id as sid, STRING_AGG(data_hub__teams.role, '; ') AS roles
             FROM dit.data_hub__advisers
             JOIN adviser_ids ON data_hub__advisers.id = adviser_ids.adviser_id
-            JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+            JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
             GROUP BY 1
         )
         SELECT
@@ -508,9 +508,9 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
                 fdi.associated_non_fdi_r_and_d_project_id,
                 ARRAY_TO_STRING(fdi.competing_countries, '; ') as competing_countries,
                 (
-                    SELECT STRING_AGG(CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name, ')'), '; ')
+                    SELECT STRING_AGG(CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name, ')'), '; ')
                     FROM dit.data_hub__advisers
-                    JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE data_hub__advisers.id = ANY(fdi.team_member_ids::uuid[])
                 ) AS team_members,
                 fdi.investor_type,
@@ -545,17 +545,17 @@ class DataHubFDIMonthlyStaticCSVPipeline(_MonthlyCSVPipeline):
              LEFT JOIN companies_last_version inv ON fdi.investor_company_id = inv.id
              LEFT JOIN companies_last_version ukc ON fdi.uk_company_id = ukc.id
              LEFT JOIN dit.data_hub__advisers crm ON fdi.client_relationship_manager_id = crm.id
-             LEFT JOIN teams_dataset crmt ON crm.team_id = crmt.id
+             LEFT JOIN dit.data_hub__teams crmt ON crm.team_id = crmt.id
              LEFT JOIN dit.data_hub__advisers paa ON fdi.project_assurance_adviser_id = paa.id
-             LEFT JOIN teams_dataset paat ON paa.team_id = paat.id
+             LEFT JOIN dit.data_hub__teams paat ON paa.team_id = paat.id
              LEFT JOIN dit.data_hub__advisers pm ON fdi.project_manager_id = pm.id
-             LEFT JOIN teams_dataset pmt ON pm.team_id = pmt.id
+             LEFT JOIN dit.data_hub__teams pmt ON pm.team_id = pmt.id
              LEFT JOIN dit.data_hub__advisers cre ON fdi.created_by_id = cre.id
-             LEFT JOIN teams_dataset cret ON cre.team_id = cret.id
+             LEFT JOIN dit.data_hub__teams cret ON cre.team_id = cret.id
              LEFT JOIN dit.data_hub__advisers mod ON fdi.modified_by_id = mod.id
-             LEFT JOIN teams_dataset modt ON mod.team_id = modt.id
+             LEFT JOIN dit.data_hub__teams modt ON mod.team_id = modt.id
              LEFT JOIN dit.data_hub__advisers acm ON inv.one_list_account_owner_id = acm.id
-             LEFT JOIN teams_dataset acmt ON acm.team_id = acmt.id
+             LEFT JOIN dit.data_hub__teams acmt ON acm.team_id = acmt.id
              LEFT JOIN (
                 SELECT investment_project_id, max(interaction_date)::text as date_of_latest_interaction
                 FROM dit.data_hub__interactions i

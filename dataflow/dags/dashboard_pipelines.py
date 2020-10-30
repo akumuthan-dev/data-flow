@@ -144,8 +144,8 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     )
     and interaction_date > '2019-12-05'),
     c_advisers as (
-        select data_hub__advisers.id as "id", teams_dataset.name as team, teams_dataset.role as role from data_hub__advisers
-        join teams_dataset on teams_dataset.id = data_hub__advisers.team_id
+        select data_hub__advisers.id as "id", data_hub__teams.name as team, data_hub__teams.role as role from data_hub__advisers
+        join dit.data_hub__teams on data_hub__teams.id = data_hub__advisers.team_id
         where data_hub__advisers.id in (select unnest(covid_interactions.adviser_ids)::uuid from covid_interactions)
     ),
     c_contacts as (
@@ -487,19 +487,19 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 --Show all other team members
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name,')'), '; ')
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,')'), '; ')
                     FROM dit.data_hub__advisers
-                    JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                 ) AS team_members,
 
                 --Show all members of the full virtual team (project manager, project assurance adviser, client relationship manager, project creator, last modifier, account manager + all other team members)
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                        OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                   client_relationship_manager.id, project_manager.id,
@@ -509,50 +509,50 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 --Show all members of the full virtual team who belong to DIT HQ teams
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                             OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
+                      AND data_hub__teams.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
                 ) AS dit_hq_team_members,
 
                 --Show all members of the full virtual team who are in 'IST' teams
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                             OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.name LIKE '%IST%'
+                      AND data_hub__teams.name LIKE '%IST%'
                 ) AS ist_team_members,
 
                 --Show all overseas post teams in the full virtual team
                 (
-                    SELECT STRING_AGG(DISTINCT teams_dataset.name, '; ')
+                    SELECT STRING_AGG(DISTINCT data_hub__teams.name, '; ')
                     FROM dit.data_hub__advisers
-                         JOIN teams_dataset ON data_hub__advisers.team_id = teams_dataset.id
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                             OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.role = 'Post'
+                      AND data_hub__teams.role = 'Post'
                 ) AS post_teams,
 
                 --Show all investment delivery partners in the full virtual team
                 (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.delivery_partner_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                         JOIN teams_dataset
-                              ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                         JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = teams_dataset.id
+                         JOIN dit.data_hub__teams
+                              ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                         JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                             OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
@@ -563,8 +563,8 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 CONCAT((
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.local_enterprise_partnership_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN teams_dataset ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (
                         data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
@@ -574,8 +574,8 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 ), (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN teams_dataset ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (
                         data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
@@ -593,9 +593,9 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                         JOIN ref_investment_delivery_partners_lep_da
                              ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
                                      = ref_lep_names.field_01
-                        JOIN teams_dataset
-                             ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = teams_dataset.id
+                        JOIN dit.data_hub__teams
+                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                       client_relationship_manager.id, project_manager.id,
@@ -604,9 +604,9 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                    SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
                                      '; ')
                    FROM ref_investment_delivery_partners_lep_da
-                        JOIN teams_dataset
-                             ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = teams_dataset.id
+                        JOIN dit.data_hub__teams
+                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                       client_relationship_manager.id, project_manager.id,
@@ -616,17 +616,17 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
             FROM investment_projects
                  JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
                  LEFT JOIN dit.data_hub__advisers created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
-                 LEFT JOIN teams_dataset created_by_team ON created_by_team.id = created_by_adviser.team_id
+                 LEFT JOIN dit.data_hub__teams created_by_team ON created_by_team.id = created_by_adviser.team_id
                  LEFT JOIN dit.data_hub__advisers modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
-                 LEFT JOIN teams_dataset modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
+                 LEFT JOIN dit.data_hub__teams modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
                  LEFT JOIN dit.data_hub__advisers client_relationship_manager ON client_relationship_manager.id = investment_projects.client_relationship_manager_id
-                 LEFT JOIN teams_dataset client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
+                 LEFT JOIN dit.data_hub__teams client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
                  LEFT JOIN dit.data_hub__advisers project_manager ON project_manager.id = investment_projects.project_manager_id
-                 LEFT JOIN teams_dataset project_manager_team ON project_manager_team.id = project_manager.team_id
+                 LEFT JOIN dit.data_hub__teams project_manager_team ON project_manager_team.id = project_manager.team_id
                  LEFT JOIN dit.data_hub__advisers project_assurance_adviser ON project_assurance_adviser.id = investment_projects.project_assurance_adviser_id
-                 LEFT JOIN teams_dataset project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
+                 LEFT JOIN dit.data_hub__teams project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
                  LEFT JOIN dit.data_hub__advisers account_manager ON account_manager.id = investor_company.one_list_account_owner_id
-                 LEFT JOIN teams_dataset account_manager_team ON account_manager_team.id = account_manager.team_id
+                 LEFT JOIN dit.data_hub__teams account_manager_team ON account_manager_team.id = account_manager.team_id
         )
     --Main query starts here
     SELECT
