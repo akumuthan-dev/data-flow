@@ -90,7 +90,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipelin
         get_data,
     )
 
-    schedule_interval = "0 6 20-31 1,4,7,10 *"
+    schedule_interval = "0 6 * * *"
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
@@ -124,7 +124,7 @@ class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_FastPollingPipeline):
         get_data,
     )
 
-    schedule_interval = "0 6 20-31 1,4,7,10 *"
+    schedule_interval = "0 6 * * *"
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
