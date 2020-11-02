@@ -293,7 +293,7 @@ class DataHubServiceDeliveryInteractionsCSVPipeline(_MonthlyCSVPipeline):
         LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         LEFT JOIN team_names ON team_names.iid = interactions.id
-        LEFT JOIN data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN dit.data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
