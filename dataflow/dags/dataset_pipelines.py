@@ -46,7 +46,7 @@ class CompanyExportCountryHistory(_DatasetPipeline):
     )
     table_config = TableConfig(
         schema='dit',
-        table_name='data_hub__company_export_country_history_dataset',
+        table_name='data_hub__company_export_country_histories',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -69,7 +69,7 @@ class CompanyExportCountry(_DatasetPipeline):
     )
     table_config = TableConfig(
         schema='dit',
-        table_name='data_hub__company_export_country_dataset',
+        table_name='data_hub__company_export_countries',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
