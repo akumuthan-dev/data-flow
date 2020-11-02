@@ -327,7 +327,7 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
     )
     table_config = TableConfig(
         schema='dit',
-        table_name='data_hub__interactions_export_country',
+        table_name='data_hub__interaction_export_countries',
         field_mapping=[
             ('country__name', sa.Column('country_name', sa.Text)),
             ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.Text)),
