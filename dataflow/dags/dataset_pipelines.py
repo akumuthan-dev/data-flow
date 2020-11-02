@@ -111,7 +111,8 @@ class OMISDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/omis-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='omis_dataset',
+        schema='dit',
+        table_name='data_hub__orders',
         field_mapping=[
             ('cancellation_reason__name', sa.Column('cancellation_reason', sa.Text)),
             ('cancelled_on', sa.Column('cancelled_date', sa.DateTime)),

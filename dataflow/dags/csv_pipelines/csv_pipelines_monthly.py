@@ -34,31 +34,31 @@ class DataHubOMISCompletedOrdersCSVPipeline(_MonthlyCSVPipeline):
     base_file_name = 'datahub-omis-completed-orders'
     query = '''
         SELECT
-            omis_dataset.omis_order_reference AS "OMIS Order Reference",
+            data_hub__orders.omis_order_reference AS "OMIS Order Reference",
             data_hub__companies.name AS "Company name",
             data_hub__teams.name AS "DIT Team",
-            ROUND(omis_dataset.subtotal::numeric/100::numeric,2) AS "Net price",
-            omis_dataset.uk_region AS "UK Region",
-            omis_dataset.market AS "Market",
-            omis_dataset.sector AS "Sector",
-            omis_dataset.services AS "Services",
-            to_char(omis_dataset.delivery_date, 'DD/MM/YYYY') AS "Delivery date",
-            to_char(omis_dataset.payment_received_date, 'DD/MM/YYYY') AS "Payment received date",
-            to_char(omis_dataset.completion_date, 'DD/MM/YYYY') AS "Completion Date",
-            to_char(omis_dataset.created_date, 'DD/MM/YYYY') AS "Created date",
-            to_char(omis_dataset.cancelled_date, 'DD/MM/YYYY') AS "Cancelled date",
-            omis_dataset.cancellation_reason AS "Cancellation reason",
-            to_char(omis_dataset.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
-            (omis_dataset.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
-            (omis_dataset.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
-            (omis_dataset.total_cost/100)::numeric(15, 2) AS "Gross Amount",
-            to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
-        FROM omis_dataset
-        LEFT JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
-        LEFT JOIN dit.data_hub__teams ON omis_dataset.dit_team_id=data_hub__teams.id
-        WHERE omis_dataset.order_status = 'complete'
-        AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
-        ORDER BY omis_dataset.completion_date
+            ROUND(data_hub__orders.subtotal::numeric/100::numeric,2) AS "Net price",
+            data_hub__orders.uk_region AS "UK Region",
+            data_hub__orders.market AS "Market",
+            data_hub__orders.sector AS "Sector",
+            data_hub__orders.services AS "Services",
+            to_char(data_hub__orders.delivery_date, 'DD/MM/YYYY') AS "Delivery date",
+            to_char(data_hub__orders.payment_received_date, 'DD/MM/YYYY') AS "Payment received date",
+            to_char(data_hub__orders.completion_date, 'DD/MM/YYYY') AS "Completion Date",
+            to_char(data_hub__orders.created_date, 'DD/MM/YYYY') AS "Created date",
+            to_char(data_hub__orders.cancelled_date, 'DD/MM/YYYY') AS "Cancelled date",
+            data_hub__orders.cancellation_reason AS "Cancellation reason",
+            to_char(data_hub__orders.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
+            (data_hub__orders.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
+            (data_hub__orders.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
+            (data_hub__orders.total_cost/100)::numeric(15, 2) AS "Gross Amount",
+            to_char(data_hub__orders.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
+        FROM dit.data_hub__orders
+        LEFT JOIN dit.data_hub__companies ON data_hub__orders.company_id=data_hub__companies.id
+        LEFT JOIN dit.data_hub__teams ON data_hub__orders.dit_team_id=data_hub__teams.id
+        WHERE data_hub__orders.order_status = 'complete'
+        AND date_trunc('month', data_hub__orders.completion_date) = date_trunc('month', :run_date)
+        ORDER BY data_hub__orders.completion_date
         '''
 
 
@@ -76,15 +76,15 @@ class DataHubOMISCancelledOrdersCSVPipeline(_MonthlyCSVPipeline):
         WITH omis AS (
             SELECT
                 CASE WHEN EXTRACT('month' FROM cancelled_date)::int >= 4
-                    THEN (to_char(omis_dataset.cancelled_date, 'YYYY')::int)
-                    ELSE (to_char(omis_dataset.cancelled_date + interval '-1' year, 'YYYY')::int)
+                    THEN (to_char(data_hub__orders.cancelled_date, 'YYYY')::int)
+                    ELSE (to_char(data_hub__orders.cancelled_date + interval '-1' year, 'YYYY')::int)
                 END as cancelled_date_financial_year,
                 CASE WHEN EXTRACT('month' FROM CURRENT_DATE)::int >= 4
                     THEN (to_char(CURRENT_DATE, 'YYYY')::int)
                     ELSE (to_char(CURRENT_DATE + interval '-1' year, 'YYYY')::int)
                 END as current_financial_year,
                 *
-            FROM omis_dataset
+            FROM dit.data_hub__orders
         )
         SELECT
             omis.omis_order_reference AS "OMIS Order Reference",
@@ -123,30 +123,30 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
     start_date = datetime(2019, 12, 1)
     query = '''
         SELECT
-            omis_dataset.omis_order_reference AS "Order ID",
-            omis_dataset.order_status AS "Order status",
+            data_hub__orders.omis_order_reference AS "Order ID",
+            data_hub__orders.order_status AS "Order status",
             data_hub__companies.name AS "Company",
             data_hub__teams.name AS "Creator team",
-            omis_dataset.uk_region AS "UK region",
-            omis_dataset.market AS "Primary market",
-            omis_dataset.sector AS "Sector",
+            data_hub__orders.uk_region AS "UK region",
+            data_hub__orders.market AS "Primary market",
+            data_hub__orders.sector "Sector",
             data_hub__companies.sector AS "Company sector",
-            omis_dataset.net_price AS "Net price",
-            omis_dataset.services AS "Services",
-            TO_CHAR(omis_dataset.created_date, 'YYYY-MM-DD')::DATE AS "Order created",
-            TO_CHAR(omis_dataset.quote_created_on, 'YYYY-MM-DD')::DATE AS "Quote created",
-            TO_CHAR(omis_dataset.quote_accepted_on, 'YYYY-MM-DD')::DATE AS "Quote accepted",
-            TO_CHAR(omis_dataset.delivery_date, 'YYYY-MM-DD')::DATE AS "Planned delivery date",
-            omis_dataset.vat_cost AS "VAT",
-            TO_CHAR(omis_dataset.payment_received_date, 'YYYY-MM-DD')::DATE AS "Payment received date",
-            TO_CHAR(omis_dataset.completion_date, 'YYYY-MM-DD')::DATE AS "Completion date",
-            TO_CHAR(omis_dataset.cancelled_date, 'YYYY-MM-DD')::DATE AS "Cancellation date",
-            omis_dataset.refund_created AS "Refund date",
-            omis_dataset.refund_total_amount AS "Refund amount"
-        FROM omis_dataset
-        JOIN dit.data_hub__companies ON omis_dataset.company_id = data_hub__companies.id
-        JOIN dit.data_hub__teams on omis_dataset.dit_team_id = data_hub__teams.id
-        WHERE omis_dataset.created_date < date_trunc('month', :run_date)  + interval '1 month'
+            data_hub__orders.net_price AS "Net price",
+            data_hub__orders.services AS "Services",
+            TO_CHAR(data_hub__orders.created_date, 'YYYY-MM-DD')::DATE AS "Order created",
+            TO_CHAR(data_hub__orders.quote_created_on, 'YYYY-MM-DD')::DATE AS "Quote created",
+            TO_CHAR(data_hub__orders.quote_accepted_on, 'YYYY-MM-DD')::DATE AS "Quote accepted",
+            TO_CHAR(data_hub__orders.delivery_date, 'YYYY-MM-DD')::DATE AS "Planned delivery date",
+            data_hub__orders.vat_cost AS "VAT",
+            TO_CHAR(data_hub__orders.payment_received_date, 'YYYY-MM-DD')::DATE AS "Payment received date",
+            TO_CHAR(data_hub__orders, 'YYYY-MM-DD')::DATE AS "Completion date",
+            TO_CHAR(data_hub__orders.cancelled_date, 'YYYY-MM-DD')::DATE AS "Cancellation date",
+            data_hub__orders.refund_created AS "Refund date",
+            data_hub__orders.refund_total_amount AS "Refund amount"
+        FROM dit.data_hub__orders
+        JOIN dit.data_hub__companies ON data_hub__orders.company_id = data_hub__companies.id
+        JOIN dit.data_hub__teams on data_hub__orders.dit_team_id = data_hub__teams.id
+        WHERE data_hub__orders.created_date < date_trunc('month', :run_date)  + interval '1 month'
     '''
 
 
@@ -179,17 +179,17 @@ class DataHubOMISClientSurveyStaticCSVPipeline(_MonthlyCSVPipeline):
             data_hub__companies.registered_address_county AS "Company Registered Address County",
             data_hub__companies.registered_address_country AS "Company Registered Address Country",
             data_hub__companies.registered_address_postcode AS "Company Registered Address Postcode",
-            to_char(omis_dataset.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
-            (omis_dataset.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
-            (omis_dataset.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
-            (omis_dataset.total_cost/100)::numeric(15, 2) AS "Gross Amount",
-            to_char(omis_dataset.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
-        FROM omis_dataset
-        JOIN dit.data_hub__companies ON omis_dataset.company_id=data_hub__companies.id
-        JOIN dit.data_hub__contacts ON omis_dataset.contact_id=data_hub__contacts.id
-        WHERE omis_dataset.order_status = 'complete'
-        AND date_trunc('month', omis_dataset.completion_date) = date_trunc('month', :run_date)
-        ORDER BY omis_dataset.completion_date
+            to_char(data_hub__orders.refund_created, 'DD/MM/YYYY') AS "Date of Refund",
+            (data_hub__orders.refund_total_amount/100)::numeric(15, 2) AS "Refund Amount",
+            (data_hub__orders.vat_cost/100)::numeric(15, 2) AS "VAT Amount",
+            (data_hub__orders.total_cost/100)::numeric(15, 2) AS "Gross Amount",
+            to_char(data_hub__orders.quote_created_on, 'DD/MM/YYYY') AS "Quote Created"
+        FROM dit.data_hub__orders
+        JOIN dit.data_hub__companies ON data_hub__orders.company_id=data_hub__companies.id
+        JOIN dit.data_hub__contacts ON data_hub__orders.contact_id=data_hub__contacts.id
+        WHERE data_hub__orders.order_status = 'complete'
+        AND date_trunc('month', data_hub__orders.completion_date) = date_trunc('month', :run_date)
+        ORDER BY data_hub__orders.completion_date
     '''
 
 
