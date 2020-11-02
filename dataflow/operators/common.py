@@ -1,7 +1,7 @@
 import codecs
 import csv
 from contextlib import closing
-from typing import Optional, Union
+from typing import Mapping, Optional, Union
 
 import backoff
 import jwt
@@ -129,6 +129,8 @@ def fetch_from_api_endpoint(
     auth_token: Optional[str] = None,
     results_key: Optional[str] = "results",
     next_key: Optional[str] = "next",
+    auth_type: Optional[str] = "Token",
+    extra_headers: Optional[Mapping] = None,
     **kwargs,
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
@@ -138,7 +140,12 @@ def fetch_from_api_endpoint(
     while True:
         response = requests.get(
             source_url,
-            headers={'Authorization': f'Token {auth_token}'} if auth_token else None,
+            headers={
+                'Authorization': f'{auth_type} {auth_token}',
+                **(extra_headers or {}),
+            }
+            if auth_token
+            else None,
         )
 
         try:
