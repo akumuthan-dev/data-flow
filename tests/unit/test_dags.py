@@ -62,6 +62,7 @@ def test_pipelines_dags():
         'FDIDashboardPipeline',
         'GlobalUKTariffPipeline',
         'GoogleCovid19MobilityReports',
+        'GreatGovUKCompanyPipeline',
         'GreatGOVUKExportOpportunitiesPipeline',
         'GreatGOVUKExportOpportunityEnquiriesMatchingPipeline',
         'GreatGOVUKExportOpportunityEnquiriesPipeline',
