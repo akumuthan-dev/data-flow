@@ -44,7 +44,7 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
         WITH fdi_report AS (
             WITH companies_last_version AS (
                 SELECT *
-                FROM companies_dataset
+                FROM dit.data_hub__companies
                     LEFT JOIN (
                         SELECT
                             DISTINCT ON (company_id)
@@ -54,10 +54,10 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                             phone AS contact_phone,
                             email AS contact_email,
                             email_marketing_consent AS contact_accepts_dit_email_marketing
-                        FROM contacts_dataset
+                        FROM dit.data_hub__contacts
                         ORDER BY company_id, is_primary DESC, modified_on DESC
                     ) contacts
-                ON companies_dataset.id = contacts.joined_id
+                ON data_hub__companies.id = contacts.joined_id
             )
             SELECT
                 fdi.id AS unique_id,
@@ -132,10 +132,10 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                 fdi.associated_non_fdi_r_and_d_project_id,
                 ARRAY_TO_STRING(fdi.competing_countries, '; ') as competing_countries,
                 (
-                    SELECT STRING_AGG(CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name, ')'), '; ')
-                    FROM advisers_dataset
-                    JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE advisers_dataset.id = ANY(fdi.team_member_ids::uuid[])
+                    SELECT STRING_AGG(CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name, ')'), '; ')
+                    FROM dit.data_hub__advisers
+                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE data_hub__advisers.id = ANY(fdi.team_member_ids::uuid[])
                 ) AS team_members,
                 fdi.investor_type,
                 fdi.level_of_involvement,
@@ -166,24 +166,24 @@ class DataHubFDIDailyCSVPipeline(_DailyCSVPipeline):
                 ARRAY_TO_STRING(fdi.strategic_drivers, '; ') as strategic_drivers,
                 fdi.gross_value_added,
                 fdi.gva_multiplier
-            FROM investment_projects_dataset fdi
+            FROM dit.data_hub__investment_projects fdi
              LEFT JOIN companies_last_version inv ON fdi.investor_company_id = inv.id
              LEFT JOIN companies_last_version ukc ON fdi.uk_company_id = ukc.id
-             LEFT JOIN advisers_dataset crm ON fdi.client_relationship_manager_id = crm.id
-             LEFT JOIN teams_dataset crmt ON crm.team_id = crmt.id
-             LEFT JOIN advisers_dataset paa ON fdi.project_assurance_adviser_id = paa.id
-             LEFT JOIN teams_dataset paat ON paa.team_id = paat.id
-             LEFT JOIN advisers_dataset pm ON fdi.project_manager_id = pm.id
-             LEFT JOIN teams_dataset pmt ON pm.team_id = pmt.id
-             LEFT JOIN advisers_dataset cre ON fdi.created_by_id = cre.id
-             LEFT JOIN teams_dataset cret ON cre.team_id = cret.id
-             LEFT JOIN advisers_dataset mod ON fdi.modified_by_id = mod.id
-             LEFT JOIN teams_dataset modt ON mod.team_id = modt.id
-             LEFT JOIN advisers_dataset acm ON inv.one_list_account_owner_id = acm.id
-             LEFT JOIN teams_dataset acmt ON acm.team_id = acmt.id
+             LEFT JOIN dit.data_hub__advisers crm ON fdi.client_relationship_manager_id = crm.id
+             LEFT JOIN dit.data_hub__teams crmt ON crm.team_id = crmt.id
+             LEFT JOIN dit.data_hub__advisers paa ON fdi.project_assurance_adviser_id = paa.id
+             LEFT JOIN dit.data_hub__teams paat ON paa.team_id = paat.id
+             LEFT JOIN dit.data_hub__advisers pm ON fdi.project_manager_id = pm.id
+             LEFT JOIN dit.data_hub__teams pmt ON pm.team_id = pmt.id
+             LEFT JOIN dit.data_hub__advisers cre ON fdi.created_by_id = cre.id
+             LEFT JOIN dit.data_hub__teams cret ON cre.team_id = cret.id
+             LEFT JOIN dit.data_hub__advisers mod ON fdi.modified_by_id = mod.id
+             LEFT JOIN dit.data_hub__teams modt ON mod.team_id = modt.id
+             LEFT JOIN dit.data_hub__advisers acm ON inv.one_list_account_owner_id = acm.id
+             LEFT JOIN dit.data_hub__teams acmt ON acm.team_id = acmt.id
              LEFT JOIN (
                 SELECT investment_project_id, max(interaction_date)::text as date_of_latest_interaction
-                FROM interactions_dataset i
+                FROM dit.data_hub__interactions i
                 WHERE investment_project_id IS NOT NULL
                 GROUP BY investment_project_id
              ) i ON fdi.id = i.investment_project_id
@@ -241,9 +241,9 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE)
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -251,28 +251,28 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -281,37 +281,37 @@ class DataHubServiceDeliveriesCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             contacts.address_2 AS "Contact Address Line 2",
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
-            advisers_dataset.first_name AS "DIT Adviser First Name",
-            advisers_dataset.last_name AS "DIT Adviser Last Name",
-            advisers_dataset.telephone_number AS "DIT Adviser Phone",
-            advisers_dataset.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__advisers.first_name AS "DIT Adviser First Name",
+            data_hub__advisers.last_name AS "DIT Adviser Last Name",
+            data_hub__advisers.telephone_number AS "DIT Adviser Phone",
+            data_hub__advisers.contact_email AS "DIT Adviser Email",
+            data_hub__teams.name AS "DIT Team",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
             interactions.net_company_receipt AS "Net Company Receipt",
             interactions.grant_amount_offered AS "Grant Amount Offered",
             interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link",
             CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
             CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
-        JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
+        JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+        LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
-        LEFT JOIN advisers_dataset lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN dit.data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -332,9 +332,9 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'interaction'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE)
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'interaction'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE)
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -342,28 +342,28 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -372,33 +372,33 @@ class DataHubInteractionsCurrentYearDailyCSVPipeline(_DailyCSVPipeline):
             contacts.address_2 AS "Contact Address Line 2",
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
-            advisers_dataset.first_name AS "DIT Adviser First Name",
-            advisers_dataset.last_name AS "DIT Adviser Last Name",
-            advisers_dataset.telephone_number AS "DIT Adviser Phone",
-            advisers_dataset.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__advisers.first_name AS "DIT Adviser First Name",
+            data_hub__advisers.last_name AS "DIT Adviser Last Name",
+            data_hub__advisers.telephone_number AS "DIT Adviser Phone",
+            data_hub__advisers.contact_email AS "DIT Adviser Email",
+            data_hub__teams.name AS "DIT Team",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
             interactions.net_company_receipt AS "Net Company Receipt",
             interactions.grant_amount_offered AS "Grant Amount Offered",
             interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
-        JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
+        JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+        LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         ORDER BY interactions.interaction_date
     '''
@@ -420,9 +420,9 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'service_delivery'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'service_delivery'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -430,28 +430,28 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -460,37 +460,37 @@ class DataHubServiceDeliveriesPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             contacts.address_2 AS "Contact Address Line 2",
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
-            advisers_dataset.first_name AS "DIT Adviser First Name",
-            advisers_dataset.last_name AS "DIT Adviser Last Name",
-            advisers_dataset.telephone_number AS "DIT Adviser Phone",
-            advisers_dataset.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__advisers.first_name AS "DIT Adviser First Name",
+            data_hub__advisers.last_name AS "DIT Adviser Last Name",
+            data_hub__advisers.telephone_number AS "DIT Adviser Phone",
+            data_hub__advisers.contact_email AS "DIT Adviser Email",
+            data_hub__teams.name AS "DIT Team",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
             interactions.net_company_receipt AS "Net Company Receipt",
             interactions.grant_amount_offered AS "Grant Amount Offered",
             interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link",
             CONCAT(lead_adviser.first_name, ' ', lead_adviser.last_name) as "Lead Adviser Name",
             CONCAT(lead_adviser.contact_email) as "Lead Adviser Email"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
-        JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
+        JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+        LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
-        LEFT JOIN advisers_dataset lead_adviser ON companies_dataset.one_list_account_owner_id = lead_adviser.id
+        LEFT JOIN dit.data_hub__advisers lead_adviser ON data_hub__companies.one_list_account_owner_id = lead_adviser.id
         ORDER BY interactions.interaction_date
     '''
 
@@ -511,9 +511,9 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
     query = '''
         WITH interactions AS (
             SELECT *
-            FROM interactions_dataset
-            WHERE interactions_dataset.interaction_kind = 'interaction'
-            AND date_trunc('year', interactions_dataset.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.interaction_kind = 'interaction'
+            AND date_trunc('year', data_hub__interactions.interaction_date) = date_trunc('year', CURRENT_DATE) - INTERVAL '1 year'
         ),
         contact_ids AS (
             SELECT id AS interaction_id, UNNEST(contact_ids)::uuid AS contact_id
@@ -521,28 +521,28 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
         ),
         contacts AS (
             SELECT DISTINCT ON (contact_ids.interaction_id) *
-            FROM contacts_dataset
-            JOIN contact_ids ON contacts_dataset.id = contact_ids.contact_id
-            ORDER BY contact_ids.interaction_id, contacts_dataset.is_primary DESC NULLS LAST
+            FROM dit.data_hub__contacts
+            JOIN contact_ids ON data_hub__contacts.id = contact_ids.contact_id
+            ORDER BY contact_ids.interaction_id, data_hub__contacts.is_primary DESC NULLS LAST
         )
         SELECT
             to_char(interactions.interaction_date, 'DD/MM/YYYY') AS "Date of Interaction",
             interactions.interaction_kind AS "Interaction Type",
-            companies_dataset.name AS "Company Name",
-            companies_dataset.company_number AS "Companies HouseID",
-            companies_dataset.id AS "Data Hub Company ID",
-            companies_dataset.cdms_reference_code AS "CDMS Reference Code",
-            companies_dataset.address_postcode AS "Company Postcode",
-            companies_dataset.address_1 AS "Company Address Line 1",
-            companies_dataset.address_2 AS "Company Address Line 2",
-            companies_dataset.address_town AS "Company Address Town",
-            companies_dataset.address_country AS "Company Address Country",
-            companies_dataset.website AS "Company Website",
-            companies_dataset.number_of_employees AS "Number of Employees",
-            companies_dataset.is_number_of_employees_estimated AS "Number of Employees Estimated",
-            companies_dataset.turnover AS "Turnover",
-            companies_dataset.is_turnover_estimated AS "Turnover Estimated",
-            companies_dataset.sector AS "Sector",
+            data_hub__companies.name AS "Company Name",
+            data_hub__companies.company_number AS "Companies HouseID",
+            data_hub__companies.id AS "Data Hub Company ID",
+            data_hub__companies.cdms_reference_code AS "CDMS Reference Code",
+            data_hub__companies.address_postcode AS "Company Postcode",
+            data_hub__companies.address_1 AS "Company Address Line 1",
+            data_hub__companies.address_2 AS "Company Address Line 2",
+            data_hub__companies.address_town AS "Company Address Town",
+            data_hub__companies.address_country AS "Company Address Country",
+            data_hub__companies.website AS "Company Website",
+            data_hub__companies.number_of_employees AS "Number of Employees",
+            data_hub__companies.is_number_of_employees_estimated AS "Number of Employees Estimated",
+            data_hub__companies.turnover AS "Turnover",
+            data_hub__companies.is_turnover_estimated AS "Turnover Estimated",
+            data_hub__companies.sector AS "Sector",
             contacts.contact_name AS "Contact Name",
             contacts.phone AS "Contact Phone",
             contacts.email AS "Contact Email",
@@ -551,33 +551,33 @@ class DataHubInteractionsPreviousYearDailyCSVPipeline(_DailyCSVPipeline):
             contacts.address_2 AS "Contact Address Line 2",
             contacts.address_town AS "Contact Address Town",
             contacts.address_country AS "Contact Address Country",
-            advisers_dataset.first_name AS "DIT Adviser First Name",
-            advisers_dataset.last_name AS "DIT Adviser Last Name",
-            advisers_dataset.telephone_number AS "DIT Adviser Phone",
-            advisers_dataset.contact_email AS "DIT Adviser Email",
-            teams_dataset.name AS "DIT Team",
-            companies_dataset.uk_region AS "Company UK Region",
+            data_hub__advisers.first_name AS "DIT Adviser First Name",
+            data_hub__advisers.last_name AS "DIT Adviser Last Name",
+            data_hub__advisers.telephone_number AS "DIT Adviser Phone",
+            data_hub__advisers.contact_email AS "DIT Adviser Email",
+            data_hub__teams.name AS "DIT Team",
+            data_hub__companies.uk_region AS "Company UK Region",
             interactions.service_delivery AS "Service Delivery",
             interactions.interaction_subject AS "Subject",
             interactions.interaction_notes AS "Notes",
             interactions.net_company_receipt AS "Net Company Receipt",
             interactions.grant_amount_offered AS "Grant Amount Offered",
             interactions.service_delivery_status AS "Service Delivery Status",
-            events_dataset.name AS "Event Name",
-            events_dataset.event_type AS "Event Type",
-            to_char(events_dataset.start_date, 'DD/MM/YYYY') AS "Event Start Date",
-            events_dataset.address_town AS "Event Town",
-            events_dataset.address_country AS "Event Country",
-            events_dataset.uk_region AS "Event UK Region",
-            events_dataset.service_name AS "Event Service Name",
+            data_hub__events.name AS "Event Name",
+            data_hub__events.event_type AS "Event Type",
+            to_char(data_hub__events.start_date, 'DD/MM/YYYY') AS "Event Start Date",
+            data_hub__events.address_town AS "Event Town",
+            data_hub__events.address_country AS "Event Country",
+            data_hub__events.uk_region AS "Event UK Region",
+            data_hub__events.service_name AS "Event Service Name",
             to_char(interactions.created_on, 'DD/MM/YYYY') AS "Created On Date",
             interactions.communication_channel AS "Communication Channel",
             interactions.interaction_link AS "Interaction Link"
         FROM interactions
-        JOIN companies_dataset ON interactions.company_id = companies_dataset.id
-        JOIN advisers_dataset ON interactions.adviser_ids[1]::uuid = advisers_dataset.id
-        JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-        LEFT JOIN events_dataset ON interactions.event_id = events_dataset.id
+        JOIN dit.data_hub__companies ON interactions.company_id = data_hub__companies.id
+        JOIN dit.data_hub__advisers ON interactions.adviser_ids[1]::uuid = data_hub__advisers.id
+        JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+        LEFT JOIN dit.data_hub__events ON interactions.event_id = data_hub__events.id
         LEFT JOIN contacts ON contacts.interaction_id = interactions.id
         ORDER BY interactions.interaction_date    '''
 

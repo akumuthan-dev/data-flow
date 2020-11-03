@@ -68,36 +68,36 @@ class FDIDashboardPipeline(_SQLPipelineDAG):
     )
     query = '''
         SELECT
-            investment_projects_dataset.id,
-            investment_projects_dataset.project_reference,
-            CONCAT('https://datahub.trade.gov.uk/investments/projects/', investment_projects_dataset.id, '/details') AS project_link,
-            investment_projects_dataset.total_investment,
-            investment_projects_dataset.number_new_jobs,
-            investment_projects_dataset.number_safeguarded_jobs,
-            investment_projects_dataset.stage,
-            investment_projects_dataset.status::TEXT,
-            investment_projects_dataset.fdi_value,
-            companies_dataset.address_country::TEXT AS investor_company_country,
+            data_hub__investment_projects.id,
+            data_hub__investment_projects.project_reference,
+            CONCAT('https://datahub.trade.gov.uk/investments/projects/', data_hub__investment_projects.id, '/details') AS project_link,
+            data_hub__investment_projects.total_investment,
+            data_hub__investment_projects.number_new_jobs,
+            data_hub__investment_projects.number_safeguarded_jobs,
+            data_hub__investment_projects.stage,
+            data_hub__investment_projects.status::TEXT,
+            data_hub__investment_projects.fdi_value,
+            data_hub__companies.address_country::TEXT AS investor_company_country,
             ref_countries_territories_and_regions.region::TEXT as overseas_region,
-            SPLIT_PART(investment_projects_dataset.sector, ' : ', 1) AS project_sector,
+            SPLIT_PART(data_hub__investment_projects.sector, ' : ', 1) AS project_sector,
             ref_dit_sectors.field_03::TEXT AS sector_cluster,
             CASE
-                WHEN investment_projects_dataset.stage IN ('Prospect', 'Assign PM', 'Active')
-                THEN investment_projects_dataset.estimated_land_date
-                ELSE investment_projects_dataset.actual_land_date
+                WHEN data_hub__investment_projects.stage IN ('Prospect', 'Assign PM', 'Active')
+                THEN data_hub__investment_projects.estimated_land_date
+                ELSE data_hub__investment_projects.actual_land_date
             END AS project_end_date
-        FROM investment_projects_dataset
-        JOIN companies_dataset ON companies_dataset.id = investment_projects_dataset.investor_company_id
-        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects_dataset.sector
-        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = companies_dataset.address_country
+        FROM dit.data_hub__investment_projects
+        JOIN dit.data_hub__companies ON data_hub__companies.id = data_hub__investment_projects.investor_company_id
+        JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = data_hub__investment_projects.sector
+        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = data_hub__companies.address_country
         WHERE (
-            investment_projects_dataset.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+            data_hub__investment_projects.estimated_land_date BETWEEN '2020-04-01' AND '2021-03-31'
             OR
-            investment_projects_dataset.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
+            data_hub__investment_projects.actual_land_date BETWEEN '2020-04-01' AND '2021-03-31'
         )
-        AND investment_projects_dataset.investment_type = 'FDI'
-        AND investment_projects_dataset.level_of_involvement != 'No Involvement'
-        AND (investment_projects_dataset.status = 'ongoing' OR investment_projects_dataset.status = 'won')
+        AND data_hub__investment_projects.investment_type = 'FDI'
+        AND data_hub__investment_projects.level_of_involvement != 'No Involvement'
+        AND (data_hub__investment_projects.status = 'ongoing' OR data_hub__investment_projects.status = 'won')
     '''
 
 
@@ -130,7 +130,7 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     )
 
     query = '''
-    with covid_interactions as (select * from interactions_dataset
+    with covid_interactions as (select * from dit.data_hub__interactions
     where
     (
         (interaction_subject ILIKE '%coronavirus%' or interaction_subject ILIKE '%covid%')
@@ -144,13 +144,13 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     )
     and interaction_date > '2019-12-05'),
     c_advisers as (
-        select advisers_dataset.id as "id", teams_dataset.name as team, teams_dataset.role as role from advisers_dataset
-        join teams_dataset on teams_dataset.id = advisers_dataset.team_id
-        where advisers_dataset.id in (select unnest(covid_interactions.adviser_ids)::uuid from covid_interactions)
+        select data_hub__advisers.id as "id", data_hub__teams.name as team, data_hub__teams.role as role from dit.data_hub__advisers
+        join dit.data_hub__teams on data_hub__teams.id = data_hub__advisers.team_id
+        where data_hub__advisers.id in (select unnest(covid_interactions.adviser_ids)::uuid from covid_interactions)
     ),
     c_contacts as (
-        select contacts_dataset.id, contact_name from contacts_dataset
-        where contacts_dataset.id in (select unnest(covid_interactions.contact_ids)::uuid from covid_interactions)
+        select data_hub__contacts.id, contact_name from dit.data_hub__contacts
+        where data_hub__contacts.id in (select unnest(covid_interactions.contact_ids)::uuid from covid_interactions)
     )
     select
     ci.interaction_date::text as "interaction_date",
@@ -166,7 +166,7 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     ci.policy_areas as "policy_areas",
     ci.created_on::text as "entered_into_data_hub"
     from covid_interactions ci
-    join companies_dataset co on co.id = ci.company_id
+    join dit.data_hub__companies co on co.id = ci.company_id
     order by ci.interaction_date DESC;
     '''
 
@@ -223,9 +223,9 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
     query = '''
         WITH minister_interactions AS (
         SELECT
-            unnest(interactions_dataset.adviser_ids) AS adviser_id,
-            interactions_dataset.*
-        FROM interactions_dataset
+            unnest(data_hub__interactions.adviser_ids) AS adviser_id,
+            data_hub__interactions.*
+        FROM dit.data_hub__interactions
         WHERE
             '19d855be-a8bb-4004-8ae7-d52902e3f85a' = ANY(adviser_ids)
             OR 'c3680c0e-fd4b-4b1b-8def-46c23f8cd97c' = ANY(adviser_ids)
@@ -239,37 +239,37 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
         SELECT
             minister_interactions.id AS interaction_id,
             minister_interactions.interaction_link AS interaction_link,
-            companies_dataset.name AS company_name,
-            CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/activity') AS company_link,
-            companies_dataset.address_country AS company_country,
-            companies_dataset.address_postcode AS company_postcode,
+            data_hub__companies.name AS company_name,
+            CONCAT('https://datahub.trade.gov.uk/companies/',data_hub__companies.id,'/activity') AS company_link,
+            data_hub__companies.address_country AS company_country,
+            data_hub__companies.address_postcode AS company_postcode,
             CASE
                 WHEN postcode_directory__latest.long IS NOT NULL
                 THEN CONCAT(postcode_directory__latest.lat, ', ', postcode_directory__latest.long)
                 END AS company_address_latitude_longitude,
-            companies_dataset.uk_region AS company_uk_region,
-            companies_dataset.number_of_employees AS company_number_of_employees,
-            companies_dataset.turnover AS company_turnover,
-            companies_dataset.one_list_tier AS company_one_list_tier,
-            SPLIT_PART(companies_dataset.sector, ' : ', 1) AS company_sector,
+            data_hub__companies.uk_region AS company_uk_region,
+            data_hub__companies.number_of_employees AS company_number_of_employees,
+            data_hub__companies.turnover AS company_turnover,
+            data_hub__companies.one_list_tier AS company_one_list_tier,
+            SPLIT_PART(data_hub__companies.sector, ' : ', 1) AS company_sector,
             minister_interactions.interaction_date AS interaction_date,
             minister_interactions.adviser_id::UUID AS adviser_id,
-            CONCAT(advisers_dataset.first_name,' ',advisers_dataset.last_name) AS adviser_name,
+            CONCAT(data_hub__advisers.first_name,' ',data_hub__advisers.last_name) AS adviser_name,
             minister_interactions.interaction_subject AS interaction_subject,
             minister_interactions.communication_channel AS communication_channel,
             array_to_string(minister_interactions.policy_areas, ', ') AS policy_areas,
             minister_interactions.policy_feedback_notes AS policy_feedback_notes,
             array_to_string(minister_interactions.policy_issue_types, ', ') AS policy_issue_types,
             CASE
-                WHEN companies_dataset.duns_number IS NULL
+                WHEN data_hub__companies.duns_number IS NULL
                 THEN 'No'
                 ELSE 'Yes'
             END AS dun_and_bradstreet_linked_record,
             minister_interactions.service_delivery AS service
         FROM minister_interactions
-        JOIN companies_dataset ON companies_dataset.id = minister_interactions.company_id
-        JOIN advisers_dataset ON advisers_dataset.id = minister_interactions.adviser_id::uuid
-        LEFT JOIN ons.postcode_directory__latest ON REPLACE(postcode_directory__latest.pcd2,' ','') = REPLACE(companies_dataset.address_postcode, ' ','')
+        JOIN dit.data_hub__companies ON data_hub__companies.id = minister_interactions.company_id
+        JOIN dit.data_hub__advisers ON data_hub__advisers.id = minister_interactions.adviser_id::uuid
+        LEFT JOIN ons.postcode_directory__latest ON REPLACE(postcode_directory__latest.pcd2,' ','') = REPLACE(data_hub__companies.address_postcode, ' ','')
         WHERE adviser_id IN (
             '19d855be-a8bb-4004-8ae7-d52902e3f85a',
             'c3680c0e-fd4b-4b1b-8def-46c23f8cd97c',
@@ -280,7 +280,7 @@ class MinisterialInteractionsDashboardPipeline(_SQLPipelineDAG):
             '763f4b9f-0f61-4273-85cd-d5c16b17c8a0',
             '3dbade20-03f2-45f1-b073-09f096c19990'
         )
-        ORDER BY companies_dataset.name ASC
+        ORDER BY data_hub__companies.name ASC
     '''
 
 
@@ -435,13 +435,13 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         WITH
         --Table converting all 'Retail' related projects to the Consumer and retail sector
         investment_projects AS (
-            SELECT investment_projects_dataset.*,
+            SELECT data_hub__investment_projects.*,
                 CASE
-                    WHEN 'Retail' = ANY (investment_projects_dataset.business_activities::TEXT[])
+                    WHEN 'Retail' = ANY (data_hub__investment_projects.business_activities::TEXT[])
                         THEN 'Consumer and retail'
-                    ELSE investment_projects_dataset.sector
+                    ELSE data_hub__investment_projects.sector
                 END AS project_sector
-            FROM investment_projects_dataset
+            FROM dit.data_hub__investment_projects
             WHERE (
                 (actual_land_date >= '2018-04-01' OR estimated_land_date >= '2018-04-01')
                 AND LOWER(status) IN ('ongoing', 'won')
@@ -454,11 +454,11 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
 
         --Table of latest interaction date for each investment project
         latest_interactions AS (
-            SELECT interactions_dataset.investment_project_id,
-                MAX(interactions_dataset.interaction_date) AS date_of_latest_interaction
-            FROM interactions_dataset
-            WHERE interactions_dataset.investment_project_id IS NOT NULL
-            GROUP BY interactions_dataset.investment_project_id),
+            SELECT data_hub__interactions.investment_project_id,
+                MAX(data_hub__interactions.interaction_date) AS date_of_latest_interaction
+            FROM dit.data_hub__interactions
+            WHERE data_hub__interactions.investment_project_id IS NOT NULL
+            GROUP BY data_hub__interactions.investment_project_id),
 
         --Extract team member ids, names and teams
         project_team AS (
@@ -487,21 +487,21 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 --Show all other team members
                 (
                     SELECT STRING_AGG(
-                            CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name,')'), '; ')
-                    FROM advisers_dataset
-                    JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,')'), '; ')
+                    FROM dit.data_hub__advisers
+                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                 ) AS team_members,
 
                 --Show all members of the full virtual team (project manager, project assurance adviser, client relationship manager, project creator, last modifier, account manager + all other team members)
                 (
                     SELECT STRING_AGG(
-                            CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
-                    FROM advisers_dataset
-                         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                       OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                    FROM dit.data_hub__advisers
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                       OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                   client_relationship_manager.id, project_manager.id,
                                                   project_assurance_adviser.id, account_manager.id)
                 ) AS all_virtual_team_members,
@@ -509,52 +509,52 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 --Show all members of the full virtual team who belong to DIT HQ teams
                 (
                     SELECT STRING_AGG(
-                            CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
-                    FROM advisers_dataset
-                         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                    FROM dit.data_hub__advisers
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
+                      AND data_hub__teams.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
                 ) AS dit_hq_team_members,
 
                 --Show all members of the full virtual team who are in 'IST' teams
                 (
                     SELECT STRING_AGG(
-                            CONCAT(advisers_dataset.first_name, ' ', advisers_dataset.last_name, ' (', teams_dataset.name,
+                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
                                    ')'), '; ')
-                    FROM advisers_dataset
-                         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                    FROM dit.data_hub__advisers
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.name LIKE '%IST%'
+                      AND data_hub__teams.name LIKE '%IST%'
                 ) AS ist_team_members,
 
                 --Show all overseas post teams in the full virtual team
                 (
-                    SELECT STRING_AGG(DISTINCT teams_dataset.name, '; ')
-                    FROM advisers_dataset
-                         JOIN teams_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                    SELECT STRING_AGG(DISTINCT data_hub__teams.name, '; ')
+                    FROM dit.data_hub__advisers
+                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
-                      AND teams_dataset.role = 'Post'
+                      AND data_hub__teams.role = 'Post'
                 ) AS post_teams,
 
                 --Show all investment delivery partners in the full virtual team
                 (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.delivery_partner_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                         JOIN teams_dataset
-                              ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                         JOIN advisers_dataset ON advisers_dataset.team_id = teams_dataset.id
-                    WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                         JOIN dit.data_hub__teams
+                              ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                         JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
+                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                        client_relationship_manager.id, project_manager.id,
                                                        project_assurance_adviser.id, account_manager.id))
                 ) AS delivery_partner_teams,
@@ -563,23 +563,23 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 CONCAT((
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.local_enterprise_partnership_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN teams_dataset ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN advisers_dataset ON advisers_dataset.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (
-                        advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
+                        data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
-                        advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
+                        data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
                     )
                     AND local_enterprise_partnership_name != ''
                 ), (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN teams_dataset ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN advisers_dataset ON advisers_dataset.team_id = teams_dataset.id
+                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
                     WHERE (
-                        advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
+                        data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
-                        advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
+                        data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
                     )
                )) AS lep_or_da_in_team,
 
@@ -593,40 +593,40 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                         JOIN ref_investment_delivery_partners_lep_da
                              ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
                                      = ref_lep_names.field_01
-                        JOIN teams_dataset
-                             ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN advisers_dataset ON advisers_dataset.team_id = teams_dataset.id
-                   WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                           OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                        JOIN dit.data_hub__teams
+                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
+                   WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                           OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                       client_relationship_manager.id, project_manager.id,
                                                       project_assurance_adviser.id, account_manager.id))
                ), (
                    SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
                                      '; ')
                    FROM ref_investment_delivery_partners_lep_da
-                        JOIN teams_dataset
-                             ON teams_dataset.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN advisers_dataset ON advisers_dataset.team_id = teams_dataset.id
-                   WHERE (advisers_dataset.id = ANY (investment_projects.team_member_ids::UUID[])
-                           OR advisers_dataset.id IN (created_by_adviser.id, modified_by_adviser.id,
+                        JOIN dit.data_hub__teams
+                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
+                   WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                           OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
                                                       client_relationship_manager.id, project_manager.id,
                                                       project_assurance_adviser.id, account_manager.id))
                ))
             AS super_region_or_da_in_team
             FROM investment_projects
-                 JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
-                 LEFT JOIN advisers_dataset created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
-                 LEFT JOIN teams_dataset created_by_team ON created_by_team.id = created_by_adviser.team_id
-                 LEFT JOIN advisers_dataset modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
-                 LEFT JOIN teams_dataset modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
-                 LEFT JOIN advisers_dataset client_relationship_manager ON client_relationship_manager.id = investment_projects.client_relationship_manager_id
-                 LEFT JOIN teams_dataset client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
-                 LEFT JOIN advisers_dataset project_manager ON project_manager.id = investment_projects.project_manager_id
-                 LEFT JOIN teams_dataset project_manager_team ON project_manager_team.id = project_manager.team_id
-                 LEFT JOIN advisers_dataset project_assurance_adviser ON project_assurance_adviser.id = investment_projects.project_assurance_adviser_id
-                 LEFT JOIN teams_dataset project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
-                 LEFT JOIN advisers_dataset account_manager ON account_manager.id = investor_company.one_list_account_owner_id
-                 LEFT JOIN teams_dataset account_manager_team ON account_manager_team.id = account_manager.team_id
+                 JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
+                 LEFT JOIN dit.data_hub__advisers created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
+                 LEFT JOIN dit.data_hub__teams created_by_team ON created_by_team.id = created_by_adviser.team_id
+                 LEFT JOIN dit.data_hub__advisers modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
+                 LEFT JOIN dit.data_hub__teams modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
+                 LEFT JOIN dit.data_hub__advisers client_relationship_manager ON client_relationship_manager.id = investment_projects.client_relationship_manager_id
+                 LEFT JOIN dit.data_hub__teams client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
+                 LEFT JOIN dit.data_hub__advisers project_manager ON project_manager.id = investment_projects.project_manager_id
+                 LEFT JOIN dit.data_hub__teams project_manager_team ON project_manager_team.id = project_manager.team_id
+                 LEFT JOIN dit.data_hub__advisers project_assurance_adviser ON project_assurance_adviser.id = investment_projects.project_assurance_adviser_id
+                 LEFT JOIN dit.data_hub__teams project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
+                 LEFT JOIN dit.data_hub__advisers account_manager ON account_manager.id = investor_company.one_list_account_owner_id
+                 LEFT JOIN dit.data_hub__teams account_manager_team ON account_manager_team.id = account_manager.team_id
         )
     --Main query starts here
     SELECT
@@ -849,9 +849,9 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         project_team.super_region_or_da_in_team,
         investment_projects.export_revenue
     FROM investment_projects
-    JOIN companies_dataset investor_company ON investor_company.id = investment_projects.investor_company_id
+    JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
     JOIN project_team ON project_team.project_id = investment_projects.id
-    LEFT JOIN companies_dataset uk_company ON uk_company.id = investment_projects.uk_company_id
+    LEFT JOIN dit.data_hub__companies uk_company ON uk_company.id = investment_projects.uk_company_id
     LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
     LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.sector
     LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.sector
