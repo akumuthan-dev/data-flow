@@ -144,7 +144,7 @@ class CoronavirusInteractionsDashboardPipeline(_SQLPipelineDAG):
     )
     and interaction_date > '2019-12-05'),
     c_advisers as (
-        select data_hub__advisers.id as "id", data_hub__teams.name as team, data_hub__teams.role as role from data_hub__advisers
+        select data_hub__advisers.id as "id", data_hub__teams.name as team, data_hub__teams.role as role from dit.data_hub__advisers
         join dit.data_hub__teams on data_hub__teams.id = data_hub__advisers.team_id
         where data_hub__advisers.id in (select unnest(covid_interactions.adviser_ids)::uuid from covid_interactions)
     ),
