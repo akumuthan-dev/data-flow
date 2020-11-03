@@ -42,3 +42,4 @@ EMBEDDING_DIM = 100
 model_version = 'models_20200907.zip'
 model_version = 'models_20201001.zip'
 training_data_file = 'training_data_20201001.csv'
+probability_threshold = 0.4

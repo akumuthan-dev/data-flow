@@ -336,7 +336,7 @@ def buid_models_for_tags(
             )
 
             test_predictions_prob_tag = m.predict(data_to_evaluate)
-            test_predictions_class_tag = (test_predictions_prob_tag > 0.5) + 0
+            test_predictions_class_tag = (test_predictions_prob_tag > probability_threshold) + 0
             Y_test_predict[:, i] = np.concatenate((test_predictions_class_tag))
             Y_test_predict_prob[:, i] = np.concatenate((test_predictions_prob_tag))
 
@@ -368,7 +368,7 @@ def buid_models_for_tags(
     for i in np.arange(0, sent_to_evaluate.shape[0]):
         sentence.append(sent_to_evaluate[i])
         actual.append(list(compress(tags, Y_test[i])))
-        predict.append(list(compress(tags, Y_test_predict_prob[i] > 0.5)))
+        predict.append(list(compress(tags, Y_test_predict_prob[i] > probability_threshold)))
 
     return metric_df
 
@@ -377,36 +377,36 @@ def check_result(tag, tag_i, X_test, Y_test, sent_test, m):
     print(tag)
 
     test_predictions_prob_tag1 = m.predict(X_test)
-    test_predictions_class_tag1 = (test_predictions_prob_tag1 > 0.5) + 0
+    test_predictions_class_tag1 = (test_predictions_prob_tag1 > probability_threshold) + 0
 
-    threshold = 0.5
+    # threshold = probability_threshold
     # fp_ind = np.concatenate((test_predictions_prob_tag1>=threshold)&(Y_test[:,tag_i]==0))
     fp_sen = sent_test[
-        (np.concatenate(test_predictions_prob_tag1) > threshold)
+        (np.concatenate(test_predictions_prob_tag1) > probability_threshold)
         & (Y_test[:, tag_i] == 0)
     ]
     fp_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 >= threshold))
+        np.concatenate((test_predictions_prob_tag1 >= probability_threshold))
         & (Y_test[:, tag_i] == 0)
     ]
 
     # tp_ind = np.concatenate((test_predictions_prob_tag1>=threshold)&(Y_test[:,tag_i]==1))
     tp_sen = sent_test[
-        (np.concatenate(test_predictions_prob_tag1) > threshold)
+        (np.concatenate(test_predictions_prob_tag1) > probability_threshold)
         & (Y_test[:, tag_i] == 1)
     ]
     tp_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 >= threshold))
+        np.concatenate((test_predictions_prob_tag1 >= probability_threshold))
         & (Y_test[:, tag_i] == 1)
     ]
 
     # fn_ind = np.concatenate((test_predictions_prob_tag1<threshold)&(Y_test[:,tag_i]==1))
     fn_sen = sent_test[
-        (np.concatenate(test_predictions_prob_tag1) <= threshold)
+        (np.concatenate(test_predictions_prob_tag1) <= probability_threshold)
         & (Y_test[:, tag_i] == 1)
     ]
     fn_p = test_predictions_prob_tag1[
-        np.concatenate((test_predictions_prob_tag1 < threshold))
+        np.concatenate((test_predictions_prob_tag1 < probability_threshold))
         & (Y_test[:, tag_i] == 1)
     ]
 
@@ -659,3 +659,12 @@ def write_model_performance(table_name, today, **context):
 # s3 = boto3.client('s3', region_name='eu-west-2', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/operators/tags_classifier_train/models_20200907.zip',bucket,
 #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
+
+
+## run this if want to run locally
+# df = pd.read_csv('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201001.csv')
+# df = preprocess(df, action='train', tags=all_tags)
+# # # print('check 3', df.shape)
+# # df.to_csv('to_train.csv', index=False)
+# train_data_date = training_data_file.split('.')[0].split('_')[-1]
+# build_models_pipeline(df, train_data_date)
