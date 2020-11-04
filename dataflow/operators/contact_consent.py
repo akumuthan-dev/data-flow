@@ -14,7 +14,7 @@ def update_datahub_contact_consent(
     """
     table = get_temp_table(table, kwargs['ts_nodash'])
     update_consent_query = f"""
-        UPDATE {table.schema}{table.name} AS contacts_temp
+        UPDATE {table.schema}.{table.name} AS contacts_temp
         SET email_marketing_consent = consent.email_marketing_consent
         FROM {ConsentPipeline.fq_table_name()} AS consent
         WHERE lower(contacts_temp.email) = lower(consent.email)
