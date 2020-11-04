@@ -139,7 +139,7 @@ class DataHubOMISAllOrdersCSVPipeline(_MonthlyCSVPipeline):
             TO_CHAR(data_hub__orders.delivery_date, 'YYYY-MM-DD')::DATE AS "Planned delivery date",
             data_hub__orders.vat_cost AS "VAT",
             TO_CHAR(data_hub__orders.payment_received_date, 'YYYY-MM-DD')::DATE AS "Payment received date",
-            TO_CHAR(data_hub__orders, 'YYYY-MM-DD')::DATE AS "Completion date",
+            TO_CHAR(data_hub__orders.completion_date, 'YYYY-MM-DD')::DATE AS "Completion date",
             TO_CHAR(data_hub__orders.cancelled_date, 'YYYY-MM-DD')::DATE AS "Cancellation date",
             data_hub__orders.refund_created AS "Refund date",
             data_hub__orders.refund_total_amount AS "Refund amount"
