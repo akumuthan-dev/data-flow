@@ -80,7 +80,7 @@ def test_pipelines_dags():
         'Maintenance',
         'MarketAccessTradeBarriersPipeline',
         'MaxemailCampaignsPipeline',
-        'MaxemailCampaignsSentPipeline',
+        'MaxemailEventsPipeline',
         'MinisterialInteractionsDashboardPipeline',
         'OMISDatasetPipeline',
         'ONSPostcodePipeline',
