@@ -609,6 +609,44 @@ class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
     query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Email"}}]}}
 
 
+class MaxemailCampaignsPipeline(_ActivityStreamPipeline):
+    name = "maxemail-campaigns"
+    index = "activities"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="maxemail__campaigns",
+        field_mapping=[
+            (
+                ("object", "dit:maxemail:Campaign:id"),
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
+            (("object", "name"), sa.Column("title", sa.String, nullable=False)),
+            (
+                ("object", "content"),
+                sa.Column("description", sa.String, nullable=False),
+            ),
+            (
+                ("object", "dit:emailSubject"),
+                sa.Column("email_subject", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "name"),
+                sa.Column("email_from_name", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "dit:emailAddress"),
+                sa.Column("email_from_address", sa.String, index=True, nullable=False),
+            ),
+            (
+                ("published",),
+                sa.Column("started", sa.String, index=True, nullable=False),
+            ),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Campaign"}}]}}
+
+
 class GreatGovUKCompanyPipeline(_ActivityStreamPipeline):
     index = "objects"
     table_config = TableConfig(
