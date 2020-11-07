@@ -1,10 +1,6 @@
-import csv
-
 import datetime
-import itertools
 import tempfile
 import warnings
-from io import StringIO
 from time import sleep
 from typing import Tuple, Dict, Optional, TYPE_CHECKING
 
@@ -225,64 +221,6 @@ def insert_data_into_db(
                     )
 
         logger.info('Page %s ingested successfully', page)
-
-    if count == 0:
-        raise MissingDataError("There are no pages of records in S3 to insert.")
-
-
-def insert_csv_data_into_db(
-    target_db: str, table_config: TableConfig, contexts: Tuple = tuple(), **kwargs,
-):
-    """Insert fetched response data into temporary DB tables.
-
-    Goes through the stored response contents and loads individual
-    records into the temporary DB table.
-
-    DB columns are populated according to the field mapping, which
-    if as list of `(response_field, column)` tuples, where field
-    can either be a string or a tuple of keys/indexes forming a
-    path for a nested value.
-
-    """
-    table_config.configure(**kwargs)
-    s3 = S3Data(table_config.table_name, kwargs["ts_nodash"])
-
-    engine = sa.create_engine(
-        'postgresql+psycopg2://',
-        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
-    )
-
-    count = 0
-    done = 0
-    for page, data in s3.iter_keys(json=False):
-        logger.info('Processing page %s', page)
-        count += 1
-
-        with engine.begin() as conn:
-            reader = csv.DictReader(StringIO(data))
-
-            while True:
-                records = list(itertools.islice(reader, 10000))
-                if not records:
-                    break
-
-                logger.info("Ingesting records %s - %s ...", done, done + len(records))
-                transformed_records = []
-                for record in records:
-                    for transform in table_config.transforms:
-                        record = transform(record, table_config, contexts)  # type: ignore
-                    transformed_records.append(record)
-
-                conn.execute(
-                    table_config.temp_table.insert(),
-                    [
-                        _get_data_to_insert(table_config.columns, record)
-                        for record in transformed_records
-                    ],
-                )
-                done += len(records)
-
-        logger.info('File %s ingested successfully', page)
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")

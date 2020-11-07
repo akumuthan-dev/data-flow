@@ -15,3 +15,4 @@ git+https://github.com/GSS-Cogs/gss-utils.git@6439568a04c177a117cf8038dbee1678c9
 zipstream
 scikit-learn==0.22.2.post1
 git+https://github.com/uktrade/data-flow-metrics.git
+splitstream==1.2.4
