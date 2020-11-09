@@ -59,6 +59,7 @@ def transforms_fields_uktrade(record, table_config, contexts):
         field for field in record["custom_fields"] if field["id"] == 31281329
     )
     if "requester" in record:
+        org = record['organization']
         return {
             **record,
             "submitter_id": record["submitter"]["id"],
@@ -70,9 +71,7 @@ def transforms_fields_uktrade(record, table_config, contexts):
             "collaborator_ids": [
                 collaborator["id"] for collaborator in record["collaborator"]
             ],
-            "organization_id": record["organization"]["id"]
-            if record.get("organization")
-            else None,
+            "organization_id": org['id'] if isinstance(org, dict) else org,
             "service": service["value"],
             "solved_at": record["metric_set"]["solved_at"],
             "full_resolution_time_in_minutes": record["metric_set"][
