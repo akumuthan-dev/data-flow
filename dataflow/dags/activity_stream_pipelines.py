@@ -610,10 +610,10 @@ class MaxemailEventsPipeline(_ActivityStreamPipeline):
             },
             lambda record, table_config, contexts: {
                 **record,
-                "__bounced_reason": record["content"]
+                "__bounced_reason": record["object"]["content"]
                 if record["__type"] == "bounced"
                 else None,
-                "__clicked_url": record["url"]
+                "__clicked_url": record["object"]["url"]
                 if record["__type"] == "clicked"
                 else None,
             },
