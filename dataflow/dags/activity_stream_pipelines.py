@@ -591,22 +591,92 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
     query = {"bool": {"filter": [{"term": {"type": "dit:ReturnToOffice:Booking"}}]}}
 
 
-class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
-    name = "maxemail-campaigns-sent"
+class MaxemailEventsPipeline(_ActivityStreamPipeline):
+    name = "maxemail-events"
     index = "activities"
     table_config = TableConfig(
         schema="dit",
-        table_name="maxemail__email_campaigns_sent",
+        table_name="maxemail__events",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "__type": list(
+                    filter(
+                        lambda t: t != 'dit:maxemail:Email', record["object"]["type"]
+                    )
+                )[0]
+                .replace("dit:maxemail:Email:", "")
+                .lower(),
+            },
+            lambda record, table_config, contexts: {
+                **record,
+                "__bounced_reason": record["content"]
+                if record["__type"] == "bounced"
+                else None,
+                "__clicked_url": record["url"]
+                if record["__type"] == "clicked"
+                else None,
+            },
+        ],
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
-            (("object", "dit:emailAddress"), sa.Column("email_address", sa.String)),
-            (("object", "attributedTo", "name"), sa.Column("campaign_name", sa.String)),
-            (("object", "attributedTo", "published"), sa.Column("sent", sa.DateTime)),
-            (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
+            (
+                ("published"),
+                sa.Column("occurred", sa.DateTime, index=True, nullable=False),
+            ),
+            (("__type"), sa.Column("type", sa.String, index=True, nullable=False)),
+            (
+                ("object", "dit:emailAddress"),
+                sa.Column("email_address", sa.String, index=True, nullable=False),
+            ),
+            (
+                ("object", "attributedTo", "dit:maxemail:Campaign:id"),
+                sa.Column("campaign_id", sa.Integer, index=True, nullable=False),
+            ),
+            (("__bounced_reason"), sa.Column("bounced_reason", sa.String, index=True)),
+            (("__clicked_url"), sa.Column("clicked_url", sa.String, index=True)),
         ],
     )
 
     query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Email"}}]}}
+
+
+class MaxemailCampaignsPipeline(_ActivityStreamPipeline):
+    name = "maxemail-campaigns"
+    index = "activities"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="maxemail__campaigns",
+        field_mapping=[
+            (
+                ("object", "dit:maxemail:Campaign:id"),
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
+            (("object", "name"), sa.Column("title", sa.String, nullable=False)),
+            (
+                ("object", "content"),
+                sa.Column("description", sa.String, nullable=False),
+            ),
+            (
+                ("object", "dit:emailSubject"),
+                sa.Column("email_subject", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "name"),
+                sa.Column("email_from_name", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "dit:emailAddress"),
+                sa.Column("email_from_address", sa.String, index=True, nullable=False),
+            ),
+            (
+                ("published",),
+                sa.Column("started", sa.String, index=True, nullable=False),
+            ),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Campaign"}}]}}
 
 
 class GreatGovUKCompanyPipeline(_ActivityStreamPipeline):
