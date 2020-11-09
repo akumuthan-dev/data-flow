@@ -1,5 +1,6 @@
 import decimal
 from datetime import date, datetime
+from io import BytesIO
 
 import botocore.exceptions
 import freezegun as freezegun
@@ -90,12 +91,18 @@ def test_s3_data_write_key_handles_decimals(mocker):
 
 def test_s3_data_read_keys(mocker):
     mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
-
-    mock_read = mocker.patch('dataflow.utils.S3Hook.read_key', return_value='["data"]')
+    mock_read = mocker.patch(
+        'dataflow.utils.S3Hook.get_key',
+        return_value=mocker.Mock(
+            get=mocker.Mock(
+                return_value={'Body': BytesIO(b'[{"key":"val_1"},{"key":"val_2"}]')}
+            )
+        ),
+    )
 
     s3 = utils.S3Data('table', '20010101')
 
-    assert s3.read_key("prefix/key.json") == ["data"]
+    assert list(s3.read_key("prefix/key.json")) == [{"key": "val_1"}, {"key": "val_2"}]
 
     mock_read.assert_called_once_with("prefix/key.json", bucket_name="test-bucket")
 
@@ -103,12 +110,27 @@ def test_s3_data_read_keys(mocker):
 def test_s3_data_iter_keys(mocker):
     mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
     mock_list = mocker.patch(
-        'dataflow.utils.S3Hook.list_keys', return_value=["key1", "key2"]
+        'dataflow.utils.S3Hook.list_keys', return_value=iter(["key1", "key2"])
     )
-    mocker.patch('dataflow.utils.S3Hook.read_key', return_value='"data"')
+    mocker.patch(
+        'dataflow.utils.S3Hook.get_key',
+        return_value=mocker.Mock(
+            get=mocker.Mock(
+                side_effect=lambda: {
+                    'Body': BytesIO(b'[{"key":"val_1"},{"key":"val_2"}]')
+                }
+            )
+        ),
+    )
 
     s3 = utils.S3Data('table', '20010101')
-    assert list(s3.iter_keys("prefix/key.json")) == [("key1", "data"), ("key2", "data")]
+    records = [
+        key_record
+        for (key, key_records) in s3.iter_keys()
+        for key_record in key_records
+    ]
+
+    assert records == [{"key": "val_1"}, {"key": "val_2"}] * 2
 
     mock_list.assert_called_once_with(
         bucket_name="test-bucket", prefix='import-data/table/20010101/'
@@ -120,16 +142,22 @@ def test_s3_data_read_key_retries_requests(mocker):
     mocker.patch.object(utils.config, "S3_IMPORT_DATA_BUCKET", "test-bucket")
 
     mocker.patch(
-        'dataflow.utils.S3Hook.read_key',
+        'dataflow.utils.S3Hook.get_key',
         side_effect=[
             botocore.exceptions.EndpointConnectionError(endpoint_url='aws'),
-            "{}",
+            mocker.Mock(
+                get=mocker.Mock(
+                    side_effect=lambda: {
+                        'Body': BytesIO(b'[{"key":"val_1"},{"key":"val_2"}]')
+                    }
+                )
+            ),
         ],
     )
 
     s3 = utils.S3Data('table', '20010101')
 
-    assert s3.read_key("key") == {}
+    assert list(s3.read_key("key")) == [{"key": "val_1"}, {"key": "val_2"}]
 
 
 def test_s3_data_write_key_retries_requests(mocker):

@@ -15,6 +15,7 @@ from airflow.contrib.hooks.slack_webhook_hook import SlackWebhookHook
 from airflow.hooks.S3_hook import S3Hook
 from airflow.utils.state import State
 from cached_property import cached_property
+from splitstream import splitfile
 from typing_extensions import Protocol
 
 from dataflow import config
@@ -209,6 +210,45 @@ class S3JsonEncoder(JSONEncoder):
         super().default(o)
 
 
+def iterate_generator_immediately(generator_function):
+    """Iterates a generator function once when its called
+
+    A generator function is "lazy": it doesn't do anything until its called
+    _and then_ iterated over. Usually, this is fine. However, if on the first
+    iteration, exceptions can be raised, such as from connection errors, this
+    can be too late, and not desirable to handle this when iterating from a
+    code-structure point of view
+
+    So, we decorate the generator function, returning a regular function that
+    returns a generator. The call of the function does the first iteration, so
+    it raises exceptions as needed, caches the first item, which is then
+    yielded when the generator is subsequently iterated over.
+    """
+
+    def _regular_function(*args, **kwargs):
+
+        generator = generator_function(*args, **kwargs)
+
+        empty = False
+        try:
+            item = next(generator)
+        except StopIteration:
+            empty = True
+
+        def _generator_function():
+            nonlocal item
+            if empty:
+                return
+
+            yield item
+            for item in generator:
+                yield item
+
+        return _generator_function()
+
+    return _regular_function
+
+
 class S3Data:
     def __init__(self, table_name, ts_nodash):
         self.client = S3Hook("DEFAULT_S3")
@@ -226,9 +266,9 @@ class S3Data:
             data, self.prefix + key, bucket_name=self.bucket, replace=True, encrypt=True
         )
 
-    def iter_keys(self, json=True):
+    def iter_keys(self):
         for key in self.list_keys():
-            yield key, self.read_key(key, jsonify=json)
+            yield key, self.read_key(key)
 
     @backoff.on_exception(
         backoff.expo, botocore.exceptions.EndpointConnectionError, max_tries=5
@@ -239,9 +279,14 @@ class S3Data:
     @backoff.on_exception(
         backoff.expo, botocore.exceptions.EndpointConnectionError, max_tries=5
     )
-    def read_key(self, full_key, jsonify=True):
-        data = self.client.read_key(full_key, bucket_name=self.bucket)
-        return json.loads(data) if jsonify else data
+    @iterate_generator_immediately
+    def read_key(self, full_key):
+        s3_object = self.client.get_key(full_key, bucket_name=self.bucket)
+        records_bytes = splitfile(
+            s3_object.get()['Body'], format="json", startdepth=1, bufsize=65536
+        )
+        for record_bytes in records_bytes:
+            yield json.loads(record_bytes)
 
 
 class S3Upstream(S3Data):
