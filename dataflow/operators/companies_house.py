@@ -48,7 +48,7 @@ def fetch_companies_house_companies(
         logger.info('Fetching zip file from %s', url)
         with zipfile.ZipFile(io.BytesIO(_download(url))) as archive:
             with archive.open(archive.namelist()[0], 'r') as f:
-                reader = csv.DictReader(codecs.iterdecode(f.readlines(), 'utf-8'))
+                reader = csv.DictReader(codecs.iterdecode(f, 'utf-8'))
                 if reader.fieldnames is not None:
                     reader.fieldnames = [x.strip() for x in reader.fieldnames]
                 for row in reader:
@@ -77,7 +77,7 @@ def fetch_companies_house_significant_persons(
         logger.info('Fetching zip file from %s', url)
         with zipfile.ZipFile(io.BytesIO(_download(url))) as archive:
             with archive.open(archive.namelist()[0], 'r') as f:
-                for line in f.readlines():
+                for line in f:
                     results.append(json.loads(line))
                     if len(results) >= page_size:
                         s3.write_key(f'{page:010}.json', results)
