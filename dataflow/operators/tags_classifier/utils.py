@@ -84,11 +84,11 @@ def relabel(x):
         text_list = re.split(r'\W+', text)
         return text, text_list
 
-    if 'policy_issue_types' in x.columns and 'EU Exit' in x.columns:
-        x['EU Exit'] = x.apply(
+    if 'policy_issue_types' in x.columns and 'Transition Period - General' in x.columns:
+        x['Transition Period - General'] = x.apply(
             lambda row: 1
             if row['policy_issue_types'] == '{"EU exit"}'
-            else row['EU Exit'],
+            else row['Transition Period - General'],
             axis=1,
         )
 
@@ -102,13 +102,22 @@ def relabel(x):
             axis=1,
         )
 
-    if 'Covid-19 Exports/Imports' in x.columns:
-        x['Covid-19 Exports/Imports'] = x.apply(
+    # if 'Covid-19 Exports/Imports' in x.columns:
+    #     x['Covid-19 Exports/Imports'] = x.apply(
+    #         lambda row: 1
+    #         if any(i in find_text(row)[1] for i in ['export', 'import'])
+    #         else row['Covid-19 Exports/Imports'],
+    #         axis=1,
+    #     )
+
+    if 'Exports/Imports' in x.columns:
+        x['Exports/Imports'] = x.apply(
             lambda row: 1
-            if any(i in find_text(row)[1] for i in ['export', 'import'])
-            else row['Covid-19 Exports/Imports'],
+            if any(i in find_text(row)[1] for i in ['export', 'import', 'exports', 'imports'])
+            else row['Exports/Imports'],
             axis=1,
         )
+
 
     if 'Covid-19 Supply Chain/Stock' in x.columns:
         x['Covid-19 Supply Chain/Stock'] = x.apply(
@@ -118,14 +127,24 @@ def relabel(x):
             axis=1,
         )
 
-    if 'Covid-19 Cash Flow' in x.columns:
-        x['Covid-19 Cash Flow'] = x.apply(
+    # if 'Covid-19 Cash Flow' in x.columns or 'Cashflow' in x.columns :
+    #     x['Covid-19 Cash Flow'] = x.apply(
+    #         lambda row: 1
+    #         if any(i in find_text(row)[1] for i in ['cashflow', 'cash'])
+    #         or 'cash flow' in find_text(row)[0]
+    #         else row['Covid-19 Cash Flow'],
+    #         axis=1,
+    #     )
+    #
+    if 'Cashflow' in x.columns :
+        x['Cashflow'] = x.apply(
             lambda row: 1
             if any(i in find_text(row)[1] for i in ['cashflow', 'cash'])
             or 'cash flow' in find_text(row)[0]
-            else row['Covid-19 Cash Flow'],
+            else row['Cashflow'],
             axis=1,
         )
+
     if 'Tax' in x.columns:
         x['Tax'] = x.apply(
             lambda row: 1
@@ -178,17 +197,71 @@ def relabel(x):
             axis=1,
         )
 
+    if 'Opportunities' in x.columns:
+        x['Opportunities'] = x.apply(
+            lambda row: 1
+            if any(i in find_text(row)[1] for i in ['opportunities', 'opportunity'])
+            else row['Opportunities'],
+            axis=1,
+        )
+
     return x
 
+# original version before tags merge
+# def clean_tag(df):
+#     replace_map = {
+#         'Covid-19 Expectations': 'Covid-19 Future Expectations',
+#         'Covid-19 Hmg Support': 'Covid-19 Request For Hmg Support',
+#         # 'Covid-19 Exports': 'Covid-19 Exports/Imports', 'Covid-19 Imports': 'Covid-19 Exports/Imports',
+#         'Covid-19 Resuming Business': 'Covid-19 Resuming Operations',
+#         'Opportunities': 'Opportunities',
+#         'Exports - other': 'Export',
+#         'Cash Flow': 'Cashflow',
+#         'Opportunity': 'Opportunities',
+#         'Opportunities\u200b': 'Opportunities',
+#         # 'Migration and Immigration': 'Movement of people',
+#         'Future Expectations': 'Expectations',
+#         'Border arrangements\u200b': 'Border arrangements',
+#         'Licencing\u200b': 'Licencing',
+#         'Licencing\xa0\u200b': 'Licencing',
+#         'Border\xa0arrangements': 'Border arrangements',
+#         'Border\xa0arrangements\u200b': 'Border arrangements',
+#         'Stock\xa0\u200b': 'Stock',
+#         'EU Exit - General': 'Transition Period - General',
+#         'Post-transition Period - General': 'Transition Period - General',
+#         'Transition Period - General': 'Transition Period - General',
+#         'HMG Comms on EU Exit': 'Transition Period - General',
+#         'HMG Financial support\u200b': 'HMG Financial support',
+#         'Covid-19 Resuming Business\u200b': 'Covid-19 Resuming Operations',
+#     }
+#
+#     # replace_map = {k.lower(): v.lower() for k, v in replace_map.items()}
+#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
+#     # df['tags'] = df['tags'].apply(lambda x: ','.join(x))
+#
+#     replace_map = {k.title(): v.title() for k, v in replace_map.items()}
+#     # replace_map = {k.lower():v.lower() for k,v in replace_map.items()}
+#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
+#
+#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip(), i.strip()) for i in x.split(',')])
+#     df['tags'] = df['tags'].apply(
+#         lambda x: [
+#             replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',')
+#         ]
+#     )
+#     df['tags'] = df['tags'].apply(lambda x: ','.join(x))
+#
+#     return df
 
 def clean_tag(df):
     replace_map = {
         'Covid-19 Expectations': 'Covid-19 Future Expectations',
-        'Covid-19 Hmg Support': 'Covid-19 Request For Hmg Support',
+        'Covid-19 Hmg Support': 'HMG support request',
         # 'Covid-19 Exports': 'Covid-19 Exports/Imports', 'Covid-19 Imports': 'Covid-19 Exports/Imports',
         'Covid-19 Resuming Business': 'Covid-19 Resuming Operations',
         'Opportunities': 'Opportunities',
-        'Exports - other': 'Export',
+        'Exports - other': 'Exports',
+        'Export': 'Exports',
         'Cash Flow': 'Cashflow',
         'Opportunity': 'Opportunities',
         'Opportunities\u200b': 'Opportunities',
@@ -201,11 +274,46 @@ def clean_tag(df):
         'Border\xa0arrangements\u200b': 'Border arrangements',
         'Stock\xa0\u200b': 'Stock',
         'EU Exit - General': 'Transition Period - General',
+        'EU Exit': 'Transition Period - General',
         'Post-transition Period - General': 'Transition Period - General',
         'Transition Period - General': 'Transition Period - General',
+        'Transition Period General': 'Transition Period - General',
         'HMG Comms on EU Exit': 'Transition Period - General',
-        'HMG Financial support\u200b': 'HMG Financial support',
         'Covid-19 Resuming Business\u200b': 'Covid-19 Resuming Operations',
+
+
+        'COVID-19 Cash Flow': 'Cashflow',
+        'Cashflow': 'Cashflow',
+        'COVID-19 Investment': 'Investment',
+        'COVID-19 Exports': 'Exports',
+        'COVID-19 Imports': 'imports',
+        # 'COVID-19 Supply Chain/Stock': '',
+        'COVID-19 Opportunity': 'Opportunities',
+        'COVID-19 Request for HMG support/changes': 'HMG support request',
+        'HMG Financial support\u200b': 'HMG Support Request',
+        'Covid-19 Request For Hmg Support': 'HMG support request',
+        'Export - Declining Orders': 'exports',
+        'Declining Export Orders': 'exports',
+        'HMG Financial Support': 'HMG Support Request',
+        'Financial Support': 'HMG Support Request',
+        'Hmg Financial/Business Support': 'HMG Support Request',
+        'Investment Decision - Alternative': 'investment',
+        'Investment Decision - Cancelled': 'investment',
+        'Investment Decisions - Delayed': 'investment',
+        'Licencing': 'regulation',
+        'regulations': 'regulation',
+        'Movement of staff/employees': 'Migration and Immigration',
+        'Movement of staff': 'Migration and Immigration',
+        'Movement of employees': 'Migration and Immigration',
+        'Temporary Movement Of Staff/Employees': 'Migration and Immigration',
+
+        'Movement Of Goods': 'Movement Of Goods/Services'
+
+
+
+
+
+
     }
 
     # replace_map = {k.lower(): v.lower() for k, v in replace_map.items()}
@@ -217,9 +325,12 @@ def clean_tag(df):
     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
 
     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip(), i.strip()) for i in x.split(',')])
+
+    removed_tags = [i.lower() for i in ['COVID-19 Offers of support', 'COVID-19 DIT delivering for HMG',
+                                        'Reduced Profit']]
     df['tags'] = df['tags'].apply(
         lambda x: [
-            replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',')
+            replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',') if i.lower() not in removed_tags
         ]
     )
     df['tags'] = df['tags'].apply(lambda x: ','.join(x))
@@ -263,6 +374,11 @@ def preprocess(fb_all, action='train', tags=all_tags):
         fb_all['tags'] = fb_all['tags'].apply(
             lambda x: x + ',covid-19' if 'covid' in x.lower() else x
         )
+
+        ##todo: might want to remove this. only top 5 labels
+        fb_all['tags'] = fb_all['tags'].apply(
+            lambda x: x + ',exports/imports' if 'exports' in x.lower() or 'imports' in x.lower() else x
+        )
         fb_all = clean_tag(fb_all)
         # print(fb_all.head(1))
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
@@ -291,6 +407,7 @@ def preprocess(fb_all, action='train', tags=all_tags):
         ]
         # tags = kwargs['tags']
         print('tags counts', tags_count)
+        print('ordered tags counts', tags_count.sort_index())
         print('tags with more than 200 counts:', tags_200)
         print('train model for these tags:', tags)
 

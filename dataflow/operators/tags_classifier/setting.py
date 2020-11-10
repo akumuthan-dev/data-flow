@@ -24,7 +24,9 @@ all_tags = [
     'Tax',
 ]
 
-#
+
+all_tags = ['Covid-19', 'Covid-19 Feedback On Hmg Support', 'Covid-19 Business Disruption', 'Exports', 'Investment', 'Hmg Support Request', 'Covid-19 Employment', 'Transition Period - General', 'Opportunities', 'Exports/Imports', 'Covid-19 Resuming Operations', 'Cashflow', 'Covid-19 Future Expectations', 'Regulation', 'Tariffs', 'Covid-19 Supply Chain/Stock', 'Free Trade Agreements', 'Skills', 'Migration And Immigration', 'Access To Finance', 'Tax', 'Border Arrangements']
+
 # all_tags = [
 #     'Access To Finance',
 #     'Tax',
@@ -42,4 +44,5 @@ EMBEDDING_DIM = 100
 model_version = 'models_20200907.zip'
 model_version = 'models_20201001.zip'
 training_data_file = 'training_data_20201001.csv'
+training_data_file = 'training_data_20201029.csv'
 probability_threshold = 0.4

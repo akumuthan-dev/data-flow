@@ -197,8 +197,9 @@ def cnn():
 
 def model_training_with_labelled_data(table_name, **context):
 
-    with TemporaryDirectory() as tempdir:
-    # if 1 == 1:
+    # with TemporaryDirectory() as tempdir:
+    if 1 == 1:
+        tempdir = '.'
         os.chdir(tempdir)
         os.mkdir('the_models')
         os.chdir(tempdir + '/the_models')
@@ -648,9 +649,12 @@ def write_model_performance(table_name, today, **context):
 ## to upload the file to s3
 # s3 = boto3.client('s3', region_name='eu-west-2')
 # bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
-# s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201001.csv',
+# # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201029.csv',
+# #                    bucket,
+# #                  'models/data_hub_policy_feedback_tags_classifier/training_data_20201029.csv')
+# s3.upload_file('/Users/linglingli/DIT/data-flow/training_data_20201029.csv',
 #                    bucket,
-#                  'models/data_hub_policy_feedback_tags_classifier/training_data_20201001.csv')
+#                  'models/data_hub_policy_feedback_tags_classifier/training_data_20201029.csv')
 
 # cf service-key data-flow-s3-a dev-key-name-for-LL
 # bucket = "paas-s3-broker-prod-lon-8c167200-ac5c-4a68-80c0-dd079c35b1be" ##instance name: data-flow-s3-a
