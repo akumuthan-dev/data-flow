@@ -466,6 +466,10 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
                 "dit:StaffSSO:User:userId",
                 sa.Column("user_id", UUID(as_uuid=True), primary_key=True),
             ),
+            (
+                "dit:StaffSSO:User:status",
+                sa.Column("status", sa.String, nullable=False, index=True),
+            ),
             ("dit:emailAddress", sa.Column("email", sa.ARRAY(sa.String), index=True)),
             (
                 "dit:StaffSSO:User:contactEmailAddress",
