@@ -671,7 +671,7 @@ class MaxemailCampaignsPipeline(_ActivityStreamPipeline):
             ),
             (
                 ("published",),
-                sa.Column("started", sa.String, index=True, nullable=False),
+                sa.Column("started", sa.DateTime, index=True, nullable=False),
             ),
         ],
     )
