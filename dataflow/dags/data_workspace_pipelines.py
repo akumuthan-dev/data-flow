@@ -44,6 +44,7 @@ class DataWorkspaceEventLogPipeline(_DataWorkspacePipeline):
             (('related_object', 'type'), sa.Column('related_object_type', sa.Text)),
             ('timestamp', sa.Column('timestamp', sa.DateTime)),
             ('user_id', sa.Column('user_id', sa.Numeric)),
+            ('extra', sa.Column('extra', sa.JSON)),
         ],
     )
 
