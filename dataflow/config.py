@@ -63,9 +63,13 @@ DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
 DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME", "datasets_db")
 ALLOW_NULL_DATASET_COLUMNS = os.environ.get("ALLOW_NULL_DATASET_COLUMNS") == "True"
 
-HMRC_UKTRADEINFO_URL = os.environ.get(
-    "HMRC_UKTRADEINFO_URL",
-    "https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads",
+HMRC_UKTRADEINFO_LATEST_URL = os.environ.get(
+    "HMRC_UKTRADEINFO_LATEST_URL",
+    "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/",
+)
+HMRC_UKTRADEINFO_ARCHIVE_URL = os.environ.get(
+    "HMRC_UKTRADEINFO_ARCHIVE_URL",
+    "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/bulk-datasets-archive/",
 )
 
 MARKET_ACCESS_BASE_URL = os.environ.get("MARKET_ACCESS_BASE_URL")
