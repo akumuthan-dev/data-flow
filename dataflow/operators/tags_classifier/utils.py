@@ -76,13 +76,14 @@ def exclude_notes(fb_all):
     return fb_all
 
 
+def find_text(y, column_name='policy feedback'):
+    text = y[column_name].lower()
+    text_list = re.split(r'\W+', text)
+    return text, text_list
+
 def relabel(x):
     x = x.copy()
 
-    def find_text(y):
-        text = y['policy feedback'].lower()
-        text_list = re.split(r'\W+', text)
-        return text, text_list
 
     if 'policy_issue_types' in x.columns and 'Transition Period - General' in x.columns:
         x['Transition Period - General'] = x.apply(
@@ -92,11 +93,23 @@ def relabel(x):
             axis=1,
         )
 
+    if 'Covid-19' in x.columns:
+        x['Covid-19'] = x.apply(
+            lambda row: 1
+            if any(
+                i in find_text(row)[1] for i in ['covid']
+            )
+            else row['Covid-19'],
+            axis=1,
+        )
+
     if 'Covid-19 Employment' in x.columns:
         x['Covid-19 Employment'] = x.apply(
             lambda row: 1
+            ##todo: need to double check -- employment could be not related covid-19 after the pandemic
             if any(
-                i in find_text(row)[1] for i in ['employment', 'furlough', 'furloughed']
+                # i in find_text(row)[1] for i in ['employment', 'furlough', 'furloughed']
+                i in find_text(row)[1] for i in ['furlough', 'furloughed']
             )
             else row['Covid-19 Employment'],
             axis=1,
@@ -117,7 +130,6 @@ def relabel(x):
             else row['Exports/Imports'],
             axis=1,
         )
-
 
     if 'Covid-19 Supply Chain/Stock' in x.columns:
         x['Covid-19 Supply Chain/Stock'] = x.apply(
@@ -142,6 +154,14 @@ def relabel(x):
             if any(i in find_text(row)[1] for i in ['cashflow', 'cash'])
             or 'cash flow' in find_text(row)[0]
             else row['Cashflow'],
+            axis=1,
+        )
+
+    if 'Migration And Immigration' in x.columns :
+        x['Migration And Immigration'] = x.apply(
+            lambda row: 1
+            if any(i in find_text(row)[1] for i in ['migration', 'immigration'])
+            else row['Migration And Immigration'],
             axis=1,
         )
 
@@ -379,6 +399,7 @@ def preprocess(fb_all, action='train', tags=all_tags):
         fb_all['tags'] = fb_all['tags'].apply(
             lambda x: x + ',exports/imports' if 'exports' in x.lower() or 'imports' in x.lower() else x
         )
+
         fb_all = clean_tag(fb_all)
         # print(fb_all.head(1))
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')

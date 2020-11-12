@@ -197,9 +197,9 @@ def cnn():
 
 def model_training_with_labelled_data(table_name, **context):
 
-    # with TemporaryDirectory() as tempdir:
-    if 1 == 1:
-        tempdir = '.'
+    with TemporaryDirectory() as tempdir:
+    # if 1 == 1:
+    #     tempdir = '.'
         os.chdir(tempdir)
         os.mkdir('the_models')
         os.chdir(tempdir + '/the_models')
@@ -521,6 +521,7 @@ def save_model(train_data_date):
     #
     # # cf service-key data-flow-s3-a dev-key-name-for-LL
     # bucket = "paas-s3-broker-prod-lon-8c167200-ac5c-4a68-80c0-dd079c35b1be"  ##instance name: data-flow-s3-a
+    # bucket = 'paas-s3-broker-prod-lon-49ad84ab-6294-44b7-8883-e1b5488208fa' ##prod
     # print('bucket', bucket)
     # aws_access_key_id = 'AKIAV3ON3AJYBPYZLL6V'  ##data-flow-s3-a
     # aws_secret_access_key = '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'  ##data-flow-s3-a
@@ -665,9 +666,14 @@ def write_model_performance(table_name, today, **context):
 #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
 
 
-## run this if want to run locally
-# df = pd.read_csv('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201001.csv')
+# # run this if want to run locally
+# # df = pd.read_csv('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201001.csv')
+# df = pd.read_csv('/Users/linglingli/DIT/data-flow/training_data_20201029.csv')
 # df = preprocess(df, action='train', tags=all_tags)
+
+# # to check
+# # df[df['sentence'].str.contains('migration')].head(1)[['sentence', 'Migration And Immigration']]
+# # df[(df['sentence'].str.contains('border'))&(df['Border Arrangements']==0)].head(10).reset_index().iloc[3]['sentence']
 # # # print('check 3', df.shape)
 # # df.to_csv('to_train.csv', index=False)
 # train_data_date = training_data_file.split('.')[0].split('_')[-1]

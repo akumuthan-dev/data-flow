@@ -296,4 +296,22 @@ def fetch_interaction_data(target_db: str, query: str):
 # # run this to be able to check data in python console when test locally
 # df_a = pd.read_csv('/Users/linglingli/DIT/data-flow/prediction_data_0904.csv')
 # df_a = preprocess(df_a, action='predict')
+## os.chdir('/Users/linglingli/DIT/data-flow/the_models/models_20201029')
 # predictions_a = predict_tags(df_a)
+# predictions_a['tags_prediction']
+
+# # test one sentence
+# test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month during pandemic.
+# They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
+# test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month
+# They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
+# # # todo: long paragraph, lost 'covid-19' prediction but works when only keep the first sentences. prediction by sentence?
+# test = [['id1', """COVID-19 advice from government sometimes lacks detail for their situation. They are a mixture of lab and office space. They suggested specific examples of implementing the advice for laboratories would be helpful.
+# The UK is still considered a good place to invest for companies who are already located there but Sweden and Denmark are now as attractive
+# for new investors due to uncertainty in the UK during the EU exit transition period."""]]
+# # test = [['id1', """COVID-19 advice from government sometimes lacks detail for their situation."""]]
+# df_a = pd.DataFrame(test, columns=['id', 'policy feedback'])
+# df_a = preprocess(df_a, action='predict')
+# os.chdir('/Users/linglingli/DIT/data-flow/the_models/models_20201029')
+# predictions_a = predict_tags(df_a)
+# print(predictions_a['tags_prediction'])

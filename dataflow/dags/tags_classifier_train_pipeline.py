@@ -7,7 +7,7 @@ from dataflow.operators.tags_classifier.train.train import (
     model_training_with_labelled_data,
 )
 
-class TagsClassifierTrainPipelineRefactor(_PipelineDAG):
+class TagsClassifierTrainPipeline(_PipelineDAG):
     table_config = TableConfig(
         table_name='interactions_tags_classifier_metrics',
         field_mapping=[
