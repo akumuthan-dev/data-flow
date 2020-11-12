@@ -139,3 +139,10 @@ ZENDESK_CREDENTIALS = {
         'secret': os.environ.get("ZENDESK_UKTRADE_SECRET") or "<invalid>",
     },
 }
+
+ENQUIRY_MGMT_BASE_URL = os.environ.get("ENQUIRY_MGMT_BASE_URL") or "<invalid>"
+ENQUIRY_MGMT_HAWK_CREDENTIALS = {
+    "id": os.environ.get("ENQUIRY_MGMT_HAWK_ID") or "<invalid>",
+    "key": os.environ.get("ENQUIRY_MGMT_HAWK_KEY") or "<invalid>",
+    "algorithm": "sha256",
+}
