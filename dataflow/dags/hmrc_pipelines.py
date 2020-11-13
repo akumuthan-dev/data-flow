@@ -11,7 +11,7 @@ from dataflow.utils import TableConfig
 
 class _HMRCPipeline(_PipelineDAG):
     base_filename: str
-    records_start_date: datetime = datetime(2019, 4, 1)
+    records_start_year: int = 2019
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
     use_utc_now_as_source_modified = True
@@ -24,13 +24,13 @@ class _HMRCPipeline(_PipelineDAG):
             op_args=[
                 self.table_config.table_name,  # pylint: disable=no-member
                 self.base_filename,
-                self.records_start_date,
+                self.records_start_year,
             ],
         )
 
 
 class HMRCNonEUExports(_HMRCPipeline):
-    base_filename = "SMKE19"
+    base_filename = "smke19"
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_exports",
@@ -64,7 +64,7 @@ class HMRCNonEUExports(_HMRCPipeline):
 
 
 class HMRCNonEUImports(_HMRCPipeline):
-    base_filename = "SMKI19"
+    base_filename = "smki19"
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_imports",
@@ -102,7 +102,7 @@ class HMRCNonEUImports(_HMRCPipeline):
 
 
 class HMRCEUExports(_HMRCPipeline):
-    base_filename = "SMKX46"
+    base_filename = "smkx46"
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_exports",
@@ -131,7 +131,7 @@ class HMRCEUExports(_HMRCPipeline):
 
 
 class HMRCEUImports(_HMRCPipeline):
-    base_filename = "SMKM46"
+    base_filename = "smkm46"
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_imports",
