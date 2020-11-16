@@ -36,6 +36,13 @@ class InformationAssetRegisterPipeline(_SharepointPipeline):
     table_config = TableConfig(
         schema='dit',
         table_name='information_asset_register',
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "Is personal data held?": record.get("Is personal data held?", "0")
+                == "1",
+            }
+        ],
         field_mapping=[
             ('ID', sa.Column('id', sa.String)),
             ('Area', sa.Column('area', sa.String)),
