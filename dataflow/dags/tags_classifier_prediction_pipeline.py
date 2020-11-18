@@ -42,21 +42,16 @@ class TagsClassifierPredictionPipeline(_PipelineDAG):
     )
 
     controller_pipeline = InteractionsDatasetPipeline
-    # dependencies = [InteractionsDatasetPipeline]
-
-    # query = f"""
-    #          SELECT id, policy_feedback_notes FROM "{controller_pipeline.table_config.schema}"."{controller_pipeline.table_config.table_name}"
-    #          WHERE policy_feedback_notes!=''  AND policy_areas NOTNULL
-    #          AND (
-    #               created_on > current_date - INTERVAL '6 weeks'
-    #               OR
-    #               modified_on > current_date - INTERVAL '6 weeks'
-    #              )
-    #          """
+    dependencies = [InteractionsDatasetPipeline]
 
     query = f"""
              SELECT id, policy_feedback_notes FROM "{controller_pipeline.table_config.schema}"."{controller_pipeline.table_config.table_name}"
-             WHERE policy_feedback_notes!=''  
+             WHERE policy_feedback_notes!=''  AND policy_areas NOTNULL
+             AND (
+                  created_on > current_date - INTERVAL '6 weeks'
+                  OR
+                  modified_on > current_date - INTERVAL '6 weeks'
+                 )
              """
 
     def get_fetch_operator(self) -> PythonOperator:
