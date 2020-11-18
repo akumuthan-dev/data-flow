@@ -2,7 +2,6 @@ import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
 from dataflow.utils import TableConfig
-from dataflow.dags.dataset_pipelines import InteractionsDatasetPipeline
 from dataflow.operators.tags_classifier.train.train import (
     model_training_with_labelled_data,
 )
@@ -11,7 +10,7 @@ from dataflow.operators.tags_classifier.train.train import (
 class TagsClassifierTrainPipeline(_PipelineDAG):
 
     schedule_interval = (
-        None  ## For now we trigger the pipeline manually when training data is uploaded
+        None  # For now we trigger the pipeline manually when training data is uploaded
     )
     table_config = TableConfig(
         table_name='interactions_tags_classifier_metrics',

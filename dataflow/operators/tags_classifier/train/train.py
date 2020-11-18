@@ -164,7 +164,7 @@ def model_training_with_labelled_data(table_name, **context):
 
         try:
             train_data_date = training_data_file.split('.')[0].split('_')[-1]
-        except:
+        except BaseException:
             train_data_date = datetime.date.today()
             train_data_date = train_data_date.strftime("%Y%m%d")
 
@@ -212,7 +212,7 @@ def train_model(model, X_train, Y_train, X_val, Y_val, class_weight):
     epochs = 20
     batch_size = 64
 
-    history = model.fit(
+    model.fit(
         X_train,
         Y_train,
         epochs=epochs,
@@ -287,9 +287,9 @@ def buid_models_for_tags(
             # tag_to_evaluate = Y_val_tag
             # sent_to_evalue = sent_val
 
-            metrics = m.evaluate(
-                data_to_evaluate, tag_to_evaluate, batch_size=tag_to_evaluate.shape[0]
-            )
+            # metrics = m.evaluate(
+            #     data_to_evaluate, tag_to_evaluate, batch_size=tag_to_evaluate.shape[0]
+            # )
 
             test_predictions_prob_tag = m.predict(data_to_evaluate)
             test_predictions_class_tag = (
@@ -338,9 +338,9 @@ def check_result(tag, tag_i, X_test, Y_test, sent_test, m):
     logger.info(f'check result for tag {tag}')
 
     test_predictions_prob_tag1 = m.predict(X_test)
-    test_predictions_class_tag1 = (
-        test_predictions_prob_tag1 > probability_threshold
-    ) + 0
+    # test_predictions_class_tag1 = (
+    #     test_predictions_prob_tag1 > probability_threshold
+    # ) + 0
 
     # fp_ind = np.concatenate((test_predictions_prob_tag1>=probability_threshold)&(Y_test[:,tag_i]==0))
     fp_sen = sent_test[
@@ -408,7 +408,9 @@ def build_models_pipeline(df, today):
             Y_val,
             Y_test,
         ) = build_train_set(df, tokenizer_general, tags_general)
-        metric_df_general = buid_models_for_tags(
+
+        # metric_df_general = \
+        buid_models_for_tags(
             tags_general,
             sent_test,
             X_train,
@@ -435,7 +437,9 @@ def build_models_pipeline(df, today):
             Y_val,
             Y_test,
         ) = build_train_set(df_covid, tokenizer_covid, tags_covid)
-        metric_df_covid = buid_models_for_tags(
+
+        # metric_df_covid = \
+        buid_models_for_tags(
             tags_covid,
             sent_test,
             X_train,
@@ -492,8 +496,8 @@ def write_model_performance(table_name, today, **context):
     return None
 
 
-## to upload  file/model to s3
-## cf service-key data-flow-s3-a dev-key-name-for-LL
+# # to upload  file/model to s3
+# cf service-key data-flow-s3-a dev-key-name-for-LL
 # aws_access_key_id = ... ##data-flow-s3-a
 # aws_secret_access_key  = ...  ##data-flow-s3-a
 # bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
