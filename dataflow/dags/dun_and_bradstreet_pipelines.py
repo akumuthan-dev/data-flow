@@ -47,10 +47,10 @@ class DNBCompanyPipeline(_DNBPipeline):
         table_name='uk_companies',
         field_mapping=[
             ('last_updated', sa.Column('last_updated', sa.DateTime)),
-            ('duns_number', sa.Column('duns_number', sa.Text)),
+            ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
             (
                 'global_ultimate_duns_number',
-                sa.Column('global_ultimate_duns_number', sa.Text),
+                sa.Column('global_ultimate_duns_number', sa.Text, index=True),
             ),
             ('primary_name', sa.Column('primary_name', sa.Text)),
             (
@@ -113,7 +113,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                         }
                     ],
                     field_mapping=[
-                        ('duns_number', sa.Column('duns_number', sa.Text)),
+                        ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
                         ('registration_type', sa.Column('registration_type', sa.Text)),
                         (
                             'registration_number',
@@ -136,7 +136,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                     field_mapping=[
                         ('code', sa.Column('code', sa.Text)),
                         ('description', sa.Column('description', sa.Text)),
-                        ('duns_number', sa.Column('duns_number', sa.Text)),
+                        ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
                         ('priority', sa.Column('priority', sa.Numeric)),
                         ('typeDescription', sa.Column('typeDescription', sa.Text)),
                         ('typeDnBCode', sa.Column('typeDnBCode', sa.Text)),
@@ -155,7 +155,7 @@ class DNBCompanyPipeline(_DNBPipeline):
                         }
                     ],
                     field_mapping=[
-                        ('duns_number', sa.Column('duns_number', sa.Text)),
+                        ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
                         ('usSicV4', sa.Column('usSicV4', sa.Text)),
                         (
                             'usSicV4Description',
@@ -185,10 +185,10 @@ class DNBGlobalCompanyUpdatePipeline(metaclass=PipelineMeta):
         table_name='global_companies',
         field_mapping=[
             ('last_updated', sa.Column('last_updated', sa.DateTime)),
-            ('duns_number', sa.Column('duns_number', sa.Text)),
+            ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
             (
                 'global_ultimate_duns_number',
-                sa.Column('global_ultimate_duns_number', sa.Text),
+                sa.Column('global_ultimate_duns_number', sa.Text, index=True),
             ),
             ('primary_name', sa.Column('primary_name', sa.Text)),
             (
@@ -251,7 +251,7 @@ class DNBGlobalCompanyUpdatePipeline(metaclass=PipelineMeta):
                         }
                     ],
                     field_mapping=[
-                        ('duns_number', sa.Column('duns_number', sa.Text)),
+                        ('duns_number', sa.Column('duns_number', sa.Text, index=True)),
                         ('registration_type', sa.Column('registration_type', sa.Text)),
                         (
                             'registration_number',
