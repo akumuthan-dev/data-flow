@@ -22,13 +22,11 @@ def test_fetch_companies(mocker, requests_mock):
         )
 
     requests_mock.get(
-        'http://test/BasicCompanyData-2020-01-01-part1_2.zip',
-        content=file1.getvalue(),
+        'http://test/BasicCompanyData-2020-01-01-part1_2.zip', content=file1.getvalue(),
     )
 
     requests_mock.get(
-        'http://test/BasicCompanyData-2020-01-01-part2_2.zip',
-        content=file2.getvalue(),
+        'http://test/BasicCompanyData-2020-01-01-part2_2.zip', content=file2.getvalue(),
     )
 
     s3_mock = mock.MagicMock()

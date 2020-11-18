@@ -514,10 +514,7 @@ class GreatGovUKFormsPipeline(_ActivityStreamPipeline):
             ("submission_type", sa.Column("submission_type", sa.String)),
             ("submission_action", sa.Column("submission_action", sa.String)),
             (("actor", "dit:emailAddress"), sa.Column("actor_email", sa.String)),
-            (
-                ("actor"),
-                sa.Column("actor", sa.JSON),
-            ),
+            (("actor"), sa.Column("actor", sa.JSON),),
             (
                 ("object", "dit:directoryFormsApi:Submission:Data"),
                 sa.Column("data", sa.JSON),
@@ -576,10 +573,7 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
                 "dit:ReturnToOffice:Booking:directorate",
                 sa.Column("directorate", sa.Text),
             ),
-            (
-                "dit:ReturnToOffice:Booking:group",
-                sa.Column("group", sa.Text),
-            ),
+            ("dit:ReturnToOffice:Booking:group", sa.Column("group", sa.Text),),
             (
                 "dit:ReturnToOffice:Booking:businessUnit",
                 sa.Column("business_unit", sa.Text),

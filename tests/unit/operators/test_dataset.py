@@ -196,9 +196,7 @@ def test_token_auth_request(mocker, requests_mock):
 
 def test_fetch_from_jwt_api(mocker):
     token_api_fetch_method = mocker.patch.object(
-        common,
-        'fetch_from_api_endpoint',
-        autospec=True,
+        common, 'fetch_from_api_endpoint', autospec=True,
     )
     mocker.patch.object(jwt, "encode", return_value=b"jwt-token")
 
@@ -234,10 +232,7 @@ def test_hosted_csv_request(
 ):
     s3_mock = mock.MagicMock()
     mocker.patch.object(
-        common,
-        "S3Data",
-        return_value=s3_mock,
-        autospec=True,
+        common, "S3Data", return_value=s3_mock, autospec=True,
     )
     csvfile = io.BytesIO(b'col1,col2,col3\n"a",1,\n"b",2,"test"\n"c",3,""')
     requests_mock.get('http://test', body=csvfile)
@@ -248,11 +243,4 @@ def test_hosted_csv_request(
         allow_empty_strings=allow_empty_strings,
         ts_nodash='task-1',
     )
-    s3_mock.write_key.assert_has_calls(
-        [
-            mock.call(
-                '0000000001.json',
-                expected_output,
-            )
-        ]
-    )
+    s3_mock.write_key.assert_has_calls([mock.call('0000000001.json', expected_output,)])

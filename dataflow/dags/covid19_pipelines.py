@@ -313,10 +313,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
                 "grocery_and_pharmacy_percent_change_from_baseline",
                 sa.Column("grocery_pharmacy", sa.Numeric),
             ),
-            (
-                "parks_percent_change_from_baseline",
-                sa.Column("parks", sa.Numeric),
-            ),
+            ("parks_percent_change_from_baseline", sa.Column("parks", sa.Numeric),),
             (
                 "transit_stations_percent_change_from_baseline",
                 sa.Column("transit_stations", sa.Numeric),
