@@ -139,6 +139,7 @@ sentry-sdk==0.17.4        # via apache-airflow
 setproctitle==1.1.10      # via apache-airflow
 six==1.15.0               # via cryptography, flask-jwt-extended, html5lib, isodate, jsonschema, mohawk, prison, pyrsistent, python-dateutil, slackclient, sqlalchemy-utils, tenacity, thrift, websocket-client
 slackclient==1.3.2        # via apache-airflow
+splitstream==1.2.4        # via -r requirements.in
 sqlalchemy-jsonfield==0.9.0  # via apache-airflow
 sqlalchemy-utils==0.36.8  # via flask-appbuilder
 sqlalchemy==1.3.19        # via alembic, apache-airflow, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-jsonfield, sqlalchemy-utils

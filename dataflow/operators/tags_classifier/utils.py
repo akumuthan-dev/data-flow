@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from dataflow.utils import logger
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -81,9 +82,9 @@ def find_text(y, column_name='policy feedback'):
     text_list = re.split(r'\W+', text)
     return text, text_list
 
+
 def relabel(x):
     x = x.copy()
-
 
     if 'policy_issue_types' in x.columns and 'Transition Period - General' in x.columns:
         x['Transition Period - General'] = x.apply(
@@ -96,9 +97,7 @@ def relabel(x):
     if 'Covid-19' in x.columns:
         x['Covid-19'] = x.apply(
             lambda row: 1
-            if any(
-                i in find_text(row)[1] for i in ['covid']
-            )
+            if any(i in find_text(row)[1] for i in ['covid'])
             else row['Covid-19'],
             axis=1,
         )
@@ -106,27 +105,23 @@ def relabel(x):
     if 'Covid-19 Employment' in x.columns:
         x['Covid-19 Employment'] = x.apply(
             lambda row: 1
-            ##todo: need to double check -- employment could be not related covid-19 after the pandemic
+            # 'employment' removed from the list: it can be related to non-covid-19 issues after the pandemic
             if any(
                 # i in find_text(row)[1] for i in ['employment', 'furlough', 'furloughed']
-                i in find_text(row)[1] for i in ['furlough', 'furloughed']
+                i in find_text(row)[1]
+                for i in ['furlough', 'furloughed']
             )
             else row['Covid-19 Employment'],
             axis=1,
         )
 
-    # if 'Covid-19 Exports/Imports' in x.columns:
-    #     x['Covid-19 Exports/Imports'] = x.apply(
-    #         lambda row: 1
-    #         if any(i in find_text(row)[1] for i in ['export', 'import'])
-    #         else row['Covid-19 Exports/Imports'],
-    #         axis=1,
-    #     )
-
     if 'Exports/Imports' in x.columns:
         x['Exports/Imports'] = x.apply(
             lambda row: 1
-            if any(i in find_text(row)[1] for i in ['export', 'import', 'exports', 'imports'])
+            if any(
+                i in find_text(row)[1]
+                for i in ['export', 'import', 'exports', 'imports']
+            )
             else row['Exports/Imports'],
             axis=1,
         )
@@ -139,16 +134,7 @@ def relabel(x):
             axis=1,
         )
 
-    # if 'Covid-19 Cash Flow' in x.columns or 'Cashflow' in x.columns :
-    #     x['Covid-19 Cash Flow'] = x.apply(
-    #         lambda row: 1
-    #         if any(i in find_text(row)[1] for i in ['cashflow', 'cash'])
-    #         or 'cash flow' in find_text(row)[0]
-    #         else row['Covid-19 Cash Flow'],
-    #         axis=1,
-    #     )
-    #
-    if 'Cashflow' in x.columns :
+    if 'Cashflow' in x.columns:
         x['Cashflow'] = x.apply(
             lambda row: 1
             if any(i in find_text(row)[1] for i in ['cashflow', 'cash'])
@@ -157,7 +143,7 @@ def relabel(x):
             axis=1,
         )
 
-    if 'Migration And Immigration' in x.columns :
+    if 'Migration And Immigration' in x.columns:
         x['Migration And Immigration'] = x.apply(
             lambda row: 1
             if any(i in find_text(row)[1] for i in ['migration', 'immigration'])
@@ -227,51 +213,6 @@ def relabel(x):
 
     return x
 
-# original version before tags merge
-# def clean_tag(df):
-#     replace_map = {
-#         'Covid-19 Expectations': 'Covid-19 Future Expectations',
-#         'Covid-19 Hmg Support': 'Covid-19 Request For Hmg Support',
-#         # 'Covid-19 Exports': 'Covid-19 Exports/Imports', 'Covid-19 Imports': 'Covid-19 Exports/Imports',
-#         'Covid-19 Resuming Business': 'Covid-19 Resuming Operations',
-#         'Opportunities': 'Opportunities',
-#         'Exports - other': 'Export',
-#         'Cash Flow': 'Cashflow',
-#         'Opportunity': 'Opportunities',
-#         'Opportunities\u200b': 'Opportunities',
-#         # 'Migration and Immigration': 'Movement of people',
-#         'Future Expectations': 'Expectations',
-#         'Border arrangements\u200b': 'Border arrangements',
-#         'Licencing\u200b': 'Licencing',
-#         'Licencing\xa0\u200b': 'Licencing',
-#         'Border\xa0arrangements': 'Border arrangements',
-#         'Border\xa0arrangements\u200b': 'Border arrangements',
-#         'Stock\xa0\u200b': 'Stock',
-#         'EU Exit - General': 'Transition Period - General',
-#         'Post-transition Period - General': 'Transition Period - General',
-#         'Transition Period - General': 'Transition Period - General',
-#         'HMG Comms on EU Exit': 'Transition Period - General',
-#         'HMG Financial support\u200b': 'HMG Financial support',
-#         'Covid-19 Resuming Business\u200b': 'Covid-19 Resuming Operations',
-#     }
-#
-#     # replace_map = {k.lower(): v.lower() for k, v in replace_map.items()}
-#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
-#     # df['tags'] = df['tags'].apply(lambda x: ','.join(x))
-#
-#     replace_map = {k.title(): v.title() for k, v in replace_map.items()}
-#     # replace_map = {k.lower():v.lower() for k,v in replace_map.items()}
-#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
-#
-#     # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip(), i.strip()) for i in x.split(',')])
-#     df['tags'] = df['tags'].apply(
-#         lambda x: [
-#             replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',')
-#         ]
-#     )
-#     df['tags'] = df['tags'].apply(lambda x: ','.join(x))
-#
-#     return df
 
 def clean_tag(df):
     replace_map = {
@@ -300,8 +241,6 @@ def clean_tag(df):
         'Transition Period General': 'Transition Period - General',
         'HMG Comms on EU Exit': 'Transition Period - General',
         'Covid-19 Resuming Business\u200b': 'Covid-19 Resuming Operations',
-
-
         'COVID-19 Cash Flow': 'Cashflow',
         'Cashflow': 'Cashflow',
         'COVID-19 Investment': 'Investment',
@@ -326,31 +265,24 @@ def clean_tag(df):
         'Movement of staff': 'Migration and Immigration',
         'Movement of employees': 'Migration and Immigration',
         'Temporary Movement Of Staff/Employees': 'Migration and Immigration',
-
-        'Movement Of Goods': 'Movement Of Goods/Services'
-
-
-
-
-
-
+        'Movement Of Goods': 'Movement Of Goods/Services',
     }
 
-    # replace_map = {k.lower(): v.lower() for k, v in replace_map.items()}
-    # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
-    # df['tags'] = df['tags'].apply(lambda x: ','.join(x))
-
     replace_map = {k.title(): v.title() for k, v in replace_map.items()}
-    # replace_map = {k.lower():v.lower() for k,v in replace_map.items()}
-    # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.lower(), i.lower()) for i in x.split(',')])
 
-    # df['tags'] = df['tags'].apply(lambda x: [replace_map.get(i.strip(), i.strip()) for i in x.split(',')])
-
-    removed_tags = [i.lower() for i in ['COVID-19 Offers of support', 'COVID-19 DIT delivering for HMG',
-                                        'Reduced Profit']]
+    removed_tags = [
+        i.lower()
+        for i in [
+            'COVID-19 Offers of support',
+            'COVID-19 DIT delivering for HMG',
+            'Reduced Profit',
+        ]
+    ]
     df['tags'] = df['tags'].apply(
         lambda x: [
-            replace_map.get(i.strip().title(), i.strip().title()) for i in x.split(',') if i.lower() not in removed_tags
+            replace_map.get(i.strip().title(), i.strip().title())
+            for i in x.split(',')
+            if i.lower() not in removed_tags
         ]
     )
     df['tags'] = df['tags'].apply(lambda x: ','.join(x))
@@ -370,9 +302,6 @@ def preprocess(fb_all, action='train', tags=all_tags):
     )
     fb_all = fb_all.dropna(subset=['policy feedback'])
 
-    print('check 1', fb_all.shape)
-
-    # print('yayay:', fb_all.columns)
     fb_all = exclude_notes(fb_all)
     fb_all['policy feedback'] = fb_all['policy feedback'].apply(
         lambda x: decontracted(x)
@@ -395,30 +324,20 @@ def preprocess(fb_all, action='train', tags=all_tags):
             lambda x: x + ',covid-19' if 'covid' in x.lower() else x
         )
 
-        ##todo: might want to remove this. only top 5 labels
-        fb_all['tags'] = fb_all['tags'].apply(
-            lambda x: x + ',exports/imports' if 'exports' in x.lower() or 'imports' in x.lower() else x
-        )
+        # fb_all['tags'] = fb_all['tags'].apply(
+        #     lambda x: x + ',exports/imports'
+        #     if 'exports' in x.lower() or 'imports' in x.lower()
+        #     else x
+        # )
 
         fb_all = clean_tag(fb_all)
-        # print(fb_all.head(1))
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
 
         tags_count = fb_tag.sum().sort_values(ascending=False)
         fb_tag.columns = [i.strip().title() for i in fb_tag.columns]
-        print('test', fb_tag.columns)
-        # print(fb_tag.shape)
         df = fb_all.merge(fb_tag, left_index=True, right_index=True)
-        # print(df.columns)
-        # print('shape', fb_all.shape, fb_tag.shape, df.shape)
-
-        # df['Covid-19 Exports/Imports'] = df.apply(
-        #     lambda x: 1 if x['Covid-19 Exports'] == 1 or x['Covid-19 Imports'] == 1 else 0, axis=1)
         df = relabel(df)
 
-        # select_columns = ['policy feedback', 'cleaned']
-
-        # print('test', fb_tag['Movement Of People'].sum())
         tags_200 = list(tags_count[tags_count > 200].index)
         tags_200 = [
             i
@@ -427,16 +346,15 @@ def preprocess(fb_all, action='train', tags=all_tags):
             not in ['general', 'not specified', 'other', 'others', 'covid-19 general']
         ]
         # tags = kwargs['tags']
-        print('tags counts', tags_count)
-        print('ordered tags counts', tags_count.sort_index())
-        print('tags with more than 200 counts:', tags_200)
-        print('train model for these tags:', tags)
+        logger.info(f'tags counts: {tags_count}')
+        logger.info(f'ordered tags counts: {tags_count.sort_index()}')
+        logger.info(f'tags with more than 200 counts: {tags_200}')
+        logger.info(f'train model for these tags: {tags}')
 
         select_columns = ['id', 'policy feedback']
         select_columns.extend(tags)
         if 'bert_vec_cleaned' in fb_all.columns:
             select_columns.append('bert_vec_cleaned')
-        # print(df.columns)
 
         df = df[select_columns]
 
@@ -455,12 +373,12 @@ def report_metric_per_model(actual, predict, average_type='binary'):
     f1 = f1_score(actual, predict, average=average_type)
     accuracy = accuracy_score(actual, predict)
     auc = roc_auc_score(actual, predict)
-    print("Precision = {}".format(precisions))
-    print("Recall = {}".format(recalls))
-    print("f1 = {}".format(f1))
-    print("Accuracy = {}".format(accuracy))
-    # print("AUC = {}".format(roc_auc_score(Y_test_tag, np.concatenate(test_predictions_tag))))
-    print("AUC = {}".format(auc))
+    logger.info(f"Precision = {precisions}")
+    logger.info(f"Recall = {recalls}")
+    logger.info(f"f1 = {f1}")
+    logger.info(f"Accuracy = {accuracy}")
+    # logger.info("AUC = {}".format(roc_auc_score(Y_test_tag, np.concatenate(test_predictions_tag))))
+    logger.info(f"AUC = {auc}")
 
     return precisions, recalls, f1, accuracy, auc
 
@@ -492,7 +410,5 @@ def report_metrics_for_all(
     )
     metric_df['model_for_tag'] = metric_df.index
     metric_df = metric_df[['model_for_tag'] + list(metric_df.columns[:-1])]
-    # print(metric_df)
-    # metric_df.columns = ['model_for_tag'] + list(metric_df.columns[1:])
 
     return metric_df

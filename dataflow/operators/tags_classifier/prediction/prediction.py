@@ -9,6 +9,7 @@ from dataflow.operators.tags_classifier.setting import (
     model_version,
     tags_covid,
     tags_general,
+    probability_threshold,
 )
 import operator
 import pandas as pd
@@ -68,7 +69,9 @@ def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
         logger.info(f"Predicting for tag {ind}, {tag_i}")
         m = tf.keras.models.load_model(model_path + tag_i)
         test_predictions_prob_tag = m.predict(X_to_predict)
-        test_predictions_class_tag = (test_predictions_prob_tag > 0.5) + 0
+        test_predictions_class_tag = (
+            test_predictions_prob_tag > probability_threshold
+        ) + 0
         Y_test_predict_prob[:, ind] = np.concatenate(test_predictions_prob_tag)
         Y_test_predict[:, ind] = np.concatenate(test_predictions_class_tag)
 
@@ -78,7 +81,13 @@ def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
 
     for i in np.arange(0, X_to_predict.shape[0]):
         sentence.append(X_to_predict[i])
-        predict.append(list(compress(tags_to_predict, Y_test_predict_prob[i] > 0.5)))
+        predict.append(
+            list(
+                compress(
+                    tags_to_predict, Y_test_predict_prob[i] > probability_threshold
+                )
+            )
+        )
         predict_prob.append(dict(zip(tags_to_predict, Y_test_predict_prob[i])))
 
     prediction_on_data = pd.DataFrame(
@@ -209,7 +218,8 @@ def predict_tags(df):
         predictions = prediction_on_general_data.copy()
 
     predictions['prediction_prob_top_5'] = predictions.apply(
-        lambda x: top_5_labels(x['prediction_prob'], threshold=0.5), axis=1
+        lambda x: top_5_labels(x['prediction_prob'], threshold=probability_threshold),
+        axis=1,
     )
     predictions['tags_prediction'] = predictions.apply(
         lambda x: list(x['prediction_prob_top_5'].keys()), axis=1
@@ -231,10 +241,7 @@ def predict_tags(df):
     predictions = predictions.rename(columns={'sentence': 'policy_feedback_notes'})
 
     predictions = update_df_column_with_prob(predictions)
-    # if 'prediction_prob_top_5' in predictions.columns:
-    #     del predictions['prediction_prob_top_5']
 
-    # predictions.to_csv('to_predict_result.csv', index=False)
     return predictions
 
 
@@ -280,7 +287,6 @@ def fetch_interaction_data(target_db: str, query: str):
         df = pd.DataFrame(rows)
         df.columns = [column[0] for column in cursor.description]
         df = preprocess(df, action='predict')
-        # df.to_csv('to_predict.csv', index=False)
 
         logger.info(f"check df shape: {df.shape}")
         logger.info(f"df head: {df.head()}")
@@ -295,23 +301,11 @@ def fetch_interaction_data(target_db: str, query: str):
 
 # # run this to be able to check data in python console when test locally
 # df_a = pd.read_csv('/Users/linglingli/DIT/data-flow/prediction_data_0904.csv')
+# # or test one sentence
+# # test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month during pandemic.
+# #                     They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
+# # df_a = pd.DataFrame(test, columns=['id', 'policy feedback'])
 # df_a = preprocess(df_a, action='predict')
-## os.chdir('/Users/linglingli/DIT/data-flow/the_models/models_20201029')
-# predictions_a = predict_tags(df_a)
-# predictions_a['tags_prediction']
-
-# # test one sentence
-# test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month during pandemic.
-# They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
-# test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month
-# They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
-# # # todo: long paragraph, lost 'covid-19' prediction but works when only keep the first sentences. prediction by sentence?
-# test = [['id1', """COVID-19 advice from government sometimes lacks detail for their situation. They are a mixture of lab and office space. They suggested specific examples of implementing the advice for laboratories would be helpful.
-# The UK is still considered a good place to invest for companies who are already located there but Sweden and Denmark are now as attractive
-# for new investors due to uncertainty in the UK during the EU exit transition period."""]]
-# # test = [['id1', """COVID-19 advice from government sometimes lacks detail for their situation."""]]
-# df_a = pd.DataFrame(test, columns=['id', 'policy feedback'])
-# df_a = preprocess(df_a, action='predict')
-# os.chdir('/Users/linglingli/DIT/data-flow/the_models/models_20201029')
+# os.chdir('data-flow/the_models/models_20201029')
 # predictions_a = predict_tags(df_a)
 # print(predictions_a['tags_prediction'])

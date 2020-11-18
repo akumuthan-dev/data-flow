@@ -7,7 +7,12 @@ from dataflow.operators.tags_classifier.train.train import (
     model_training_with_labelled_data,
 )
 
+
 class TagsClassifierTrainPipeline(_PipelineDAG):
+
+    schedule_interval = (
+        None  ## For now we trigger the pipeline manually when training data is uploaded
+    )
     table_config = TableConfig(
         table_name='interactions_tags_classifier_metrics',
         field_mapping=[
@@ -22,8 +27,8 @@ class TagsClassifierTrainPipeline(_PipelineDAG):
         ],
     )
 
-    controller_pipeline = InteractionsDatasetPipeline
-    # dependencies = [InteractionsDatasetPipeline]
+    # controller_pipeline = InteractionsDatasetPipeline ## Not in use
+    # dependencies = [InteractionsDatasetPipeline] ## the pipeline that uploads training data from BIU
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
