@@ -15,6 +15,7 @@ from dataflow.utils import S3Data, logger
 def fetch_comtrade_goods_data(
     table_name: str, ts_nodash: str, **kwargs,
 ):
+    s3 = S3Data(table_name, ts_nodash)
     expected_keys = [
         'Classification',
         'Year',
@@ -52,8 +53,43 @@ def fetch_comtrade_goods_data(
         'FOB Trade Value (US$)',
         'Flag',
     ]
-    s3 = S3Data(table_name, ts_nodash)
+    _fetch(s3, 'C', expected_keys)
 
+
+def fetch_comtrade_services_data(
+    table_name: str, ts_nodash: str, **kwargs,
+):
+    s3 = S3Data(table_name, ts_nodash)
+    expected_keys = [
+        'Classification',
+        'Year',
+        'Period',
+        'Period Desc.',
+        'Aggregate Level',
+        'Is Leaf Code',
+        'Trade Flow Code',
+        'Trade Flow',
+        'Reporter Code',
+        'Reporter',
+        'Reporter ISO',
+        'Partner Code',
+        'Partner',
+        'Partner ISO',
+        'Mode of Transport Code',
+        'Mode of Transport',
+        'Commodity Code',
+        'Commodity',
+        'Netweight (kg)',
+        'Gross weight (kg)',
+        'Trade Value (US$)',
+        'CIF Trade Value (US$)',
+        'FOB Trade Value (US$)',
+        'Flag',
+    ]
+    _fetch(s3, 'S', expected_keys)
+
+
+def _fetch(s3, trade_type, expected_keys):
     with _download('https://comtrade.un.org/Data/cache/years.json') as response:
         years_objs = json.loads(response.content)
     if years_objs['more']:
@@ -69,6 +105,7 @@ def fetch_comtrade_goods_data(
         for year_obj in years_objs['results']
         if year_obj['id'].lower() != 'all'
     ]
+
     reporter_areas = [
         reporter_area['id']
         for reporter_area in reporter_areas_objs['results']
@@ -85,8 +122,7 @@ def fetch_comtrade_goods_data(
         if page:
             yield page
 
-    def download(period_and_partner_area_pages):
-        type_goods = 'C'
+    def download(trade_type, expected_keys, period_and_partner_area_pages):
         frequency_annual = 'A'
         classification_hs = 'HS'
         partner_areas_all = 'all'
@@ -99,7 +135,7 @@ def fetch_comtrade_goods_data(
                 (
                     ('max', '100000'),
                     ('fmt', 'csv'),
-                    ('type', type_goods),
+                    ('type', trade_type),
                     ('freq', frequency_annual),
                     ('px', classification_hs),
                     ('ps', ','.join(period_page)),
@@ -112,12 +148,13 @@ def fetch_comtrade_goods_data(
             ):
                 if list(row.keys()) != expected_keys:
                     raise Exception('Unexpected columns {}'.format(row.keys()))
-                yield list(row.values())
+
+                yield {k: v if v else None for k, v in row.items()}
 
     period_pages = paginate(years, 5)
     partner_area_pages = paginate(reporter_areas, 5)
     period_and_partner_area_pages = itertools.product(period_pages, partner_area_pages)
-    result_records = download(period_and_partner_area_pages)
+    result_records = download(trade_type, expected_keys, period_and_partner_area_pages)
     results_pages = paginate(result_records, 10000)
 
     for i, page in enumerate(results_pages):
@@ -140,7 +177,7 @@ def _download(source_url, params=()):
 
 
 def throttled_generator(generator_func):
-    ''' Forces an interval of 1 second between the completion of every all to the generator '''
+    ''' Forces an interval of 1 second between the completion of every call to the generator '''
 
     seconds_between_calls = 1.0
     previous = float('-infinity')
