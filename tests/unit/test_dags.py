@@ -94,6 +94,7 @@ def test_pipelines_dags():
         'RawWorldBankTariffPipeline',
         'ReturnToOfficeBookingsPipeline',
         'StaffSSOUsersPipeline',
-        'TagsClassifierPipeline',
+        'TagsClassifierPredictionPipeline',
+        'TagsClassifierTrainPipeline',
         'TeamsDatasetPipeline',
     }

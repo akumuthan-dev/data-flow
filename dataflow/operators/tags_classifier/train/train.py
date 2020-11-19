@@ -71,7 +71,7 @@ def build_tokens(df, model_path):
 
     tokenizer.fit_on_texts(df['sentence'].values)
     word_index = tokenizer.word_index
-    logger.info(f'Found %s unique tokens.{len(word_index)}')
+    logger.info(f'Found {len(word_index)} unique tokens')
 
     tokenizer_json = tokenizer.to_json()
     os.makedirs(model_path)
@@ -126,11 +126,6 @@ def cnn():
     from tensorflow.keras.layers import Embedding
 
     model = Sequential()
-    # model.add(layers.Embedding(input_dim=vocab_size,
-    #                            output_dim=embedding_dim,
-    #                            input_length=maxlen))
-    # model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=X.shape[1],trainable=True,mask_zero=True, weights=[embedding_matrix]))
-    # model.add(Embedding(MAX_NB_WORDS, EMBEDDING_DIM, input_length=X.shape[1],trainable=True, weights=[embedding_matrix]))
     model.add(
         Embedding(
             MAX_NB_WORDS,
@@ -183,7 +178,6 @@ def model_training_with_labelled_data(table_name, **context):
         logger.info("step 4: write model performance to S3")
         write_model_performance(table_name, train_data_date, **context)
 
-    pass
 
 
 def train_model(model, X_train, Y_train, X_val, Y_val, class_weight):
@@ -255,62 +249,54 @@ def buid_models_for_tags(
     logger.info(f"build models for tags:{tags}")
 
     for j in tags:
-        if 1 == 1:
-            logger.info('-------------' * 5)
-            logger.info(f'model for {j}')
-            i = tags.index(j)
+        logger.info('-------------' * 5)
+        logger.info(f'model for {j}')
+        i = tags.index(j)
 
-            Y_train_tag = Y_train[:, i]
-            logger.info(
-                f'check Y_train_tag:  positive case:{Y_train_tag.sum()}; shape:{Y_train_tag.shape}'
-            )
-            Y_test_tag = Y_test[:, i]
-            Y_val_tag = Y_val[:, i]
-            class_size = (
-                sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1),
-                (sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1))
-                / (Y_test.shape[0] + Y_train.shape[0]),
-            )
-            class_weight = (sum(Y_test[:, i] == 0) + sum(Y_train[:, i] == 0)) / (
-                sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1)
-            )
-            logger.info(f'check class_weight:  {class_weight}')
+        Y_train_tag = Y_train[:, i]
+        logger.info(
+            f'check Y_train_tag:  positive case:{Y_train_tag.sum()}; shape:{Y_train_tag.shape}'
+        )
+        Y_test_tag = Y_test[:, i]
+        Y_val_tag = Y_val[:, i]
+        class_size = (
+            sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1),
+            (sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1))
+            / (Y_test.shape[0] + Y_train.shape[0]),
+        )
+        class_weight = (sum(Y_test[:, i] == 0) + sum(Y_train[:, i] == 0)) / (
+            sum(Y_test[:, i] == 1) + sum(Y_train[:, i] == 1)
+        )
+        logger.info(f'check class_weight:  {class_weight}')
 
-            m = cnn()
-            m = train_model(m, X_train, Y_train_tag, X_val, Y_val_tag, class_weight)
-            m.save(model_path + '_'.join(j.split(' ')))
+        m = cnn()
+        m = train_model(m, X_train, Y_train_tag, X_val, Y_val_tag, class_weight)
+        m.save(model_path + '_'.join(j.split(' ')))
 
-            data_to_evaluate = X_test
-            tag_to_evaluate = Y_test_tag
-            sent_to_evaluate = sent_test
-            # data_to_evaluate = X_val
-            # tag_to_evaluate = Y_val_tag
-            # sent_to_evalue = sent_val
+        data_to_evaluate = X_test
+        tag_to_evaluate = Y_test_tag
+        sent_to_evaluate = sent_test
 
-            # metrics = m.evaluate(
-            #     data_to_evaluate, tag_to_evaluate, batch_size=tag_to_evaluate.shape[0]
-            # )
+        test_predictions_prob_tag = m.predict(data_to_evaluate)
+        test_predictions_class_tag = (
+            test_predictions_prob_tag > probability_threshold
+        ) + 0
+        Y_test_predict[:, i] = np.concatenate((test_predictions_class_tag))
+        Y_test_predict_prob[:, i] = np.concatenate((test_predictions_prob_tag))
 
-            test_predictions_prob_tag = m.predict(data_to_evaluate)
-            test_predictions_class_tag = (
-                test_predictions_prob_tag > probability_threshold
-            ) + 0
-            Y_test_predict[:, i] = np.concatenate((test_predictions_class_tag))
-            Y_test_predict_prob[:, i] = np.concatenate((test_predictions_prob_tag))
+        precisions, recalls, f1, accuracy, auc = report_metric_per_model(
+            tag_to_evaluate, test_predictions_class_tag, average_type='binary'
+        )
 
-            precisions, recalls, f1, accuracy, auc = report_metric_per_model(
-                tag_to_evaluate, test_predictions_class_tag, average_type='binary'
-            )
+        tag_precisions[tags[i]] = precisions
+        tag_recalls[tags[i]] = recalls
+        tag_f1[tags[i]] = f1
+        tag_accuracy[tags[i]] = accuracy
+        tag_auc[tags[i]] = auc
+        tag_size[tags[i]] = class_size
 
-            tag_precisions[tags[i]] = precisions
-            tag_recalls[tags[i]] = recalls
-            tag_f1[tags[i]] = f1
-            tag_accuracy[tags[i]] = accuracy
-            tag_auc[tags[i]] = auc
-            tag_size[tags[i]] = class_size
-
-            # global fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
-            # fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tags[i], i, X_test,Y_test, sent_test,m)
+        # global fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
+        # fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p = check_result(tags[i], i, X_test,Y_test, sent_test,m)
 
     metric_df = report_metrics_for_all(
         tag_size, tag_precisions, tag_recalls, tag_f1, tag_accuracy, tag_auc

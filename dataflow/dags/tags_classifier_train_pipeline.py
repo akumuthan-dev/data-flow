@@ -26,8 +26,6 @@ class TagsClassifierTrainPipeline(_PipelineDAG):
         ],
     )
 
-    # controller_pipeline = InteractionsDatasetPipeline ## Not in use
-    # dependencies = [InteractionsDatasetPipeline] ## the pipeline that uploads training data from BIU
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -35,6 +33,5 @@ class TagsClassifierTrainPipeline(_PipelineDAG):
             python_callable=model_training_with_labelled_data,
             queue='tensorflow',
             provide_context=True,
-            # op_args=[self.target_db,  self.table_config.table_name],
             op_args=[self.table_config.table_name],
         )

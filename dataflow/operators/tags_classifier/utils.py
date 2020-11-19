@@ -321,16 +321,18 @@ def preprocess(fb_all, action='train', tags=all_tags):
             .replace('Â', '')
         )
         fb_all['tags'] = fb_all['tags'].apply(
-            lambda x: x + ',covid-19' if 'covid' in x.lower() else x
+            lambda x: x + ',covid-19'.title() if 'covid' in x.lower() else x
         )
 
+        fb_all = clean_tag(fb_all)
+
         # fb_all['tags'] = fb_all['tags'].apply(
-        #     lambda x: x + ',exports/imports'
+        #     lambda x: x + ',exports/imports'.title()
         #     if 'exports' in x.lower() or 'imports' in x.lower()
         #     else x
         # )
 
-        fb_all = clean_tag(fb_all)
+
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
 
         tags_count = fb_tag.sum().sort_values(ascending=False)
