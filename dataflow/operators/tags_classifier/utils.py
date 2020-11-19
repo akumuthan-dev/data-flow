@@ -332,7 +332,6 @@ def preprocess(fb_all, action='train', tags=all_tags):
         #     else x
         # )
 
-
         fb_tag = fb_all['tags'].str.strip().str.get_dummies(sep=',')
 
         tags_count = fb_tag.sum().sort_values(ascending=False)

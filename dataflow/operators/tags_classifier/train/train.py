@@ -179,7 +179,6 @@ def model_training_with_labelled_data(table_name, **context):
         write_model_performance(table_name, train_data_date, **context)
 
 
-
 def train_model(model, X_train, Y_train, X_val, Y_val, class_weight):
     from tensorflow.keras.callbacks import EarlyStopping
     import tensorflow as tf

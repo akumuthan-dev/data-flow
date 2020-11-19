@@ -26,7 +26,6 @@ class TagsClassifierTrainPipeline(_PipelineDAG):
         ],
     )
 
-
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='train-model',
