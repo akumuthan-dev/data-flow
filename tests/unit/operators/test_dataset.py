@@ -204,7 +204,7 @@ def test_fetch_from_jwt_api(mocker):
         'test_table', 'http://test', {"foo": "bar"}, "s3cr3t", "FAKE123"
     )
     token_api_fetch_method.assert_called_once_with(
-        'test_table', 'http://test', 'jwt-token', 'results', 'next'
+        'test_table', 'http://test', 'jwt-token', 'results', 'next', 'Bearer'
     )
 
 

@@ -119,7 +119,7 @@ def fetch_from_jwt_api(
 ):
     auth_token = jwt.encode(payload, secret, algorithm=algorithm).decode("utf-8")
     fetch_from_api_endpoint(
-        table_name, source_url, auth_token, results_key, next_key, **kwargs
+        table_name, source_url, auth_token, results_key, next_key, 'Bearer', **kwargs
     )
 
 
