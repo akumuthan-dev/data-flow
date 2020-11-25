@@ -1,9 +1,11 @@
 import codecs
 import csv
+import io
 import itertools
 import time
 import json
 import logging
+import zipfile
 
 import backoff
 import requests
@@ -31,26 +33,13 @@ def fetch_comtrade_goods_data(
         'Partner Code',
         'Partner',
         'Partner ISO',
-        '2nd Partner Code',
-        '2nd Partner',
-        '2nd Partner ISO',
-        'Customs Proc. Code',
-        'Customs',
-        'Mode of Transport Code',
-        'Mode of Transport',
         'Commodity Code',
         'Commodity',
         'Qty Unit Code',
         'Qty Unit',
         'Qty',
-        'Alt Qty Unit Code',
-        'Alt Qty Unit',
-        'Alt Qty',
         'Netweight (kg)',
-        'Gross weight (kg)',
         'Trade Value (US$)',
-        'CIF Trade Value (US$)',
-        'FOB Trade Value (US$)',
         'Flag',
     ]
     _fetch(s3, 'C', expected_keys)
@@ -75,15 +64,9 @@ def fetch_comtrade_services_data(
         'Partner Code',
         'Partner',
         'Partner ISO',
-        'Mode of Transport Code',
-        'Mode of Transport',
         'Commodity Code',
         'Commodity',
-        'Netweight (kg)',
-        'Gross weight (kg)',
         'Trade Value (US$)',
-        'CIF Trade Value (US$)',
-        'FOB Trade Value (US$)',
         'Flag',
     ]
     _fetch(s3, 'S', expected_keys)
@@ -95,21 +78,10 @@ def _fetch(s3, trade_type, expected_keys):
     if years_objs['more']:
         raise Exception('Unable to fetch all years')
 
-    with _download('https://comtrade.un.org/Data/cache/reporterAreas.json') as response:
-        reporter_areas_objs = json.loads(response.content)
-    if reporter_areas_objs['more']:
-        raise Exception('Unable to fetch all reporter areas')
-
     years = [
         year_obj['id']
         for year_obj in years_objs['results']
         if year_obj['id'].lower() != 'all'
-    ]
-
-    reporter_areas = [
-        reporter_area['id']
-        for reporter_area in reporter_areas_objs['results']
-        if reporter_area['id'].lower() != 'all'
     ]
 
     def paginate(items, num_per_page):
@@ -122,39 +94,33 @@ def _fetch(s3, trade_type, expected_keys):
         if page:
             yield page
 
-    def download(trade_type, expected_keys, period_and_partner_area_pages):
-        frequency_annual = 'A'
-        classification_hs = 'HS'
-        partner_areas_all = 'all'
-        trade_regime_all = 'all'
-        desired_commodity_codes_total = 'ALL'
+    def file_from_zip(zip_bytes):
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+            name = archive.namelist()[0]
+            logger.info('Opening file in zip %s', name)
+            with archive.open(name, "r") as file:
+                yield file
 
-        for period_page, reporter_page in period_and_partner_area_pages:
-            for row in _download_dicts(
-                'https://comtrade.un.org/api/get',
-                (
-                    ('max', '100000'),
-                    ('fmt', 'csv'),
-                    ('type', trade_type),
-                    ('freq', frequency_annual),
-                    ('px', classification_hs),
-                    ('ps', ','.join(period_page)),
-                    ('r', ','.join(reporter_page)),
-                    ('p', partner_areas_all),
-                    ('rg', trade_regime_all),
-                    ('cc', desired_commodity_codes_total),
-                    ('token', config.COMTRADE_TOKEN),
-                ),
-            ):
+    def get_files(trade_type, expected_keys, periods):
+        frequency = 'A'
+        classification = 'HS' if trade_type == 'C' else 'EB02'
+        for period in periods:
+            yield from file_from_zip(
+                _download(
+                    f'https://comtrade.un.org/api/get/bulk/{trade_type}/{frequency}/{period}/all/{classification}',
+                    params=(('token', config.COMTRADE_TOKEN),),
+                ).content
+            )
+
+    def get_dicts(files):
+        for f in files:
+            for row in csv.DictReader(codecs.iterdecode(f, 'utf-8-sig')):
                 if list(row.keys()) != expected_keys:
                     raise Exception('Unexpected columns {}'.format(row.keys()))
-
                 yield {k: v if v else None for k, v in row.items()}
 
-    period_pages = paginate(years, 5)
-    partner_area_pages = paginate(reporter_areas, 5)
-    period_and_partner_area_pages = itertools.product(period_pages, partner_area_pages)
-    result_records = download(trade_type, expected_keys, period_and_partner_area_pages)
+    files = get_files(trade_type, expected_keys, years)
+    result_records = get_dicts(files)
     results_pages = paginate(result_records, 10000)
 
     for i, page in enumerate(results_pages):
@@ -174,30 +140,3 @@ def _download(source_url, params=()):
     response = requests.get(source_url, stream=True, params=params)
     response.raise_for_status()
     return response
-
-
-def throttled_generator(generator_func):
-    ''' Forces an interval of 1 second between the completion of every call to the generator '''
-
-    seconds_between_calls = 1.0
-    previous = float('-infinity')
-
-    def _throttled_func(*args, **kwargs):
-        nonlocal previous
-
-        now = time.monotonic()
-        to_sleep = max(0, seconds_between_calls - (now - previous))
-        logger.info('Sleeping for %s seconds', to_sleep)
-        time.sleep(to_sleep)
-
-        yield from generator_func(*args, **kwargs)
-
-        previous = time.monotonic()
-
-    return _throttled_func
-
-
-@throttled_generator
-def _download_dicts(source_url, params=()):
-    with _download(source_url, params=params) as response:
-        yield from csv.DictReader(codecs.iterdecode(response.iter_lines(), 'utf-8'))
