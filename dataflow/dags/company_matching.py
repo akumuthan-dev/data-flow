@@ -202,7 +202,7 @@ class DSSHMRCExportersMatchingPipeline(_DSSGenericMatchingPipeline):
 
 
 class DNBCompanyMatchingPipeline(_CompanyMatchingPipeline):
-    update = True
+    update = False
     controller_pipeline = DNBCompanyPipeline
     dependencies = [DNBCompanyPipeline]
     company_match_query = f"""
