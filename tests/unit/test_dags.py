@@ -44,6 +44,7 @@ def test_pipelines_dags():
         'DataHubServiceDeliveriesPreviousYearDailyCSVPipeline',
         'DataHubServiceDeliveryInteractionsCSVPipeline',
         'DataWorkspaceApplicationInstancePipeline',
+        'DataWorkspaceCatalogueItemsPipeline',
         'DataWorkspaceEventLogPipeline',
         'DataWorkspaceUserPipeline',
         'EnquiryMgmtEnquiriesPipeline',
