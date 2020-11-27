@@ -433,37 +433,44 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
     )
     query = '''
         WITH
-        --Table converting all 'Retail' related projects to the Consumer and retail sector
-        investment_projects AS (
-            SELECT data_hub__investment_projects.*,
-                CASE
-                    WHEN 'Retail' = ANY (data_hub__investment_projects.business_activities::TEXT[])
-                        THEN 'Consumer and retail'
-                    ELSE data_hub__investment_projects.sector
-                END AS project_sector
-            FROM dit.data_hub__investment_projects
-            WHERE (
-                (actual_land_date >= '2018-04-01' OR estimated_land_date >= '2018-04-01')
-                AND LOWER(status) IN ('ongoing', 'won')
-            )
-            OR (
-                modified_on BETWEEN (now() - interval '1 year') AND now()
-                AND LOWER(status) NOT IN ('ongoing', 'won')
-            )
+        --Table reducing to relevant time periods and adding 'porject_sector_for_gva_purposes' field which assigns all 'Retail' and 'Sales' related projects to the 'Consumer and retail' sector
+                investment_projects AS (
+                    SELECT dit.data_hub__investment_projects.*,
+                        CASE
+                            WHEN 'Retail' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[])
+                            --ADDED THIS 'OR' STATEMENT
+                            OR 'Sales' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[])
+                                THEN 'Consumer and retail'
+                            ELSE data_hub__investment_projects.sector
+                        --RENAMED THIS FIELD FOR CLARITY
+                        END AS project_sector_for_gva_purposes,
+                        CASE
+                            WHEN 'Retail' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[])
+                                THEN 'Consumer and retail'
+                            ELSE data_hub__investment_projects.sector
+                    --RENAMED THIS FIELD FOR CLARITY
+                        END AS sector_for_cluster_valueband
+                            FROM dit.data_hub__investment_projects
+                    WHERE (
+                        (actual_land_date >= '2018-04-01' OR estimated_land_date >= '2018-04-01')
+                        AND LOWER(status) IN ('ongoing', 'won')
+                    )
+                    OR (
+                        modified_on BETWEEN (now() - interval '1 year') AND now()
+                        AND LOWER(status) NOT IN ('ongoing', 'won')
+                    )
         ),
-
         --Table of latest interaction date for each investment project
         latest_interactions AS (
-            SELECT data_hub__interactions.investment_project_id,
-                MAX(data_hub__interactions.interaction_date) AS date_of_latest_interaction
+            SELECT dit.data_hub__interactions.investment_project_id,
+                MAX(dit.data_hub__interactions.interaction_date) AS date_of_latest_interaction
             FROM dit.data_hub__interactions
-            WHERE data_hub__interactions.investment_project_id IS NOT NULL
-            GROUP BY data_hub__interactions.investment_project_id),
-
+            WHERE dit.data_hub__interactions.investment_project_id IS NOT NULL
+            GROUP BY dit.data_hub__interactions.investment_project_id),
         --Extract team member ids, names and teams
         project_team AS (
             SELECT
-               investment_projects.id AS project_id,
+            investment_projects.id AS project_id,
                 --ID, name and team name for various roles associated with the project
                 created_by_adviser.id AS created_by_adviser_id,
                 created_by_adviser.first_name || ' ' || created_by_adviser.last_name AS created_by_name,
@@ -481,155 +488,148 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 project_assurance_adviser.first_name || ' ' || project_assurance_adviser.last_name AS project_assurance_adviser_name,
                 project_assurance_adviser_team.name AS project_assurance_adviser_team,
                 account_manager.id AS account_manager_id,
-                account_manager.first_name || ' ' || account_manager.last_name AS account_manager_name,
+            account_manager.first_name || ' ' || account_manager.last_name AS account_manager_name,
                 account_manager_team.name AS account_manager_team,
-
                 --Show all other team members
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,')'), '; ')
+                            CONCAT(dit.data_hub__advisers.first_name, ' ', dit.data_hub__advisers.last_name, ' (', dit.data_hub__teams.name,')'), '; ')
                     FROM dit.data_hub__advisers
-                    JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                    JOIN dit.data_hub__teams ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                 ) AS team_members,
-
                 --Show all members of the full virtual team (project manager, project assurance adviser, client relationship manager, project creator, last modifier, account manager + all other team members)
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
-                                   ')'), '; ')
+                            CONCAT(dit.data_hub__advisers.first_name, ' ', dit.data_hub__advisers.last_name, ' (', dit.data_hub__teams.name,
+                                ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                       OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                  client_relationship_manager.id, project_manager.id,
-                                                  project_assurance_adviser.id, account_manager.id)
+                        JOIN dit.data_hub__teams ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                    OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                client_relationship_manager.id, project_manager.id,
+                                                project_assurance_adviser.id)
                 ) AS all_virtual_team_members,
-
                 --Show all members of the full virtual team who belong to DIT HQ teams
                 (
                     SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
-                                   ')'), '; ')
+                            CONCAT(dit.data_hub__advisers.first_name, ' ', dit.data_hub__advisers.last_name, ' (', dit.data_hub__teams.name,
+                                ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                       client_relationship_manager.id, project_manager.id,
-                                                       project_assurance_adviser.id, account_manager.id))
-                      AND data_hub__teams.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
+                        JOIN dit.data_hub__teams ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
+                    AND dit.data_hub__teams.role IN ('DIT HQ Department', 'HQ Investment Team', 'Sector Team')
                 ) AS dit_hq_team_members,
-
                 --Show all members of the full virtual team who are in 'IST' teams
                 (
-                    SELECT STRING_AGG(
-                            CONCAT(data_hub__advisers.first_name, ' ', data_hub__advisers.last_name, ' (', data_hub__teams.name,
-                                   ')'), '; ')
+                SELECT STRING_AGG(
+                            CONCAT(dit.data_hub__advisers.first_name, ' ', dit.data_hub__advisers.last_name, ' (', dit.data_hub__teams.name,
+                                ')'), '; ')
                     FROM dit.data_hub__advisers
-                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                       client_relationship_manager.id, project_manager.id,
-                                                       project_assurance_adviser.id, account_manager.id))
-                      AND data_hub__teams.name LIKE '%IST%'
+                        JOIN dit.data_hub__teams ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
+                    AND dit.data_hub__teams.name LIKE '%IST%'
                 ) AS ist_team_members,
-
                 --Show all overseas post teams in the full virtual team
                 (
-                    SELECT STRING_AGG(DISTINCT data_hub__teams.name, '; ')
+                    SELECT STRING_AGG(DISTINCT dit.data_hub__teams.name, '; ')
                     FROM dit.data_hub__advisers
-                         JOIN dit.data_hub__teams ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                       client_relationship_manager.id, project_manager.id,
-                                                       project_assurance_adviser.id, account_manager.id))
-                      AND data_hub__teams.role = 'Post'
+                        JOIN dit.data_hub__teams ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
+                    AND dit.data_hub__teams.role = 'Post'
                 ) AS post_teams,
-
                 --Show all investment delivery partners in the full virtual team
                 (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.delivery_partner_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                         JOIN dit.data_hub__teams
-                              ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                         JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
-                    WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                            OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                       client_relationship_manager.id, project_manager.id,
-                                                       project_assurance_adviser.id, account_manager.id))
+                        JOIN dit.data_hub__teams
+                            ON dit.data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                    WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                            OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
                 ) AS delivery_partner_teams,
-
                 --Show all local enterprise partnerships and devolved administrations linked to members of the full virtual team
                 CONCAT((
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.local_enterprise_partnership_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
+                    JOIN dit.data_hub__teams ON dit.data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
                     WHERE (
-                        data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                        dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
-                        data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
+                        dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id)
                     )
                     AND local_enterprise_partnership_name != ''
                 ), (
                     SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name, '; ')
                     FROM ref_investment_delivery_partners_lep_da
-                    JOIN dit.data_hub__teams ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                    JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
+                    JOIN dit.data_hub__teams ON dit.data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                    JOIN dit.data_hub__advisers ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
                     WHERE (
-                        data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                        dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
                         OR
-                        data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id, account_manager.id)
+                        dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id, client_relationship_manager.id, project_manager.id, project_assurance_adviser.id)
                     )
-               )) AS lep_or_da_in_team,
-
+            )) AS lep_or_da_in_team,
                 --Show all super regions and devolved administrations linked to members of the full virtual team
                 CONCAT((
-                   SELECT STRING_AGG(DISTINCT ref_super_regions.super_region_name, '; ')
-                   FROM ref_super_regions
+                SELECT STRING_AGG(DISTINCT ref_super_regions.super_region_name, '; ')
+                FROM ref_super_regions
                         JOIN ref_leps_to_super_regions
-                             ON ref_leps_to_super_regions.super_region_name_id = ref_super_regions.id
+                            ON ref_leps_to_super_regions.super_region_name_id = ref_super_regions.id
                         JOIN ref_lep_names ON ref_lep_names.id = ref_leps_to_super_regions.lep_name_id
                         JOIN ref_investment_delivery_partners_lep_da
-                             ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
-                                     = ref_lep_names.field_01
+                            ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
+                                    = ref_lep_names.field_01
                         JOIN dit.data_hub__teams
-                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
-                   WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                           OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                      client_relationship_manager.id, project_manager.id,
-                                                      project_assurance_adviser.id, account_manager.id))
-               ), (
-                   SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
-                                     '; ')
-                   FROM ref_investment_delivery_partners_lep_da
+                            ON dit.data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                        OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
+            ), (
+                SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
+                                    '; ')
+                FROM ref_investment_delivery_partners_lep_da
                         JOIN dit.data_hub__teams
-                             ON data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
-                        JOIN dit.data_hub__advisers ON data_hub__advisers.team_id = data_hub__teams.id
-                   WHERE (data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
-                           OR data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
-                                                      client_relationship_manager.id, project_manager.id,
-                                                      project_assurance_adviser.id, account_manager.id))
-               ))
+                            ON dit.data_hub__teams.name = ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        JOIN dit.data_hub__advisers ON dit.data_hub__advisers.team_id = dit.data_hub__teams.id
+                WHERE (dit.data_hub__advisers.id = ANY (investment_projects.team_member_ids::UUID[])
+                        OR dit.data_hub__advisers.id IN (created_by_adviser.id, modified_by_adviser.id,
+                                                    client_relationship_manager.id, project_manager.id,
+                                                    project_assurance_adviser.id))
+            ))
             AS super_region_or_da_in_team
             FROM investment_projects
-                 JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
-                 LEFT JOIN dit.data_hub__advisers created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
-                 LEFT JOIN dit.data_hub__teams created_by_team ON created_by_team.id = created_by_adviser.team_id
-                 LEFT JOIN dit.data_hub__advisers modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
-                 LEFT JOIN dit.data_hub__teams modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
-                 LEFT JOIN dit.data_hub__advisers client_relationship_manager ON client_relationship_manager.id = investment_projects.client_relationship_manager_id
-                 LEFT JOIN dit.data_hub__teams client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
-                 LEFT JOIN dit.data_hub__advisers project_manager ON project_manager.id = investment_projects.project_manager_id
-                 LEFT JOIN dit.data_hub__teams project_manager_team ON project_manager_team.id = project_manager.team_id
-                 LEFT JOIN dit.data_hub__advisers project_assurance_adviser ON project_assurance_adviser.id = investment_projects.project_assurance_adviser_id
-                 LEFT JOIN dit.data_hub__teams project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
-                 LEFT JOIN dit.data_hub__advisers account_manager ON account_manager.id = investor_company.one_list_account_owner_id
-                 LEFT JOIN dit.data_hub__teams account_manager_team ON account_manager_team.id = account_manager.team_id
-        )
-    --Main query starts here
-    SELECT
+                JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
+                LEFT JOIN dit.data_hub__advisers created_by_adviser ON created_by_adviser.id = investment_projects.created_by_id
+                LEFT JOIN dit.data_hub__teams created_by_team ON created_by_team.id = created_by_adviser.team_id
+                LEFT JOIN dit.data_hub__advisers modified_by_adviser ON modified_by_adviser.id = investment_projects.modified_by_id
+                LEFT JOIN dit.data_hub__teams modified_by_team ON modified_by_team.id = modified_by_adviser.team_id
+                LEFT JOIN dit.data_hub__advisers client_relationship_manager ON client_relationship_manager.id = investment_projects.client_relationship_manager_id
+                LEFT JOIN dit.data_hub__teams client_relationship_manager_team ON client_relationship_manager_team.id = client_relationship_manager.team_id
+                LEFT JOIN dit.data_hub__advisers project_manager ON project_manager.id = investment_projects.project_manager_id
+                LEFT JOIN dit.data_hub__teams project_manager_team ON project_manager_team.id = project_manager.team_id
+                LEFT JOIN dit.data_hub__advisers project_assurance_adviser ON project_assurance_adviser.id = investment_projects.project_assurance_adviser_id
+                LEFT JOIN dit.data_hub__teams project_assurance_adviser_team ON project_assurance_adviser_team.id = project_assurance_adviser.team_id
+                LEFT JOIN dit.data_hub__advisers account_manager ON account_manager.id = investor_company.one_list_account_owner_id
+                LEFT JOIN dit.data_hub__teams account_manager_team ON account_manager_team.id = account_manager.team_id
+        ),
+        main_query As (
+        --Main query starts here
+        SELECT
         investment_projects.id AS investment_project_id,
         investment_projects.project_reference AS project_reference_code,
         investment_projects.name AS project_name,
@@ -661,154 +661,147 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         investment_projects.referral_source_activity_marketing,
         investment_projects.total_investment,
         investment_projects.foreign_equity_investment,
-
         --Start Gross Value Added calculations
         CASE
             --Use existing Data Hub values for projects before April 2020
-            WHEN investment_projects.actual_land_date < '2020-04-01'
+            WHEN (investment_projects.actual_land_date < '2020-04-01'
                     OR (investment_projects.actual_land_date IS NULL
-                        AND investment_projects.estimated_land_date < '2020-04-01')
+                        AND investment_projects.estimated_land_date < '2020-04-01'))
                 THEN investment_projects.gross_value_added
-
             --Capital intensive projects after April 2020
             WHEN (investment_projects.actual_land_date > '2020-03-31'
                     OR (investment_projects.actual_land_date IS NULL
                         AND investment_projects.estimated_land_date > '2020-03-31'))
-                    AND ref_sectors_gva_value_bands.sector_classification = 'Capital intensive'
-                THEN ROUND(
-                    (ref_sectors_gva_value_bands.gva_multiplier * investment_projects.foreign_equity_investment)::NUMERIC,
-                    2)
+                    AND gva_multipliers.sector_classification = 'Capital intensive'
 
+                THEN ROUND(
+                    (gva_multipliers.gva_multiplier * investment_projects.foreign_equity_investment)::NUMERIC,
+                    2)
             --Labour intensive projects after April 2020
             WHEN (investment_projects.actual_land_date > '2020-03-31'
                     OR (investment_projects.actual_land_date IS NULL
-                        AND investment_projects.estimated_land_date > '2020-03-31'))
-                    AND ref_sectors_gva_value_bands.sector_classification = 'Labour intensive'
-                THEN ROUND((ref_sectors_gva_value_bands.gva_multiplier * investment_projects.number_new_jobs)::NUMERIC, 2)
+                    AND investment_projects.estimated_land_date > '2020-03-31'))
+                    AND gva_multipliers.sector_classification = 'Labour intensive'
 
-        END AS gross_value_added,
+                THEN ROUND((gva_multipliers.gva_multiplier * investment_projects.number_new_jobs)::NUMERIC, 2)
+
+        END AS gross_value,
         --End Gross Value Added calculations
-
         --Start assigning investment value bands
         CASE
             --For projects before April 2020
-            WHEN investment_projects.actual_land_date < '2020-04-01'
+            WHEN (investment_projects.actual_land_date < '2020-04-01'
                     OR (investment_projects.actual_land_date IS NULL
-                        AND investment_projects.estimated_land_date < '2020-04-01')
-                THEN 'Not assigned'
+                        AND investment_projects.estimated_land_date < '2020-04-01'))
 
+                THEN 'Not assigned'
             --Exception for Global Entrepreneur Programme projects
             WHEN (investment_projects.actual_land_date > '2020-03-31'
                     OR (investment_projects.actual_land_date IS NULL
                         AND investment_projects.estimated_land_date > '2020-03-31'))
                     AND investment_projects.specific_programme = 'Global Entrepreneur Programme'
+
                 THEN
                 (CASE
-                     WHEN investment_projects.number_new_jobs >= 42
-                         THEN 'Value band A'
-                     WHEN investment_projects.number_new_jobs >= 21
-                         THEN 'Value band B'
-                     WHEN investment_projects.number_new_jobs >= 11
-                         THEN 'Value band C'
-                     WHEN investment_projects.number_new_jobs >= 7
-                         THEN 'Value band D'
-                     WHEN investment_projects.number_new_jobs >= 1
-                         THEN 'Value band E'
-                 END)
-
+                    WHEN investment_projects.number_new_jobs >= 42
+                        THEN 'Value band A'
+                    WHEN investment_projects.number_new_jobs >= 21
+                        THEN 'Value band B'
+                    WHEN investment_projects.number_new_jobs >= 11
+                        THEN 'Value band C'
+                    WHEN investment_projects.number_new_jobs >= 7
+                        THEN 'Value band D'
+                    WHEN investment_projects.number_new_jobs >= 1
+                        THEN 'Value band E'
+                END)
             --For capital intensive projects after April 2020
             WHEN (investment_projects.actual_land_date > '2020-03-31'
                     OR (investment_projects.actual_land_date IS NULL
                         AND investment_projects.estimated_land_date > '2020-03-31'))
-                    AND ref_sectors_gva_value_bands.sector_classification = 'Capital intensive'
+                    AND value_bands.sector_classification = 'Capital intensive'
+
                 THEN
                 (
                     CASE
                         WHEN investment_projects.foreign_equity_investment
-                                >= ref_sectors_gva_value_bands.value_band_a_minimum
+                                >= value_bands.value_band_a_minimum
                             THEN 'Value band A'
                         WHEN investment_projects.foreign_equity_investment
-                                >= ref_sectors_gva_value_bands.value_band_b_minimum
+                                >= value_bands.value_band_b_minimum
                             THEN 'Value band B'
                         WHEN investment_projects.foreign_equity_investment
-                                >= ref_sectors_gva_value_bands.value_band_c_minimum
+                                >= value_bands.value_band_c_minimum
                             THEN 'Value band C'
                         WHEN investment_projects.foreign_equity_investment
-                                >= ref_sectors_gva_value_bands.value_band_d_minimum
+                                >= value_bands.value_band_d_minimum
                             THEN 'Value band D'
                         WHEN investment_projects.foreign_equity_investment
-                                >= ref_sectors_gva_value_bands.value_band_e_minimum
+                                >= value_bands.value_band_e_minimum
                             THEN 'Value band E'
                     END)
-
             --For labour intensive projects after April 2020
             WHEN (investment_projects.actual_land_date > '2020-03-31'
                     OR (investment_projects.actual_land_date IS NULL
                         AND investment_projects.estimated_land_date > '2020-03-31'))
-                    AND ref_sectors_gva_value_bands.sector_classification = 'Labour intensive'
+                    AND value_bands.sector_classification = 'Labour intensive'
                 THEN
                 (CASE
-                     WHEN investment_projects.number_new_jobs >= ref_sectors_gva_value_bands.value_band_a_minimum
-                         THEN 'Value band A'
-                     WHEN investment_projects.number_new_jobs >= ref_sectors_gva_value_bands.value_band_b_minimum
-                         THEN 'Value band B'
-                     WHEN investment_projects.number_new_jobs >= ref_sectors_gva_value_bands.value_band_c_minimum
-                         THEN 'Value band C'
-                     WHEN investment_projects.number_new_jobs >= ref_sectors_gva_value_bands.value_band_d_minimum
-                         THEN 'Value band D'
-                     WHEN investment_projects.number_new_jobs >= ref_sectors_gva_value_bands.value_band_e_minimum
-                         THEN 'Value band E'
-                 END)
+                    WHEN investment_projects.number_new_jobs >= value_bands.value_band_a_minimum
+                        THEN 'Value band A'
+                    WHEN investment_projects.number_new_jobs >= value_bands.value_band_b_minimum
+                        THEN 'Value band B'
+                    WHEN investment_projects.number_new_jobs >= value_bands.value_band_c_minimum
+                        THEN 'Value band C'
+                    WHEN investment_projects.number_new_jobs >= value_bands.value_band_d_minimum
+                        THEN 'Value band D'
+                    WHEN investment_projects.number_new_jobs >= value_bands.value_band_e_minimum
+                        THEN 'Value band E'
+                END)
             ELSE 'Not assigned'
-        END AS investment_value_band,
+        END AS investment_value,
         --End assigning investment value bands
-
         investment_projects.government_assistance,
         investment_projects.r_and_d_budget,
         investment_projects.non_fdi_r_and_d_budget,
         investment_projects.new_tech_to_uk,
         investment_projects.number_new_jobs,
         investment_projects.number_safeguarded_jobs,
-        investment_projects.number_new_jobs + investment_projects.number_safeguarded_jobs AS total_jobs,
+        coalesce(investment_projects.number_new_jobs, 0) + coalesce(investment_projects.number_safeguarded_jobs, 0) AS total_jobs,
         investment_projects.average_salary,
         investment_projects.client_requirements,
         investment_projects.anonymous_description,
         investor_company.address_country AS investor_company_country,
         ref_countries_territories_and_regions.region AS hmtc,
         investment_projects.sector AS original_project_sector,
-        investment_projects.project_sector AS project_sector,
+        investment_projects.sector_for_cluster_valueband AS project_sector_for_value_bands_and_cluster,
+        investment_projects.project_sector_for_gva_purposes AS project_sector_for_gva_multipliers,
         ref_dit_sectors.field_03 AS dit_sector_cluster,
-
-        --IST sector Cluster - to be added later
-        --IST sector group - to be added later
-
         ARRAY_TO_STRING(investment_projects.possible_uk_regions, '; ') AS possible_uk_regions,
         ARRAY_TO_STRING(investment_projects.actual_uk_regions, '; ') AS actual_uk_regions,
         ARRAY_TO_STRING(investment_projects.delivery_partners, '; ') AS delivery_partners,
-
         --Super region (successes)
         CASE
             WHEN investment_projects.stage NOT IN ('Won', 'Verify win')
                 THEN ''
             ELSE
                 CONCAT((
-                   SELECT STRING_AGG(DISTINCT ref_super_regions.super_region_name, '; ')
-                   FROM ref_super_regions
+                SELECT STRING_AGG(DISTINCT ref_super_regions.super_region_name, '; ')
+                FROM ref_super_regions
                         JOIN ref_leps_to_super_regions
-                             ON ref_leps_to_super_regions.super_region_name_id = ref_super_regions.id
+                            ON ref_leps_to_super_regions.super_region_name_id = ref_super_regions.id
                         JOIN ref_lep_names ON ref_lep_names.id = ref_leps_to_super_regions.lep_name_id
                         JOIN ref_investment_delivery_partners_lep_da
-                             ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
-                                     = ref_lep_names.field_01
-                   WHERE ref_investment_delivery_partners_lep_da.delivery_partner_name
-                           = ANY (investment_projects.delivery_partners::TEXT[])
-               ), (
-                   SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
-                                     '; ')
-                   FROM ref_investment_delivery_partners_lep_da
-                   WHERE ref_investment_delivery_partners_lep_da.delivery_partner_name
-                           = ANY (investment_projects.delivery_partners::TEXT[])
-               ))
+                            ON ref_investment_delivery_partners_lep_da.local_enterprise_partnership_code
+                                    = ref_lep_names.field_01
+                WHERE ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        = ANY (investment_projects.delivery_partners::TEXT[])
+            ), (
+                SELECT STRING_AGG(DISTINCT ref_investment_delivery_partners_lep_da.devolved_administration_name,
+                                    '; ')
+                FROM ref_investment_delivery_partners_lep_da
+                WHERE ref_investment_delivery_partners_lep_da.delivery_partner_name
+                        = ANY (investment_projects.delivery_partners::TEXT[])
+            ))
         END AS super_region,
         investor_company.name AS investor_company_name,
         investor_company.company_number AS investor_company_comp_house_id,
@@ -839,21 +832,106 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
         project_team.all_virtual_team_members,
         project_team.dit_hq_team_members,
         project_team.ist_team_members,
-        CASE
-            WHEN project_team.post_teams LIKE '%;%'
-                THEN 'Multiple'
-            ELSE project_team.post_teams
-        END AS post_team,
+        project_team.post_teams AS post_team,
         project_team.delivery_partner_teams,
         project_team.lep_or_da_in_team,
-        project_team.super_region_or_da_in_team,
-        investment_projects.export_revenue
-    FROM investment_projects
-    JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
-    JOIN project_team ON project_team.project_id = investment_projects.id
-    LEFT JOIN dit.data_hub__companies uk_company ON uk_company.id = investment_projects.uk_company_id
-    LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
-    LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.sector
-    LEFT JOIN ref_sectors_gva_value_bands ON ref_sectors_gva_value_bands.full_sector_name = investment_projects.sector
-    LEFT JOIN latest_interactions ON latest_interactions.investment_project_id = investment_projects.id
+        project_team.super_region_or_da_in_team
+        FROM investment_projects
+        JOIN dit.data_hub__companies investor_company ON investor_company.id = investment_projects.investor_company_id
+        JOIN project_team ON project_team.project_id = investment_projects.id
+        LEFT JOIN dit.data_hub__companies uk_company ON uk_company.id = investment_projects.uk_company_id
+        LEFT JOIN ref_countries_territories_and_regions ON ref_countries_territories_and_regions.name = investor_company.address_country
+        LEFT JOIN ref_dit_sectors ON ref_dit_sectors.full_sector_name = investment_projects.sector_for_cluster_valueband
+        LEFT JOIN ref_sectors_gva_value_bands value_bands ON value_bands.full_sector_name = investment_projects.sector_for_cluster_valueband
+        LEFT JOIN ref_sectors_gva_value_bands gva_multipliers ON gva_multipliers.full_sector_name = investment_projects.project_sector_for_gva_purposes
+        LEFT JOIN latest_interactions ON latest_interactions.investment_project_id = investment_projects.id)
+        -- Main query is adjusted to accommodate the change required for non FDI project gross_value & Investment_value_band
+        Select
+        main_query.investment_project_id,
+        main_query.project_reference_code,
+        main_query.project_name,
+        main_query.description,
+        main_query.actual_land_date,
+        main_query.estimated_land_date,
+        main_query.created_on,
+        main_query.modified_on,
+        main_query.date_of_latest_interaction,
+        main_query.investment_type,
+        main_query.fdi_type,
+        main_query.business_activities,
+        main_query.investor_type,
+        main_query.specific_programme,
+        main_query.level_of_involvement,
+        main_query.project_stage,
+        main_query.project_status,
+        main_query.competing_countries,
+        main_query.referral_source_activity,
+        main_query.referral_source_activity_website,
+        main_query.referral_source_activity_marketing,
+        main_query.total_investment,
+        main_query.foreign_equity_investment,
+        case
+                when main_query.investment_type = 'FDI'
+                Then gross_value
+                Else Null
+        END AS gross_value_added,
+        case
+            when main_query.investment_type = 'FDI'
+            Then investment_value
+            Else Null
+        END AS investment_value_band,
+        main_query.government_assistance,
+        main_query.r_and_d_budget,
+        main_query.non_fdi_r_and_d_budget,
+        main_query.new_tech_to_uk,
+        main_query.number_new_jobs,
+        main_query.number_safeguarded_jobs,
+        main_query.total_jobs,
+        main_query.average_salary,
+        main_query.client_requirements,
+        main_query.anonymous_description,
+        main_query.investor_company_country,
+        main_query.hmtc,
+        main_query.original_project_sector,
+        main_query.project_sector_for_value_bands_and_cluster,
+        main_query.project_sector_for_gva_multipliers,
+        main_query.dit_sector_cluster,
+        main_query.possible_uk_regions,
+        main_query.actual_uk_regions,
+        main_query.delivery_partners,
+        main_query.super_region,
+        main_query.investor_company_name,
+        main_query.investor_company_comp_house_id,
+        main_query.headquarter_type,
+        main_query.investor_company_company_tier,
+        main_query.address_1,
+        main_query.address_2,
+        main_query.address_postcode,
+        main_query.uk_company_name,
+        main_query.uk_company_comp_house_id,
+        main_query.uk_company_sector,
+        main_query.uk_company_address_1,
+        main_query.uk_company_address_2,
+        main_query.uk_company_uk_region,
+        main_query.created_by_name,
+        main_query.created_by_team,
+        main_query.modified_by_name,
+        main_query.modified_by_team,
+        main_query.client_relationship_manager_name,
+        main_query.client_relationship_manager_team,
+        main_query.project_manager_name,
+        main_query.project_manager_team,
+        main_query.project_assurance_adviser_name,
+        main_query.project_assurance_adviser_team,
+        main_query.account_manager_name,
+        main_query.account_manager_team,
+        main_query.team_members,
+        main_query.all_virtual_team_members,
+        main_query.dit_hq_team_members,
+        main_query.ist_team_members,
+        main_query.post_team,
+        main_query.delivery_partner_teams,
+        main_query.lep_or_da_in_team,
+        main_query.super_region_or_da_in_team
+        From main_query
     '''
