@@ -1,8 +1,6 @@
 import codecs
 import csv
 import io
-import itertools
-import time
 import json
 import logging
 import zipfile
@@ -97,9 +95,9 @@ def _fetch(s3, trade_type, expected_keys):
     def file_from_zip(zip_bytes):
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
             name = archive.namelist()[0]
-            logger.info('Opening file in zip %s', name)
+            logger.info('Opening csv file %s in zip', name)
             with archive.open(name, "r") as file:
-                yield file
+                yield from file
 
     def get_files(trade_type, expected_keys, periods):
         frequency = 'A'
@@ -112,12 +110,11 @@ def _fetch(s3, trade_type, expected_keys):
                 ).content
             )
 
-    def get_dicts(files):
-        for f in files:
-            for row in csv.DictReader(codecs.iterdecode(f, 'utf-8-sig')):
-                if list(row.keys()) != expected_keys:
-                    raise Exception('Unexpected columns {}'.format(row.keys()))
-                yield {k: v if v else None for k, v in row.items()}
+    def get_dicts(f):
+        for row in csv.DictReader(codecs.iterdecode(f, 'utf-8-sig')):
+            if list(row.keys()) != expected_keys:
+                raise Exception('Unexpected columns {}'.format(row.keys()))
+            yield {k: v if v else None for k, v in row.items()}
 
     files = get_files(trade_type, expected_keys, years)
     result_records = get_dicts(files)

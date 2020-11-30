@@ -31,8 +31,14 @@ class ComtradeGoodsPipeline(_PipelineDAG):
                 'Classification',
                 sa.Column('classification', sa.String, nullable=False, index=True),
             ),
-            ('Period', sa.Column('period', sa.SmallInteger, nullable=False, index=True)),
-            ('Period Desc.', sa.Column('period_desc', sa.SmallInteger, nullable=False, index=True)),
+            (
+                'Period',
+                sa.Column('period', sa.SmallInteger, nullable=False, index=True),
+            ),
+            (
+                'Period Desc.',
+                sa.Column('period_desc', sa.SmallInteger, nullable=False, index=True),
+            ),
             ('Year', sa.Column('year', sa.SmallInteger, nullable=False, index=True)),
             (
                 'Aggregate Level',
@@ -94,8 +100,14 @@ class ComtradeServicesPipeline(_PipelineDAG):
                 sa.Column('classification', sa.String, nullable=False, index=True),
             ),
             ('Year', sa.Column('year', sa.SmallInteger, nullable=False, index=True)),
-            ('Period', sa.Column('period', sa.SmallInteger, nullable=False, index=True)),
-            ('Period Desc.', sa.Column('period_desc', sa.SmallInteger, nullable=False, index=True)),
+            (
+                'Period',
+                sa.Column('period', sa.SmallInteger, nullable=False, index=True),
+            ),
+            (
+                'Period Desc.',
+                sa.Column('period_desc', sa.SmallInteger, nullable=False, index=True),
+            ),
             (
                 'Aggregate Level',
                 sa.Column('aggregate_level', sa.BigInteger, nullable=False, index=True),
