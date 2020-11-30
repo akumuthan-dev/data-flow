@@ -643,7 +643,6 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
     investment_projects.created_on::DATE,
     investment_projects.modified_on::DATE,
     latest_interactions.date_of_latest_interaction,
-    investment_projects.fdi_value,
     investment_projects.investment_type,
     investment_projects.fdi_type,
     CASE
@@ -697,7 +696,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
             THEN ROUND((gva_multipliers.gva_multiplier * investment_projects.number_new_jobs)::NUMERIC, 2)
 
 
-    END AS gross_value,
+    END AS gross_value_added,
     --End Gross Value Added calculations
     --Start assigning investment value bands
     CASE
@@ -774,7 +773,7 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                     THEN 'E'
             END)
         ELSE 'Not assigned'
-    END AS investment_value,
+    END AS investment_value_band,
     --End assigning investment value bands
     investment_projects.government_assistance,
     investment_projects.r_and_d_budget,
