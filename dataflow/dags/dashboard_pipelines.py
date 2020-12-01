@@ -314,7 +314,6 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 'date_of_latest_interaction',
                 sa.Column('date_of_latest_interaction', sa.Date),
             ),
-            ('fdi_value', sa.Column('fdi_value', sa.Text)),
             ('investment_type', sa.Column('investment_type', sa.Text)),
             ('fdi_type', sa.Column('fdi_type', sa.Text)),
             ('business_activities', sa.Column('business_activities', sa.Text)),
