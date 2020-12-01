@@ -57,10 +57,6 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             ('created_on', sa.Column('reported_on', sa.DateTime)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
             (
-                ('economic_assessment', 'rating', 'name'),
-                sa.Column('assessment_rating', sa.Text),
-            ),
-            (
                 ('economic_assessment', 'economic_impact_assessments'),
                 TableConfig(
                     table_name='market_access_economic_impact_assessments',
