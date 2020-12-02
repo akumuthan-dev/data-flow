@@ -361,7 +361,14 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
             ),
             ('hmtc', sa.Column('hmtc', sa.Text)),
             ('original_project_sector', sa.Column('original_project_sector', sa.Text)),
-            ('project_sector', sa.Column('project_sector', sa.Text)),
+            (
+                'project_sector_for_value_bands_and_cluster',
+                sa.Column('project_sector_for_value_bands_and_cluster', sa.Text),
+            ),
+            (
+                'project_sector_for_gva_multipliers',
+                sa.Column('project_sector_for_gva_multipliers', sa.Text),
+            ),
             ('dit_sector_cluster', sa.Column('dit_sector_cluster', sa.Text)),
             ('possible_uk_regions', sa.Column('possible_uk_regions', sa.Text)),
             ('actual_uk_regions', sa.Column('actual_uk_regions', sa.Text)),
@@ -427,7 +434,6 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                 'super_region_or_da_in_team',
                 sa.Column('super_region_or_da_in_team', sa.Text),
             ),
-            ('export_revenue', sa.Column('export_revenue', sa.Boolean)),
         ],
     )
     query = '''
