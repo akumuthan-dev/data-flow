@@ -8,9 +8,8 @@ def fetch_from_gtr_api(table_name: str, resource_type: str, **kwargs):
 
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     page = 1
-    total_pages = 10000
 
-    while page <= total_pages:
+    while True:
         response = requests.get(
             f'{source_url}/{resource_type}s',
             params={'p': page, 's': 100},
@@ -36,5 +35,7 @@ def fetch_from_gtr_api(table_name: str, resource_type: str, **kwargs):
         )
 
         page += 1
+        if page > total_pages:
+            break
 
     logger.info("Fetching from source completed")
