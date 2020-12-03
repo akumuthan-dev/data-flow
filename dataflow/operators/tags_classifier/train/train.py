@@ -475,7 +475,7 @@ def save_model(train_data_date):
     s3.upload_file(
         model_version,
         bucket,
-        'models/data_hub_policy_feedback_tags_classifier/' + model_version
+        'models/data_hub_policy_feedback_tags_classifier/' + model_version,
     )
 
     return None
