@@ -9,8 +9,6 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from dataflow.operators.tags_classifier.setting import all_tags
-
 
 def decontracted(phrase):
     phrase = re.sub(r"won't", "will not", phrase)
@@ -246,7 +244,7 @@ def clean_tag(df):
         'COVID-19 Investment': 'Investment',
         'COVID-19 Exports': 'Exports',
         'COVID-19 Imports': 'imports',
-        # 'COVID-19 Supply Chain/Stock': '',
+        'COVID-19 Supply Chain/Stock': 'Supply Chain',
         'COVID-19 Opportunity': 'Opportunities',
         'COVID-19 Request for HMG support/changes': 'HMG support request',
         'HMG Financial support\u200b': 'HMG Support Request',
@@ -290,7 +288,7 @@ def clean_tag(df):
     return df
 
 
-def preprocess(fb_all, action='train', tags=all_tags):
+def preprocess(fb_all, action='train'):
 
     fb_all = fb_all.rename(
         columns={
@@ -350,10 +348,10 @@ def preprocess(fb_all, action='train', tags=all_tags):
         logger.info(f'tags counts: {tags_count}')
         logger.info(f'ordered tags counts: {tags_count.sort_index()}')
         logger.info(f'tags with more than 200 counts: {tags_200}')
-        logger.info(f'train model for these tags: {tags}')
+        logger.info(f'train model for these tags (more than 200 samples): {tags_200}')
 
         select_columns = ['id', 'policy feedback']
-        select_columns.extend(tags)
+        select_columns.extend(tags_200)
         if 'bert_vec_cleaned' in fb_all.columns:
             select_columns.append('bert_vec_cleaned')
 
@@ -361,11 +359,12 @@ def preprocess(fb_all, action='train', tags=all_tags):
 
     if action == 'predict':
         df = fb_all[['id', 'policy feedback']]
+        tags_200 = None
 
     df = df.rename(columns={'policy feedback': 'sentence'})
     df = df.dropna()
 
-    return df
+    return df, tags_200
 
 
 def report_metric_per_model(actual, predict, average_type='binary'):

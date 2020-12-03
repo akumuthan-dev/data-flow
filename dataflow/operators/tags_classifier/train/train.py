@@ -9,14 +9,10 @@ from dataflow.operators.tags_classifier.utils import (
     report_metrics_for_all,
 )
 from dataflow.operators.tags_classifier.setting import (
-    all_tags,
-    tags_covid,
-    tags_general,
     MAX_NB_WORDS,
     MAX_SEQUENCE_LENGTH,
     EMBEDDING_DIM,
     probability_threshold,
-    training_data_file,
 )
 
 from dataflow import config
@@ -36,28 +32,47 @@ import json
 numpy.random.seed(7)
 
 
-def fetch_interaction_labelled_data(training_file):
+def fetch_interaction_labelled_data():
     bucket = config.S3_IMPORT_DATA_BUCKET
     logger.info(f"Bucket: {bucket}")
 
     client = S3Hook("DEFAULT_S3")
 
+    all_training_files = [
+        i
+        for i in client.list_keys(
+            bucket, prefix='models/data_hub_policy_feedback_tags_classifier/'
+        )
+    ]
+    all_training_files = [i.split('/')[-1] for i in all_training_files]
+    all_training_files = [
+        i
+        for i in all_training_files
+        if i.lower().startswith('training_data') and i.lower().endswith('csv')
+    ]
+
+    all_training_files.sort()
+    training_file_name = all_training_files[-1]
+
+    logger.info(f'All training files in the bucket: {all_training_files}')
+    logger.info(f'The file used for training: {training_file_name}')
+
     s3_key_object = client.get_key(
-        'models/data_hub_policy_feedback_tags_classifier/' + training_file,
+        'models/data_hub_policy_feedback_tags_classifier/' + training_file_name,
         bucket_name=bucket,
     )
 
     # note: 'wb' rather than 'w'
-    with open(training_file, 'wb') as data:
+    with open(training_file_name, 'wb') as data:
         s3_key_object.download_fileobj(data)
 
     logger.info(f"working dir: {os.getcwd()}")
     logger.info(f"list contents: {os.listdir()}")
 
-    df = pd.read_csv(training_file)
-    df = preprocess(df, action='train', tags=all_tags)
+    df = pd.read_csv(training_file_name)
+    df, tags_to_train = preprocess(df, action='train')
 
-    return df
+    return df, tags_to_train, training_file_name
 
 
 def build_tokens(df, model_path):
@@ -157,22 +172,22 @@ def model_training_with_labelled_data(table_name, **context):
         os.chdir(tempdir + '/the_models')
         logger.info(f"working dir: {os.getcwd()}")
 
-        try:
-            train_data_date = training_data_file.split('.')[0].split('_')[-1]
-        except BaseException:
-            train_data_date = datetime.date.today()
-            train_data_date = train_data_date.strftime("%Y%m%d")
-
         logger.info("step 1: fetch data")
-        df = fetch_interaction_labelled_data(training_data_file)
+        df, tags_to_train, training_file_name = fetch_interaction_labelled_data()
         # to test without trigger the pipeline:
         # df = pd.read_csv('/home/vcap/app/dataflow/dags/training_data_20201001.csv')
         # df = preprocess(df, action='train', tags=all_tags)
 
-        logger.info("step 2: train model")
-        build_models_pipeline(df, train_data_date)
+        try:
+            train_data_date = training_file_name.split('.')[0].split('_')[-1]
+        except BaseException:
+            train_data_date = datetime.date.today()
+            train_data_date = train_data_date.strftime("%Y%m%d")
 
-        logger.info("step 3: save model")
+        logger.info("step 2: train model")
+        build_models_pipeline(df, train_data_date, tags_to_train)
+
+        logger.info("step 3: save model to S3")
         save_model(train_data_date)
 
         logger.info("step 4: write model performance to S3")
@@ -374,9 +389,17 @@ def check_result(tag, tag_i, X_test, Y_test, sent_test, m):
     return fp_sen, tp_sen, fn_sen, tn_sen, fp_p, tp_p, fn_p, tn_p
 
 
-def build_models_pipeline(df, today):
+def build_models_pipeline(df, today, tags_to_train):
     # if useing multiple operators:
     # df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
+
+    tags_covid = [
+        i
+        for i in tags_to_train
+        if i.lower().startswith('covid') and i.lower() != 'covid-19'
+    ]
+
+    tags_general = [i for i in tags_to_train if i not in tags_covid]
 
     if len(tags_general) > 0:
 
@@ -445,14 +468,14 @@ def save_model(train_data_date):
 
     shutil.make_archive('models_' + train_data_date, 'zip', 'models_' + train_data_date)
 
+    model_version = 'models_' + train_data_date + '.zip'
+    logger.info(f"this model version is: {model_version}")
+
     s3 = boto3.client('s3', region_name='eu-west-2')
     s3.upload_file(
-        'models_' + train_data_date + '.zip',
+        model_version,
         bucket,
-        'models/data_hub_policy_feedback_tags_classifier/'
-        + 'models_'
-        + train_data_date
-        + '.zip',
+        'models/data_hub_policy_feedback_tags_classifier/' + model_version
     )
 
     return None
@@ -478,19 +501,19 @@ def write_model_performance(table_name, today, **context):
     s3 = S3Data(table_name, context["ts_nodash"])
     s3.write_key('model_performance.json', metrics_json)
 
+    logger.info(f"performance for this model version is: {metrics}")
+
     return None
 
 
 # # to upload  file/model to s3
 # cf service-key data-flow-s3-a dev-key-name-for-LL
-# aws_access_key_id = ... ##data-flow-s3-a
-# aws_secret_access_key  = ...  ##data-flow-s3-a
-# bucket = 'paas-s3-broker-prod-lon-f516a2f5-a71b-43e0-88ed-da39437cde6a' ##instance name: data-flow-s3
+# aws_access_key_id, aws_secret_access_key, bucket
 # s3 = boto3.client('s3', region_name='eu-west-2')
 # s3 = boto3.client('s3', region_name='eu-west-2', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
-# s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/dags/training_data_20201029.csv',
+# s3.upload_file('/Users/linglingli/DIT/data-flow/training_data_20201127.csv',
 #                    bucket,
-#                  'models/data_hub_policy_feedback_tags_classifier/training_data_20201029.csv')
+#                  'models/data_hub_policy_feedback_tags_classifier/training_data_20201127.csv')
 # s3.upload_file('/Users/linglingli/DIT/data-flow/dataflow/operators/tags_classifier_train/models_20200907.zip',bucket,
 #                'models/data_hub_policy_feedback_tags_classifier/models_20200907.zip')
 
