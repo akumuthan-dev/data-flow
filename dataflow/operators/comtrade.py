@@ -2,7 +2,6 @@ import codecs
 import csv
 import io
 import json
-import logging
 import zipfile
 
 import backoff
@@ -103,7 +102,7 @@ def _fetch(s3, trade_type, expected_keys):
         frequency = 'A'
         classification = 'HS' if trade_type == 'C' else 'EB02'
         for period in periods:
-            yield from file_from_zip(
+            yield file_from_zip(
                 _download(
                     f'https://comtrade.un.org/api/get/bulk/{trade_type}/{frequency}/{period}/all/{classification}',
                     params=(('token', config.COMTRADE_TOKEN),),
@@ -111,10 +110,11 @@ def _fetch(s3, trade_type, expected_keys):
             )
 
     def get_dicts(f):
-        for row in csv.DictReader(codecs.iterdecode(f, 'utf-8-sig')):
-            if list(row.keys()) != expected_keys:
-                raise Exception('Unexpected columns {}'.format(row.keys()))
-            yield {k: v if v else None for k, v in row.items()}
+        for f in files:
+            for row in csv.DictReader(codecs.iterdecode(f, 'utf-8-sig')):
+                if list(row.keys()) != expected_keys:
+                    raise Exception('Unexpected columns {}'.format(row.keys()))
+                yield {k: v if v else None for k, v in row.items()}
 
     files = get_files(trade_type, expected_keys, years)
     result_records = get_dicts(files)
@@ -124,7 +124,6 @@ def _fetch(s3, trade_type, expected_keys):
         output_filename = f"{i:010}.json"
         logger.info('Saving file to S3 %s', output_filename)
         s3.write_key(output_filename, page)
-        logging.info("Fetched from source to %s", output_filename)
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=20)

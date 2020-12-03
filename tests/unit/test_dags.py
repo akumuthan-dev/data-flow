@@ -11,6 +11,7 @@ def test_pipelines_dags():
         'CSSECovid19TimeSeriesGlobal',
         'CSSECovid19TimeSeriesGlobalGroupedByCountry',
         'ComtradeGoodsPipeline',
+        'ComtradeServicesPipeline',
         'CompaniesDatasetPipeline',
         'CompaniesHouseCompaniesPipeline',
         'CompaniesHouseMatchingPipeline',
