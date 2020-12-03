@@ -18,6 +18,7 @@ class ComtradeGoodsPipeline(_PipelineDAG):
         return PythonOperator(
             task_id="fetch-comtrade-goods-data",
             python_callable=fetch_comtrade_goods_data,
+            queue='high-memory-usage',
             provide_context=True,
             op_args=[self.table_config.table_name],  # pylint: disable=no-member
         )
@@ -86,6 +87,7 @@ class ComtradeServicesPipeline(_PipelineDAG):
         return PythonOperator(
             task_id="fetch-comtrade-services-data",
             python_callable=fetch_comtrade_services_data,
+            queue='high-memory-usage',
             provide_context=True,
             op_args=[self.table_config.table_name],  # pylint: disable=no-member
         )
