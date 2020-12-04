@@ -12,8 +12,6 @@ from dataflow.utils import TableConfig
 
 
 class ComtradeGoodsPipeline(_PipelineDAG):
-    allow_null_columns = True
-
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id="fetch-comtrade-goods-data",
@@ -45,7 +43,7 @@ class ComtradeGoodsPipeline(_PipelineDAG):
                 'Aggregate Level',
                 sa.Column('aggregate_level', sa.BigInteger, nullable=False, index=True),
             ),
-            ('Is Leaf Code', sa.Column('is_leaf_code', sa.Boolean)),
+            ('is_leaf_code_bool', sa.Column('is_leaf_code', sa.Boolean)),
             (
                 'Trade Flow Code',
                 sa.Column('trade_flow_code', sa.BigInteger, nullable=False),
@@ -74,7 +72,7 @@ class ComtradeGoodsPipeline(_PipelineDAG):
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
-                'Is Leaf Code': bool(int(record['Is Leaf Code'])),
+                'is_leaf_code_bool': bool(int(record['Is Leaf Code'])),
             }
         ],
     )
@@ -87,7 +85,6 @@ class ComtradeServicesPipeline(_PipelineDAG):
         return PythonOperator(
             task_id="fetch-comtrade-services-data",
             python_callable=fetch_comtrade_services_data,
-            queue='high-memory-usage',
             provide_context=True,
             op_args=[self.table_config.table_name],  # pylint: disable=no-member
         )
@@ -114,7 +111,7 @@ class ComtradeServicesPipeline(_PipelineDAG):
                 'Aggregate Level',
                 sa.Column('aggregate_level', sa.BigInteger, nullable=False, index=True),
             ),
-            ('Is Leaf Code', sa.Column('is_leaf_code', sa.Boolean)),
+            ('is_leaf_code_bool', sa.Column('is_leaf_code', sa.Boolean)),
             (
                 'Trade Flow Code',
                 sa.Column('trade_flow_code', sa.BigInteger, nullable=False),
@@ -139,7 +136,7 @@ class ComtradeServicesPipeline(_PipelineDAG):
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
-                'Is Leaf Code': bool(int(record['Is Leaf Code'])),
+                'is_leaf_code_bool': bool(int(record['Is Leaf Code'])),
             }
         ],
     )
