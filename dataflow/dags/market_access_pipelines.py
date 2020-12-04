@@ -57,32 +57,39 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             ('created_on', sa.Column('reported_on', sa.DateTime)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
             (
-                ('economic_assessment', 'economic_impact_assessments'),
+                'economic_assessments',
                 TableConfig(
-                    table_name='market_access_economic_impact_assessments',
+                    table_name='market_access_economic_assessments',
                     field_mapping=[
-                        ('id', sa.Column('id', UUID, index=True)),
+                        ('id', sa.Column('id', sa.Integer, index=True)),
                         (
-                            'economic_assessment_id',
-                            sa.Column('economic_assessment_id', UUID, index=True),
+                            'value_to_economy',
+                            sa.Column('value_to_economy', sa.BigInteger),
                         ),
-                        (('impact', 'name'), sa.Column('impact', sa.Text)),
-                        ('archived', sa.Column('archived', sa.Boolean)),
-                        ('explanation', sa.Column('explanation', sa.Text),),
+                        (
+                            'import_market_size',
+                            sa.Column('import_market_size', sa.BigInteger),
+                        ),
+                        ('export_value', sa.Column('export_value', sa.BigInteger),),
+                        ('barrier_id', sa.Column('barrier_id', sa.Text)),
+                        (
+                            'economic_impact_assessments',
+                            TableConfig(
+                                table_name='market_access_ea_impact_assessments',
+                                field_mapping=[
+                                    ('id', sa.Column('id', UUID, index=True)),
+                                    (('impact', 'name'), sa.Column('impact', sa.Text)),
+                                    ('archived', sa.Column('archived', sa.Boolean)),
+                                    ('explanation', sa.Column('explanation', sa.Text),),
+                                    (
+                                        'economic_assessment_id',
+                                        sa.Column('economic_assessment_id', sa.Text),
+                                    ),
+                                ],
+                            ),
+                        ),
                     ],
                 ),
-            ),
-            (
-                ('economic_assessment', 'value_to_economy'),
-                sa.Column('value_to_economy', sa.BigInteger),
-            ),
-            (
-                ('economic_assessment', 'import_market_size'),
-                sa.Column('import_market_size', sa.BigInteger),
-            ),
-            (
-                ('economic_assessment', 'export_value'),
-                sa.Column('export_value', sa.BigInteger),
             ),
             ('team_count', sa.Column('team_count', sa.Integer)),
             ('company_names', sa.Column('company_names', sa.ARRAY(sa.Text))),
