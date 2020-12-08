@@ -445,8 +445,6 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                     --create new 'project_sector_for_gva_purposes' field, which assigns projects with a 'Retail' or 'Sales' business activity to 'Consumer and retail'
                     CASE
                         WHEN
-                        data_hub__investment_projects.sector LIKE 'Consumer and retail%' THEN data_hub__investment_projects.sector
-                        WHEN
                         'Retail' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[]) OR 'Sales' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[])
                         THEN 'Consumer and retail'
                         ELSE data_hub__investment_projects.sector
@@ -455,7 +453,6 @@ class DataHubMonthlyInvesmentProjectsPipline(_SQLPipelineDAG):
                     --create new 'sector_for_cluster_valueband' field, which assigns projects with a 'Retail' business activity to 'Consumer and retail', or 'Cyber security' projects to the TAM sector cluster
                     CASE
                         WHEN data_hub__investment_projects.sector = 'Security : Cyber security' THEN 'Technology and smart cities'
-                        WHEN data_hub__investment_projects.sector LIKE 'Consumer and retail%' THEN data_hub__investment_projects.sector
                         WHEN 'Retail' = ANY(dit.data_hub__investment_projects.business_activities::TEXT[])
                         THEN 'Consumer and retail'
                         ELSE data_hub__investment_projects.sector
