@@ -218,3 +218,4 @@ class DNBCompanyMatchingPipeline(_CompanyMatchingPipeline):
         FROM {DNBCompanyPipeline.fq_table_name()}
         ORDER BY id asc, publish_date::timestamp desc
     """
+
