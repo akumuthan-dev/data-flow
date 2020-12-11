@@ -20,6 +20,7 @@ docker-build:
 test-integration: docker-build
 	docker-compose -f docker-compose-test.yml -p data-flow-test run --rm data-flow-test dockerize -wait tcp://data-flow-db-test:5432 && airflow initdb && pytest tests/integration
 
-.PHONY: compile-requirements
-compile-requirements:
-	pip-compile
+.PHONY: save-requirements
+save-requirements:
+	pip-compile requirements.in
+	pip-compile requirements-tensorflow-worker.in

@@ -3,4 +3,30 @@ applications:
 - name: data-flow
   buildpacks:
    - https://github.com/cloudfoundry/python-buildpack.git#v1.7.15
-  memory: 5gb
+  memory: 6G
+  disk_quota: 6G
+  processes:
+    - type: web
+      memory: 1G
+      disk_quota: 6G
+      health_check_type: port
+    - type: flower
+      memory: 1G
+      disk_quota: 1G
+      health_check_type: process
+    - type: scheduler
+      memory: 1G
+      disk_quota: 1G
+      health_check_type: process
+    - type: worker
+      memory: 1G
+      disk_quota: 1G
+      health_check_type: process
+    - type: tensorflow-worker
+      memory: 5G
+      disk_quota: 6G
+      health_check_type: process
+    - type: high-memory-worker
+      memory: 5G
+      disk_quota: 1G
+      health_check_type: process
