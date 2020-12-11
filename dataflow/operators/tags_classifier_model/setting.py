@@ -8,13 +8,12 @@ all_tags = [
     'Covid-19 Employment',
     'Transition Period - General',
     'Opportunities',
-    'Exports/Imports',
     'Covid-19 Resuming Operations',
     'Cashflow',
     'Covid-19 Future Expectations',
     'Regulation',
     'Tariffs',
-    'Covid-19 Supply Chain/Stock',
+    'Supply Chain',
     'Free Trade Agreements',
     'Skills',
     'Migration And Immigration',
@@ -32,5 +31,5 @@ tags_general = [i for i in all_tags if i not in tags_covid]
 MAX_NB_WORDS = 10000
 MAX_SEQUENCE_LENGTH = 500
 EMBEDDING_DIM = 100
-model_version = 'models_20201029.zip'
+model_version = 'models_20201127.zip'
 probability_threshold = 0.4
