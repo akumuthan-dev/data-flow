@@ -19,7 +19,7 @@ class CompaniesHouseCompaniesPipeline(_PipelineDAG):
         schema='companieshouse',
         table_name='companies',
         field_mapping=[
-            (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
+            ('CompanyNumber', sa.Column('id', sa.String(8), primary_key=True)),
             ('CompanyName', sa.Column('company_name', sa.String)),
             ('CompanyNumber', sa.Column('company_number', sa.String)),
             ('RegAddress.CareOf', sa.Column('care_of', sa.String)),
