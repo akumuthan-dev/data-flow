@@ -2,7 +2,10 @@ import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.companies_house import fetch_companies_house_companies
+from dataflow.operators.companies_house import (
+    fetch_companies_house_companies,
+    fetch_companies_house_significant_persons,
+)
 from dataflow.utils import TableConfig
 
 
@@ -136,8 +139,69 @@ class CompaniesHouseCompaniesPipeline(_PipelineDAG):
             python_callable=fetch_companies_house_companies,
             provide_context=True,
             op_args=[
-                self.table_config.table_name,
+                self.table_config.table_name,  # pylint: disable=no-member
                 self.source_url,
                 self.number_of_files,
+            ],
+        )
+
+
+class CompaniesHousePeopleWithSignificantControlPipeline(_PipelineDAG):
+    use_utc_now_as_source_modified = True
+    # Files names include a file number and a total number of files. Changes to the total number
+    # of files can be set in the COMPANIES_HOUSE_PSC_TOTAL_FILES environment variable
+    source_url = (
+        'http://download.companieshouse.gov.uk/psc-snapshot-{{execution_date.strftime("%Y-%m-%d")}}'
+        '_{file}of{total}.zip'
+    )
+    table_config = TableConfig(
+        schema='companieshouse',
+        table_name='people_with_significant_control',
+        field_mapping=[
+            ('company_number', sa.Column('company_number', sa.String)),
+            (
+                ('data', 'address', 'address_line_1'),
+                sa.Column('address_line_1', sa.String),
+            ),
+            (('data', 'address', 'country'), sa.Column('address_country', sa.String)),
+            (('data', 'address', 'locality'), sa.Column('address_locality', sa.String)),
+            (
+                ('data', 'address', 'postal_code'),
+                sa.Column('address_postcode', sa.String),
+            ),
+            (('data', 'address', 'premises'), sa.Column('address_premises', sa.String)),
+            (('data', 'ceased_on'), sa.Column('ceased_on', sa.Date)),
+            (
+                ('data', 'country_of_residence'),
+                sa.Column('country_of_residence', sa.String),
+            ),
+            (
+                ('data', 'date_of_birth', 'month'),
+                sa.Column('date_of_birth_month', sa.Integer),
+            ),
+            (
+                ('data', 'date_of_birth', 'year'),
+                sa.Column('date_of_birth_year', sa.Integer),
+            ),
+            (('data', 'kind'), sa.Column('kind', sa.String)),
+            (('data', 'name'), sa.Column('name', sa.String)),
+            (('data', 'nationality'), sa.Column('nationality', sa.String)),
+            (
+                ('data', 'natures_of_control'),
+                sa.Column('natures_of_control', sa.ARRAY(sa.String)),
+            ),
+            (('data', 'notified_on'), sa.Column('notified_on', sa.Date)),
+        ],
+    )
+
+    def get_fetch_operator(self) -> PythonOperator:
+        return PythonOperator(
+            task_id='run-fetch',
+            python_callable=fetch_companies_house_significant_persons,
+            provide_context=True,
+            queue='high-memory-usage',
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
             ],
         )

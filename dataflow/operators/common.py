@@ -1,7 +1,7 @@
 import codecs
 import csv
 from contextlib import closing
-from typing import Optional, Union
+from typing import Mapping, Optional, Union
 
 import backoff
 import jwt
@@ -12,7 +12,9 @@ from mohawk.exc import HawkFail
 from dataflow.utils import S3Data, get_nested_key, logger
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+@backoff.on_exception(
+    backoff.expo, requests.exceptions.RequestException, max_tries=8, factor=4
+)
 def _hawk_api_request(
     url: str,
     credentials: dict,
@@ -42,7 +44,7 @@ def _hawk_api_request(
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError:
-        logger.error(f"Request failed: {response.text}")
+        logger.warning(f"Request failed: {response.text}")
         raise
 
     if validate_response:
@@ -117,7 +119,7 @@ def fetch_from_jwt_api(
 ):
     auth_token = jwt.encode(payload, secret, algorithm=algorithm).decode("utf-8")
     fetch_from_api_endpoint(
-        table_name, source_url, auth_token, results_key, next_key, **kwargs
+        table_name, source_url, auth_token, results_key, next_key, 'Bearer', **kwargs
     )
 
 
@@ -127,6 +129,8 @@ def fetch_from_api_endpoint(
     auth_token: Optional[str] = None,
     results_key: Optional[str] = "results",
     next_key: Optional[str] = "next",
+    auth_type: Optional[str] = "Token",
+    extra_headers: Optional[Mapping] = None,
     **kwargs,
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
@@ -136,7 +140,12 @@ def fetch_from_api_endpoint(
     while True:
         response = requests.get(
             source_url,
-            headers={'Authorization': f'Token {auth_token}'} if auth_token else None,
+            headers={
+                'Authorization': f'{auth_type} {auth_token}',
+                **(extra_headers or {}),
+            }
+            if auth_token
+            else None,
         )
 
         try:

@@ -2,8 +2,9 @@
 from functools import partial
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.config import DATAHUB_HAWK_CREDENTIALS
@@ -12,6 +13,7 @@ from dataflow.dags.consent_pipelines import ConsentPipeline
 from dataflow.operators.common import fetch_from_hawk_api
 from dataflow.operators.contact_consent import update_datahub_contact_consent
 from dataflow.operators.db_tables import query_database
+from dataflow.operators.ons import create_views
 from dataflow.utils import TableConfig
 
 
@@ -29,7 +31,10 @@ class _DatasetPipeline(_PipelineDAG):
                 fetch_from_hawk_api, hawk_credentials=DATAHUB_HAWK_CREDENTIALS
             ),
             provide_context=True,
-            op_args=[self.table_config.table_name, self.source_url],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
+            ],
             retries=self.fetch_retries,
         )
 
@@ -40,7 +45,8 @@ class CompanyExportCountryHistory(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_history_dataset',
+        schema='dit',
+        table_name='data_hub__company_export_country_histories',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -62,7 +68,8 @@ class CompanyExportCountry(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='company_export_country_dataset',
+        schema='dit',
+        table_name='data_hub__company_export_countries',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('country__name', sa.Column("country", sa.String)),
@@ -104,7 +111,8 @@ class OMISDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/omis-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='omis_dataset',
+        schema='dit',
+        table_name='data_hub__orders',
         field_mapping=[
             ('cancellation_reason__name', sa.Column('cancellation_reason', sa.Text)),
             ('cancelled_on', sa.Column('cancelled_date', sa.DateTime)),
@@ -143,7 +151,8 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
     )
     allow_null_columns = True
     table_config = TableConfig(
-        table_name='investment_projects_dataset',
+        schema='dit',
+        table_name='data_hub__investment_projects',
         field_mapping=[
             ('actual_land_date', sa.Column('actual_land_date', sa.Date)),
             (
@@ -268,7 +277,8 @@ class InteractionsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='interactions_dataset',
+        schema='dit',
+        table_name='data_hub__interactions',
         field_mapping=[
             ('adviser_ids', sa.Column('adviser_ids', sa.ARRAY(sa.Text))),
             (
@@ -316,7 +326,8 @@ class InteractionsExportCountryDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        table_name='interactions_export_country',
+        schema='dit',
+        table_name='data_hub__interaction_export_countries',
         field_mapping=[
             ('country__name', sa.Column('country_name', sa.Text)),
             ('country__iso_alpha2_code', sa.Column('country_iso_alpha2_code', sa.Text)),
@@ -335,7 +346,8 @@ class ContactsDatasetPipeline(_DatasetPipeline):
     dependencies = [ConsentPipeline]
     source_url = '{0}/v4/dataset/contacts-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='contacts_dataset',
+        schema='dit',
+        table_name='data_hub__contacts',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -371,7 +383,10 @@ class ContactsDatasetPipeline(_DatasetPipeline):
             task_id='update-contact-email-consent',
             python_callable=update_datahub_contact_consent,
             provide_context=True,
-            op_args=[self.target_db, self.table_config.tables[0]],
+            op_args=[
+                self.target_db,
+                self.table_config.tables[0],  # pylint: disable=no-member
+            ],
         )
 
 
@@ -385,12 +400,12 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
                 id,
                 interaction_date,
                 unnest(contact_ids) as contact_id
-            from interactions_dataset
+            from dit.data_hub__interactions
         )
         select distinct on (contact_id)
             t1.id as contact_id,
             t2.id as last_interaction_id
-        from contacts_dataset t1
+        from dit.data_hub__contacts t1
         left join interactions t2 on t1.id::text = t2.contact_id
         order by contact_id, interaction_date desc nulls last
     """
@@ -409,7 +424,11 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
 
@@ -419,7 +438,8 @@ class CompaniesDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/companies-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='companies_dataset',
+        schema='dit',
+        table_name='data_hub__companies',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -491,7 +511,8 @@ class AdvisersDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/advisers-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='advisers_dataset',
+        schema='dit',
+        table_name='data_hub__advisers',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('date_joined', sa.Column('date_joined', sa.Date)),
@@ -517,12 +538,12 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
                 id,
                 interaction_date,
                 unnest(adviser_ids) as adviser_id
-            from interactions_dataset
+            from dit.data_hub__interactions
         )
         select distinct on (adviser_id)
             t1.id as adviser_id,
             t2.id as last_interaction_id
-        from advisers_dataset t1
+        from dit.data_hub__advisers t1
         left join interactions t2 on t1.id::text = t2.adviser_id
         order by adviser_id, interaction_date desc nulls last
     """
@@ -541,7 +562,11 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op
 
@@ -551,7 +576,8 @@ class TeamsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/teams-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='teams_dataset',
+        schema='dit',
+        table_name='data_hub__teams',
         field_mapping=[
             ('id', sa.Column('id', UUID, primary_key=True)),
             ('name', sa.Column('name', sa.String)),
@@ -568,7 +594,8 @@ class EventsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/v4/dataset/events-dataset'.format(config.DATAHUB_BASE_URL)
     table_config = TableConfig(
-        table_name='events_dataset',
+        schema='dit',
+        table_name='data_hub__events',
         field_mapping=[
             ('address_1', sa.Column('address_1', sa.String)),
             ('address_2', sa.Column('address_2', sa.String)),
@@ -850,8 +877,10 @@ class ONSPostcodePipeline(_DatasetPipeline):
         config.DATA_STORE_SERVICE_BASE_URL
     )
     table_config = TableConfig(
-        table_name='ons_postcodes',
+        schema='ons',
+        table_name='postcode_directory',
         field_mapping=[
+            ('id', sa.Column('id', sa.Integer, primary_key=True)),
             ('pcd', sa.Column('pcd', sa.Text)),
             ('pcd2', sa.Column('pcd2', sa.Text)),
             ('pcds', sa.Column('pcds', sa.Text)),
@@ -902,8 +931,27 @@ class ONSPostcodePipeline(_DatasetPipeline):
             ('imd', sa.Column('imd', sa.Text)),
             ('calncv', sa.Column('calncv', sa.Text)),
             ('stp', sa.Column('stp', sa.Text)),
+            ('publication_date', sa.Column('publication_date', sa.Date, index=True)),
         ],
     )
+
+    def get_dag(self) -> DAG:
+        dag = super().get_dag()
+
+        _create_views = PythonOperator(
+            task_id='create-views',
+            provide_context=True,
+            python_callable=create_views,
+            op_args=[
+                self.target_db,
+                self.table_config.schema,  # pylint: disable=no-member
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
+        )
+        dag.add_task(_create_views)
+        _swap_task = dag.get_task('swap-dataset-table')
+        _swap_task >> _create_views  # pylint: disable=pointless-statement
+        return dag
 
 
 class RawWorldBankTariffPipeline(_DatasetPipeline):
@@ -955,8 +1003,8 @@ class DataHubCompanyReferralsDatasetPipeline(_DatasetPipeline):
         config.DATAHUB_BASE_URL
     )
     table_config = TableConfig(
-        schema='datahub',
-        table_name='company_referrals',
+        schema='dit',
+        table_name='data_hub__company_referrals',
         field_mapping=[
             ('company_id', sa.Column('company_id', UUID)),
             ('completed_by_id', sa.Column('completed_by_id', UUID)),

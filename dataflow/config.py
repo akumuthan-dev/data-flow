@@ -24,7 +24,7 @@ DATAHUB_HAWK_CREDENTIALS = {
 DATAHUB_BASE_URL = os.environ.get("DATAHUB_BASE_URL")
 EXPORT_WINS_BASE_URL = os.environ.get("EXPORT_WINS_BASE_URL")
 
-DEBUG = True if os.environ.get("DEBUG") == "True" else False
+DEBUG = os.environ.get("DEBUG") == "True"
 REDIS_URL = os.environ.get("AIRFLOW__CELERY__BROKER_URL")
 COUNTRIES_OF_INTEREST_BASE_URL = os.environ.get(
     "COUNTRIES_OF_INTEREST_BASE_URL", "localhost:5000"
@@ -63,9 +63,13 @@ DATA_WORKSPACE_S3_BUCKET = os.environ.get("DATA_WORKSPACE_S3_BUCKET")
 DATASETS_DB_NAME = os.environ.get("DATASETS_DB_NAME", "datasets_db")
 ALLOW_NULL_DATASET_COLUMNS = os.environ.get("ALLOW_NULL_DATASET_COLUMNS") == "True"
 
-HMRC_UKTRADEINFO_URL = os.environ.get(
-    "HMRC_UKTRADEINFO_URL",
-    "https://www.uktradeinfo.com/Statistics/Documents/Data%20Downloads",
+HMRC_UKTRADEINFO_LATEST_URL = os.environ.get(
+    "HMRC_UKTRADEINFO_LATEST_URL",
+    "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/",
+)
+HMRC_UKTRADEINFO_ARCHIVE_URL = os.environ.get(
+    "HMRC_UKTRADEINFO_ARCHIVE_URL",
+    "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/bulk-datasets-archive/",
 )
 
 MARKET_ACCESS_BASE_URL = os.environ.get("MARKET_ACCESS_BASE_URL")
@@ -120,3 +124,29 @@ DEFAULT_DATABASE_GRANTEES = (
     if os.environ.get('DEFAULT_DATABASE_GRANTEES') is not None
     else []
 )
+
+COMPANIES_HOUSE_PSC_TOTAL_FILES = int(
+    os.environ.get('COMPANIES_HOUSE_PSC_TOTAL_FILES', 1)
+)
+
+ZENDESK_COVID_EMAIL_ADDRESS = os.environ.get("ZENDESK_COVID_EMAIL_ADDRESS", "")
+
+ZENDESK_CREDENTIALS = {
+    'dit': {
+        'url': os.environ.get("ZENDESK_DIT_URL") or "<invalid>",
+        'email': os.environ.get("ZENDESK_DIT_EMAIL") or "<invalid>",
+        'secret': os.environ.get("ZENDESK_DIT_SECRET") or "<invalid>",
+    },
+    'uktrade': {
+        'url': os.environ.get("ZENDESK_UKTRADE_URL") or "<invalid>",
+        'email': os.environ.get("ZENDESK_UKTRADE_EMAIL") or "<invalid>",
+        'secret': os.environ.get("ZENDESK_UKTRADE_SECRET") or "<invalid>",
+    },
+}
+
+ENQUIRY_MGMT_BASE_URL = os.environ.get("ENQUIRY_MGMT_BASE_URL") or "<invalid>"
+ENQUIRY_MGMT_HAWK_CREDENTIALS = {
+    "id": os.environ.get("ENQUIRY_MGMT_HAWK_ID") or "<invalid>",
+    "key": os.environ.get("ENQUIRY_MGMT_HAWK_KEY") or "<invalid>",
+    "algorithm": "sha256",
+}

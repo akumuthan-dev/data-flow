@@ -43,7 +43,7 @@ class _CompanyMatchingPipeline(_PipelineDAG):
 
     @property
     def table_name(self):
-        return f'{self.controller_pipeline.table_config.table_name}_match_ids'
+        return f'{self.controller_pipeline.table_config.table_name}__match_ids'
 
     @property
     def schema_name(self):

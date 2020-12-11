@@ -416,7 +416,8 @@ class LITECasesPipeline(_ActivityStreamPipeline):
     name = "lite-cases"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_cases",
+        schema='dit',
+        table_name="lite__cases",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:caseOfficer"), sa.Column("case_officer", sa.String)),
@@ -434,7 +435,8 @@ class LITECaseChangesPipeline(_ActivityStreamPipeline):
     name = "lite-case-changes"
     index = "activities"
     table_config = TableConfig(
-        table_name="lite_case_changes",
+        schema='dit',
+        table_name="lite__case_changes",
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
             (("object", "dit:from"), sa.Column("case_from", sa.JSON)),
@@ -463,6 +465,10 @@ class StaffSSOUsersPipeline(_ActivityStreamPipeline):
             (
                 "dit:StaffSSO:User:userId",
                 sa.Column("user_id", UUID(as_uuid=True), primary_key=True),
+            ),
+            (
+                "dit:StaffSSO:User:status",
+                sa.Column("status", sa.String, nullable=False, index=True),
             ),
             ("dit:emailAddress", sa.Column("email", sa.ARRAY(sa.String), index=True)),
             (
@@ -589,19 +595,247 @@ class ReturnToOfficeBookingsPipeline(_ActivityStreamPipeline):
     query = {"bool": {"filter": [{"term": {"type": "dit:ReturnToOffice:Booking"}}]}}
 
 
-class MaxemailCampaignsSentPipeline(_ActivityStreamPipeline):
-    name = "maxemail-campaigns-sent"
+class MaxemailEventsPipeline(_ActivityStreamPipeline):
+    name = "maxemail-events"
     index = "activities"
     table_config = TableConfig(
         schema="dit",
-        table_name="maxemail__email_campaigns_sent",
+        table_name="maxemail__events",
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                "__type": list(
+                    filter(
+                        lambda t: t != 'dit:maxemail:Email', record["object"]["type"]
+                    )
+                )[0]
+                .replace("dit:maxemail:Email:", "")
+                .lower(),
+            },
+            lambda record, table_config, contexts: {
+                **record,
+                "__bounced_reason": record["object"]["content"]
+                if record["__type"] == "bounced"
+                else None,
+                "__clicked_url": record["object"]["url"]
+                if record["__type"] == "clicked"
+                else None,
+            },
+        ],
         field_mapping=[
             (("object", "id"), sa.Column("id", sa.String, primary_key=True)),
-            (("object", "dit:emailAddress"), sa.Column("email_address", sa.String)),
-            (("object", "attributedTo", "name"), sa.Column("campaign_name", sa.String)),
-            (("object", "attributedTo", "published"), sa.Column("sent", sa.DateTime)),
-            (("object", "type"), sa.Column("type", sa.ARRAY(sa.String))),
+            (
+                ("published"),
+                sa.Column("occurred", sa.DateTime, index=True, nullable=False),
+            ),
+            (("__type"), sa.Column("type", sa.String, index=True, nullable=False)),
+            (
+                ("object", "dit:emailAddress"),
+                sa.Column("email_address", sa.String, index=True, nullable=False),
+            ),
+            (
+                ("object", "attributedTo", "dit:maxemail:Campaign:id"),
+                sa.Column("campaign_id", sa.Integer, index=True, nullable=False),
+            ),
+            (("__bounced_reason"), sa.Column("bounced_reason", sa.String, index=True)),
+            (("__clicked_url"), sa.Column("clicked_url", sa.String, index=True)),
         ],
     )
 
     query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Email"}}]}}
+
+
+class MaxemailCampaignsPipeline(_ActivityStreamPipeline):
+    name = "maxemail-campaigns"
+    index = "activities"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="maxemail__campaigns",
+        field_mapping=[
+            (
+                ("object", "dit:maxemail:Campaign:id"),
+                sa.Column("id", sa.Integer, primary_key=True),
+            ),
+            (("object", "name"), sa.Column("title", sa.String, nullable=False)),
+            (
+                ("object", "content"),
+                sa.Column("description", sa.String, nullable=False),
+            ),
+            (
+                ("object", "dit:emailSubject"),
+                sa.Column("email_subject", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "name"),
+                sa.Column("email_from_name", sa.String, nullable=False),
+            ),
+            (
+                ("actor", "dit:emailAddress"),
+                sa.Column("email_from_address", sa.String, index=True, nullable=False),
+            ),
+            (
+                ("published",),
+                sa.Column("started", sa.DateTime, index=True, nullable=False),
+            ),
+        ],
+    )
+
+    query = {"bool": {"filter": [{"term": {"object.type": "dit:maxemail:Campaign"}}]}}
+
+
+class GreatGovUKCompanyPipeline(_ActivityStreamPipeline):
+    index = "objects"
+    table_config = TableConfig(
+        schema="dit",
+        table_name="great_gov_uk__companies",
+        field_mapping=[
+            (
+                'dit:directory:Company:address_line_1',
+                sa.Column('address_line_1', sa.String),
+            ),
+            (
+                'dit:directory:Company:address_line_2',
+                sa.Column('address_line_2', sa.String),
+            ),
+            (
+                'dit:directory:Company:company_type',
+                sa.Column('company_type', sa.String),
+            ),
+            ('dit:directory:Company:country', sa.Column('country', sa.String)),
+            ('dit:directory:Company:created', sa.Column('created', sa.DateTime)),
+            (
+                'dit:directory:Company:date_of_creation',
+                sa.Column('date_of_creation', sa.Date),
+            ),
+            ('dit:directory:Company:description', sa.Column('description', sa.Text)),
+            (
+                'dit:directory:Company:email_address',
+                sa.Column('email_address', sa.String),
+            ),
+            (
+                'dit:directory:Company:email_full_name',
+                sa.Column('email_full_name', sa.String),
+            ),
+            ('dit:directory:Company:employees', sa.Column('employees', sa.String)),
+            (
+                'dit:directory:Company:facebook_url',
+                sa.Column('facebook_url', sa.String),
+            ),
+            (
+                'dit:directory:Company:has_exported_before',
+                sa.Column('has_exported_before', sa.Boolean),
+            ),
+            ('dit:directory:Company:id', sa.Column('id', sa.Integer, primary_key=True)),
+            (
+                'dit:directory:Company:is_exporting_goods',
+                sa.Column('is_exporting_goods', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_exporting_services',
+                sa.Column('is_exporting_services', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_published',
+                sa.Column('is_published', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_publishable',
+                sa.Column('is_publishable', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_published_investment_support_directory',
+                sa.Column('is_published_investment_support_directory', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_published_find_a_supplier',
+                sa.Column('is_published_find_a_supplier', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_registration_letter_sent',
+                sa.Column('is_registration_letter_sent', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_verification_letter_sent',
+                sa.Column('is_verification_letter_sent', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:is_identity_check_message_sent',
+                sa.Column('is_identity_check_message_sent', sa.Boolean),
+            ),
+            ('dit:directory:Company:keywords', sa.Column('keywords', sa.Text)),
+            (
+                'dit:directory:Company:linkedin_url',
+                sa.Column('linkedin_url', sa.String),
+            ),
+            ('dit:directory:Company:locality', sa.Column('locality', sa.String)),
+            (
+                'dit:directory:Company:mobile_number',
+                sa.Column('mobile_number', sa.String),
+            ),
+            ('dit:directory:Company:modified', sa.Column('modified', sa.DateTime)),
+            ('dit:directory:Company:name', sa.Column('name', sa.String)),
+            ('dit:directory:Company:number', sa.Column('number', sa.String)),
+            ('dit:directory:Company:po_box', sa.Column('po_box', sa.String)),
+            ('dit:directory:Company:postal_code', sa.Column('postal_code', sa.String)),
+            (
+                'dit:directory:Company:postal_full_name',
+                sa.Column('postal_full_name', sa.String),
+            ),
+            ('dit:directory:Company:sectors', sa.Column('sectors', sa.JSON)),
+            ('dit:directory:Company:hs_codes', sa.Column('hs_codes', sa.JSON)),
+            ('dit:directory:Company:slug', sa.Column('slug', sa.String)),
+            ('dit:directory:Company:summary', sa.Column('summary', sa.String)),
+            ('dit:directory:Company:twitter_url', sa.Column('twitter_url', sa.String)),
+            ('dit:directory:Company:website', sa.Column('website', sa.String)),
+            (
+                'dit:directory:Company:verified_with_code',
+                sa.Column('verified_with_code', sa.String),
+            ),
+            (
+                'dit:directory:Company:verified_with_preverified_enrolment',
+                sa.Column('verified_with_preverified_enrolment', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:verified_with_companies_house_oauth2',
+                sa.Column('verified_with_companies_house_oauth2', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:verified_with_identity_check',
+                sa.Column('verified_with_identity_check', sa.Boolean),
+            ),
+            ('dit:directory:Company:is_verified', sa.Column('is_verified', sa.Boolean)),
+            (
+                'dit:directory:Company:export_destinations',
+                sa.Column('export_destinations', sa.JSON),
+            ),
+            (
+                'dit:directory:Company:export_destinations_other',
+                sa.Column('export_destinations_other', sa.String),
+            ),
+            (
+                'dit:directory:Company:is_uk_isd_company',
+                sa.Column('is_uk_isd_company', sa.Boolean),
+            ),
+            (
+                'dit:directory:Company:expertise_industries',
+                sa.Column('expertise_industries', sa.JSON),
+            ),
+            (
+                'dit:directory:Company:expertise_regions',
+                sa.Column('expertise_regions', sa.JSON),
+            ),
+            (
+                'dit:directory:Company:expertise_countries',
+                sa.Column('expertise_countries', sa.JSON),
+            ),
+            (
+                'dit:directory:Company:expertise_languages',
+                sa.Column('expertise_languages', sa.JSON),
+            ),
+            (
+                'dit:directory:Company:expertise_products_services',
+                sa.Column('expertise_products_services', sa.JSON),
+            ),
+        ],
+    )
+    query = {"bool": {"filter": [{"term": {"type": "dit:directory:Company"}}]}}

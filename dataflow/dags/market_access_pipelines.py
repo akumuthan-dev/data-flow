@@ -2,8 +2,8 @@ from datetime import datetime
 from functools import partial
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.config import MARKET_ACCESS_HAWK_CREDENTIALS
@@ -56,25 +56,47 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             (('priority', 'name'), sa.Column('priority', sa.Text)),
             ('created_on', sa.Column('reported_on', sa.DateTime)),
             ('modified_on', sa.Column('modified_on', sa.DateTime)),
-            (('assessment', 'impact', 'name'), sa.Column('assessment_impact', sa.Text)),
             (
-                ('assessment', 'value_to_economy'),
-                sa.Column('value_to_economy', sa.BigInteger),
+                'economic_assessments',
+                TableConfig(
+                    table_name='market_access_economic_assessments',
+                    field_mapping=[
+                        ('id', sa.Column('id', sa.Integer, index=True)),
+                        (
+                            'value_to_economy',
+                            sa.Column('value_to_economy', sa.BigInteger),
+                        ),
+                        (
+                            'import_market_size',
+                            sa.Column('import_market_size', sa.BigInteger),
+                        ),
+                        ('export_value', sa.Column('export_value', sa.BigInteger),),
+                        ('barrier_id', sa.Column('barrier_id', sa.Text)),
+                        (
+                            'economic_impact_assessments',
+                            TableConfig(
+                                table_name='market_access_ea_impact_assessments',
+                                field_mapping=[
+                                    ('id', sa.Column('id', UUID, index=True)),
+                                    (('impact', 'name'), sa.Column('impact', sa.Text)),
+                                    ('archived', sa.Column('archived', sa.Boolean)),
+                                    ('explanation', sa.Column('explanation', sa.Text),),
+                                    (
+                                        'economic_assessment_id',
+                                        sa.Column('economic_assessment_id', sa.Text),
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                ),
             ),
-            (
-                ('assessment', 'import_market_size'),
-                sa.Column('import_market_size', sa.BigInteger),
-            ),
-            (
-                ('assessment', 'commercial_value'),
-                sa.Column('commercial_value', sa.BigInteger),
-            ),
-            (('assessment', 'export_value'), sa.Column('export_value', sa.BigInteger)),
             ('team_count', sa.Column('team_count', sa.Integer)),
             ('company_names', sa.Column('company_names', sa.ARRAY(sa.Text))),
             ('company_ids', sa.Column('company_ids', sa.ARRAY(sa.Text))),
+            ('commercial_value', sa.Column('commercial_value', sa.BigInteger)),
             (
-                ('assessment', 'commercial_value_explanation'),
+                'commercial_value_explanation',
                 sa.Column('commercial_value_explanation', sa.Text),
             ),
             ("archived", sa.Column("archived", sa.Boolean)),
@@ -104,6 +126,14 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                     ),
                 ),
             ),
+            (("trading_bloc", "code"), sa.Column("trading_bloc_code", sa.String)),
+            (("trading_bloc", "name"), sa.Column("trading_bloc_name", sa.String)),
+            ("end_date", sa.Column("end_date", sa.Date)),
+            ("summary", sa.Column("summary", sa.Text)),
+            (
+                ("wto_profile", "wto_has_been_notified"),
+                sa.Column("wto_has_been_notified", sa.Boolean),
+            ),
         ],
     )
 
@@ -114,5 +144,8 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                 fetch_from_hawk_api, hawk_credentials=MARKET_ACCESS_HAWK_CREDENTIALS,
             ),
             provide_context=True,
-            op_args=[self.table_config.table.name, self.source_url],
+            op_args=[
+                self.table_config.table.name,  # pylint: disable=no-member
+                self.source_url,
+            ],
         )

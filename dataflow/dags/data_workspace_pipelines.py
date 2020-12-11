@@ -44,6 +44,7 @@ class DataWorkspaceEventLogPipeline(_DataWorkspacePipeline):
             (('related_object', 'type'), sa.Column('related_object_type', sa.Text)),
             ('timestamp', sa.Column('timestamp', sa.DateTime)),
             ('user_id', sa.Column('user_id', sa.Numeric)),
+            ('extra', sa.Column('extra', sa.JSON)),
         ],
     )
 
@@ -95,5 +96,44 @@ class DataWorkspaceApplicationInstancePipeline(_DataWorkspacePipeline):
             ('spawner_memory', sa.Column('spawner_memory', sa.Text)),
             ('spawner_stopped_at', sa.Column('spawner_stopped_at', sa.DateTime)),
             ('state', sa.Column('state', sa.Text)),
+        ],
+    )
+
+
+class DataWorkspaceCatalogueItemsPipeline(_DataWorkspacePipeline):
+    """Pipeline meta object for data workspace catalogue items data."""
+
+    source_url = f'{config.DATA_WORKSPACE_BASE_URL}/api/v1/dataset/catalogue-items'
+    table_config = TableConfig(
+        table_name='dataworkspace__catalogue_items',
+        field_mapping=[
+            ('purpose', sa.Column('purpose', sa.Text, nullable=False)),
+            ('id', sa.Column('id', UUID, primary_key=True)),
+            ('name', sa.Column('name', sa.Text, nullable=False, index=True)),
+            (
+                'short_description',
+                sa.Column('short_description', sa.Text, nullable=False),
+            ),
+            ('description', sa.Column('description', sa.Text)),
+            ('published', sa.Column('published', sa.Boolean, nullable=False)),
+            ('created_date', sa.Column('created_date', sa.DateTime, nullable=False)),
+            ('published_at', sa.Column('published_at', sa.Date, index=True)),
+            (
+                'information_asset_owner',
+                sa.Column('information_asset_owner', sa.Integer),
+            ),
+            (
+                'information_asset_manager',
+                sa.Column('information_asset_manager', sa.Integer),
+            ),
+            ('enquiries_contact', sa.Column('enquiries_contact', sa.Integer)),
+            ('source_tags', sa.Column('source_tags', sa.ARRAY(sa.Text))),
+            ('licence', sa.Column('license', sa.Text)),
+            ('personal_data', sa.Column('personal_data', sa.Text)),
+            ('retention_policy', sa.Column('retention_policy', sa.Text)),
+            (
+                'eligibility_criteria',
+                sa.Column('eligibility_criteria', sa.ARRAY(sa.Text)),
+            ),
         ],
     )

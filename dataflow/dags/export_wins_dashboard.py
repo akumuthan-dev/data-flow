@@ -1,8 +1,8 @@
 import datetime
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
 from dataflow.operators.db_tables import query_database
@@ -75,20 +75,20 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
       SELECT
         DISTINCT ON (export_wins_wins_dataset.id) export_wins_wins_dataset.id AS export_win_id,
         CASE
-          WHEN companies_dataset.id IS NOT NULL
-            THEN CONCAT('https://datahub.trade.gov.uk/companies/',companies_dataset.id,'/exports')
+          WHEN data_hub__companies.id IS NOT NULL
+            THEN CONCAT('https://datahub.trade.gov.uk/companies/',data_hub__companies.id,'/exports')
           ELSE ''
         END AS dh_company_link,
         CASE
-          WHEN companies_dataset.id IS NOT NULL
-            THEN companies_dataset.name
+          WHEN data_hub__companies.id IS NOT NULL
+            THEN data_hub__companies.name
           ELSE ''
         END AS dh_company_name
 
         FROM export_wins_wins_dataset
           LEFT JOIN export_wins_wins_dataset_match_ids ON export_wins_wins_dataset_match_ids.id::uuid = export_wins_wins_dataset.id
           LEFT JOIN companies_dataset_match_ids ON companies_dataset_match_ids.match_id = export_wins_wins_dataset_match_ids.match_id
-          LEFT JOIN companies_dataset ON companies_dataset.id = companies_dataset_match_ids.id::uuid
+          LEFT JOIN dit.data_hub__companies ON data_hub__companies.id = companies_dataset_match_ids.id::uuid
 
     ), win_participants AS (
       select
@@ -177,6 +177,10 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
             task_id='query-database',
             provide_context=True,
             python_callable=query_database,
-            op_args=[self.query, self.target_db, self.table_config.table_name],
+            op_args=[
+                self.query,
+                self.target_db,
+                self.table_config.table_name,  # pylint: disable=no-member
+            ],
         )
         return op

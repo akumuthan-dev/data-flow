@@ -75,3 +75,8 @@ services:
     links:
       - "data-flow-db"
       - "data-flow-redis"
+
+networks:
+  default:
+    external:
+      name: data-infrastructure-shared-network

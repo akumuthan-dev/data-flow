@@ -9,6 +9,18 @@ class InvalidAuthCredentialsError(ValueError):
     pass
 
 
+def _make_request(url, access_token, params):
+    response = requests.get(
+        url, params=params, headers={'Authorization': f'Bearer {access_token}'},
+    )
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError:
+        logger.error('Request failed: %s', response.text)
+        raise
+    return response.json()
+
+
 def fetch_from_sharepoint_list(
     table_name: str, sub_site_id: str, list_id: str, **kwargs
 ):
@@ -26,34 +38,41 @@ def fetch_from_sharepoint_list(
             f'Failed to acquire token: {token_response.get("error_description")}'
         )
 
+    access_token = token_response['access_token']
     tenant = DIT_SHAREPOINT_CREDENTIALS["tenant_domain"]
-    full_path = (
+    sharepoint_site = (
         f':/sites/{DIT_SHAREPOINT_CREDENTIALS["site_name"]}:/sites/{sub_site_id}'
     )
-    response = requests.get(
-        f'https://graph.microsoft.com/v1.0/sites/{tenant}{full_path}/lists/{list_id}',
-        params={'expand': 'columns,items(expand=fields)'},
-        headers={'Authorization': f'Bearer {token_response["access_token"]}'},
-    )
+    list_url = f'https://graph.microsoft.com/v1.0/sites/{tenant}{sharepoint_site}/lists/{list_id}'
+    items_url = f'{list_url}/items'
 
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError:
-        logger.error(f'Request failed: {response.text}')
-        raise
-
-    graph_data = response.json()
+    # Fetch a copy of the column names, this needs to be done separately from
+    # fetching items as otherwise paging will not work.
+    logger.info('Fetching column names from %s', list_url)
+    graph_data = _make_request(list_url, access_token, {'expand': 'columns'})
     column_map = {col['name']: col['displayName'] for col in graph_data['columns']}
-    records = [
-        {
-            **{
-                column_map[col_id]: row['fields'][col_id]
-                for col_id in row['fields'].keys()
-                if col_id in column_map
-            },
-            'createdBy': row['createdBy']['user'],
-            'lastModifiedBy': row['lastModifiedBy']['user'],
-        }
-        for row in graph_data['items']
-    ]
-    s3.write_key(f"{1:010}.json", records)
+
+    # Fetch the list item data
+    page = 1
+    while items_url is not None:
+        logger.info('Fetching from %s', items_url)
+        graph_data = _make_request(items_url, access_token, {'expand': 'fields'})
+        records = [
+            {
+                **{
+                    column_map[col_id]: row['fields'][col_id]
+                    for col_id in row['fields'].keys()
+                    if col_id in column_map
+                },
+                'createdBy': row['createdBy']['user'],
+                'lastModifiedBy': row['lastModifiedBy']['user']
+                if row.get('lastModifiedBy') is not None
+                else None,
+            }
+            for row in graph_data['value']
+        ]
+        s3.write_key(f"{page:010}.json", records)
+        page += 1
+        items_url = graph_data.get('@odata.nextLink')
+
+    logger.info('Finished fetching from sharepoint')

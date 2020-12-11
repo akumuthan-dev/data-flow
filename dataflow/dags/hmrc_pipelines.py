@@ -5,28 +5,32 @@ import sqlalchemy as sa
 
 from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.hmrc import fetch_uktradeinfo_non_eu_data
+from dataflow.operators.hmrc import fetch_hmrc_trade_data
 from dataflow.utils import TableConfig
 
 
 class _HMRCPipeline(_PipelineDAG):
     base_filename: str
-
+    records_start_year: int = 2019
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
     use_utc_now_as_source_modified = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
-            task_id="fetch-uktradeinfo-non-eu-exports",
-            python_callable=fetch_uktradeinfo_non_eu_data,
+            task_id="fetch-hmrc-trade-data",
+            python_callable=fetch_hmrc_trade_data,
             provide_context=True,
-            op_args=[self.table_config.table_name, self.base_filename],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.base_filename,
+                self.records_start_year,
+            ],
         )
 
 
 class HMRCNonEUExports(_HMRCPipeline):
-    base_filename = "SMKE19"
+    base_filename = "smke19"
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_exports",
@@ -60,7 +64,7 @@ class HMRCNonEUExports(_HMRCPipeline):
 
 
 class HMRCNonEUImports(_HMRCPipeline):
-    base_filename = "SMKI19"
+    base_filename = "smki19"
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_imports",
@@ -98,7 +102,7 @@ class HMRCNonEUImports(_HMRCPipeline):
 
 
 class HMRCEUExports(_HMRCPipeline):
-    base_filename = "SMKX46"
+    base_filename = "smkx46"
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_exports",
@@ -127,7 +131,7 @@ class HMRCEUExports(_HMRCPipeline):
 
 
 class HMRCEUImports(_HMRCPipeline):
-    base_filename = "SMKM46"
+    base_filename = "smkm46"
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_imports",

@@ -56,12 +56,30 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
                 {'name': 'col1', 'displayName': 'ID'},
                 {'name': 'col2', 'displayName': 'Name'},
             ],
-            'items': [
+        },
+    )
+
+    requests_mock.get(
+        'https://graph.microsoft.com/v1.0/sites/tenant.sharepoint.com:/sites/'
+        'test-site-1:/sites/test-site-2/lists/test-list/items',
+        status_code=200,
+        json={
+            '@odata.nextLink': 'https://test-page-2',
+            'value': [
                 {
                     'fields': {'col1': 1, 'col2': 'record1'},
                     'createdBy': {'user': 'user1@test.com'},
                     'lastModifiedBy': {'user': 'user2@test.com'},
                 },
+            ],
+        },
+    )
+
+    requests_mock.get(
+        'https://test-page-2',
+        status_code=200,
+        json={
+            'value': [
                 {
                     'fields': {'col1': 2, 'col2': 'record2'},
                     'createdBy': {'user': 'user2@test.com'},
@@ -70,6 +88,7 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
             ],
         },
     )
+
     sharepoint.fetch_from_sharepoint_list(
         'test_table', 'test-site-2', 'test-list', ts_nodash='test',
     )
@@ -84,6 +103,11 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
                         'createdBy': 'user1@test.com',
                         'lastModifiedBy': 'user2@test.com',
                     },
+                ],
+            ),
+            mock.call(
+                '0000000002.json',
+                [
                     {
                         'ID': 2,
                         'Name': 'record2',
@@ -91,6 +115,6 @@ def test_sharepoint_request(mock_msal_app, mocker, requests_mock):
                         'lastModifiedBy': 'user1@test.com',
                     },
                 ],
-            )
+            ),
         ]
     )

@@ -85,3 +85,57 @@ def test_fetch_companies(mocker, requests_mock):
             ),
         ]
     )
+
+
+def test_fetch_significant_persons(mocker, requests_mock):
+    mocker.patch.object(companies_house.config, "COMPANIES_HOUSE_PSC_TOTAL_FILES", 2)
+
+    file1 = io.BytesIO()
+    with zipfile.ZipFile(file1, "w") as zf:
+        zf.writestr(
+            'dummies',
+            '{"field1":"text1","field2":"010121000","field3":"00150"}\n'
+            '{"field1":"text2","field2":"010121001","field3":"00151"}\n'
+            '{"field1":"text3","field2":"010121002","field3":"00152"}\n',
+        )
+
+    file2 = io.BytesIO()
+    with zipfile.ZipFile(file2, "w") as zf:
+        zf.writestr(
+            'dummies',
+            '{"field1":"text4","field2":"000000000","field3":"00153"}\n'
+            '{"field1":"text5","field2":"999999999","field3":"00154"}\n',
+        )
+
+    requests_mock.get(
+        'http://test/people-2020-01-01_1of2.zip', content=file1.getvalue(),
+    )
+
+    requests_mock.get(
+        'http://test/people-2020-01-01_2of2.zip', content=file2.getvalue(),
+    )
+
+    s3_mock = mock.MagicMock()
+    mocker.patch.object(companies_house, "S3Data", return_value=s3_mock, autospec=True)
+
+    companies_house.fetch_companies_house_significant_persons(
+        'companies',
+        'http://test/people-2020-01-01_{file}of{total}.zip',
+        ts_nodash='task-1',
+        execution_date=datetime(2020, 1, 10),
+    )
+
+    s3_mock.write_key.assert_has_calls(
+        [
+            mock.call(
+                '0000000001.json',
+                [
+                    {'field1': 'text1', 'field2': '010121000', 'field3': '00150'},
+                    {'field1': 'text2', 'field2': '010121001', 'field3': '00151'},
+                    {'field1': 'text3', 'field2': '010121002', 'field3': '00152'},
+                    {'field1': 'text4', 'field2': '000000000', 'field3': '00153'},
+                    {'field1': 'text5', 'field2': '999999999', 'field3': '00154'},
+                ],
+            ),
+        ]
+    )

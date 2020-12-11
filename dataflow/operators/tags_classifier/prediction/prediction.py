@@ -3,9 +3,12 @@ import os
 import zipfile
 import numpy as np
 from itertools import compress
-from dataflow.operators.tags_classifier.utils import preprocess
-from dataflow.operators.tags_classifier.setting import (
+from .utils import preprocess
+from .setting import (
     MAX_SEQUENCE_LENGTH,
+    model_version,
+    tags_covid,
+    tags_general,
     probability_threshold,
 )
 import operator
