@@ -236,6 +236,10 @@ class InvestmentProjectsDatasetPipeline(_DatasetPipeline):
                 'project_assurance_adviser_id',
                 sa.Column('project_assurance_adviser_id', UUID),
             ),
+            (
+                'project_first_moved_to_won',
+                sa.Column('project_moved_to_won', sa.DateTime),
+            ),
             ('project_manager_id', sa.Column('project_manager_id', UUID)),
             ('project_reference', sa.Column('project_reference', sa.Text)),
             ('proposal_deadline', sa.Column('proposal_deadline', sa.Date)),
