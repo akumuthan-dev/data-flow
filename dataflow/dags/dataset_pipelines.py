@@ -627,7 +627,8 @@ class ExportWinsAdvisersDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/advisors'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_advisers_dataset',
+        schema='dit',
+        table_name='export_wins__advisers_dataset',
         field_mapping=[
             ('hq_team_display', sa.Column('hq_team', sa.String)),
             ('id', sa.Column('id', sa.Integer, primary_key=True)),
