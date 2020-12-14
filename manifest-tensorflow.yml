@@ -1,9 +1,0 @@
----
-# This file is copied over to manifest.yml by the ci-pipeline
-applications:
-- memory: 5gb
-  disk_quota: 5gb
-  health-check-type: process
-  docker:
-    image: quay.io/uktrade/data-flow-tensorflow:$Version
-
