@@ -1,4 +1,4 @@
-from dataflow.operators.tags_classifier_model.tags_classifier import make_prediction
+from dataflow.operators.tags_classifier.prediction.prediction import make_prediction
 import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 from dataflow.dags import _PipelineDAG
@@ -6,7 +6,7 @@ from dataflow.utils import TableConfig
 from dataflow.dags.dataset_pipelines import InteractionsDatasetPipeline
 
 
-class TagsClassifierPipeline(_PipelineDAG):
+class TagsClassifierPredictionPipeline(_PipelineDAG):
     table_config = TableConfig(
         table_name='interactions_dataset_with_tags',
         field_mapping=[
