@@ -54,7 +54,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
     target_db: str = config.DATASETS_DB_NAME
     start_date: datetime = datetime(2019, 11, 5)
     end_date: Optional[datetime] = None
-    schedule_interval: str = "@daily"
+    schedule_interval: Optional[str] = "@daily"
     catchup: bool = False
 
     # Enable or disable Slack notification when DAG run finishes

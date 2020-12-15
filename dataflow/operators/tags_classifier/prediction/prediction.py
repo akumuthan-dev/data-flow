@@ -3,12 +3,9 @@ import os
 import zipfile
 import numpy as np
 from itertools import compress
-from .utils import preprocess
-from .setting import (
+from dataflow.operators.tags_classifier.utils import preprocess
+from dataflow.operators.tags_classifier.setting import (
     MAX_SEQUENCE_LENGTH,
-    model_version,
-    tags_covid,
-    tags_general,
     probability_threshold,
 )
 import operator
@@ -36,6 +33,25 @@ def fetch_model():
 
     client = S3Hook("DEFAULT_S3")
 
+    all_models = [
+        i
+        for i in client.list_keys(
+            bucket, prefix='models/data_hub_policy_feedback_tags_classifier/'
+        )
+    ]
+    all_models = [i.split('/')[-1] for i in all_models]
+    all_models = [
+        i
+        for i in all_models
+        if i.lower().startswith('models') and i.lower().endswith('zip')
+    ]
+
+    all_models.sort()
+    model_version = all_models[-1]
+
+    logger.info(f'All models in the bucket: {all_models}')
+    logger.info(f'The model version used for prediction: {model_version}')
+
     s3_key_object = client.get_key(
         'models/data_hub_policy_feedback_tags_classifier/' + model_version,
         bucket_name=bucket,
@@ -50,6 +66,27 @@ def fetch_model():
         zip_ref.extractall()
         logger.info(f"working dir: {os.getcwd()}")
         logger.info(f"list contents: {os.listdir()}")
+
+        tags_to_predict = []
+        tags_to_predict.extend(
+            [
+                i
+                for i in os.listdir('models_covid')
+                if os.path.isdir('models_covid/' + i)
+            ]
+        )
+        tags_to_predict.extend(
+            [
+                i
+                for i in os.listdir('models_general')
+                if os.path.isdir('models_general/' + i)
+            ]
+        )
+
+        tags_to_predict = [i.replace('_', ' ') for i in tags_to_predict]
+
+    logger.info(f"tags to predict: {tags_to_predict}")
+    return tags_to_predict
 
 
 def _predict(X_to_predict, tokenizer, tags_to_predict, model_path):
@@ -153,21 +190,29 @@ def make_prediction(target_db: str, query: str, table_name, **context):
         logger.info(f"working dir: {os.getcwd()}")
 
         logger.info("step 1: fetch model")
-        fetch_model()
+        tags_to_predict = fetch_model()
 
         logger.info("step 2: fetch data")
         df = fetch_interaction_data(target_db, query)
 
         logger.info("step 3: make prediction")
-        predictions = predict_tags(df)
+        predictions = predict_tags(df, tags_to_predict)
 
         logger.info("step 4: write prediction to S3")
         write_prediction(table_name, predictions, context)
 
 
-def predict_tags(df):
+def predict_tags(df, tags_to_predict):
     # note: if making this to a separate task, then **context need to be passed to the function and
     # df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
+
+    tags_covid = [
+        i
+        for i in tags_to_predict
+        if i.lower().startswith('covid') and i.lower() != 'covid-19'
+    ]
+
+    tags_general = [i for i in tags_to_predict if i not in tags_covid]
 
     logger.info(f"check working dir: {os.getcwd()}")
     logger.info(f"check general models: {os.listdir('models_general')}")
@@ -241,10 +286,7 @@ def predict_tags(df):
     predictions = predictions.rename(columns={'sentence': 'policy_feedback_notes'})
 
     predictions = update_df_column_with_prob(predictions)
-    # if 'prediction_prob_top_5' in predictions.columns:
-    #     del predictions['prediction_prob_top_5']
 
-    # predictions.to_csv('to_predict_result.csv', index=False)
     return predictions
 
 
@@ -289,8 +331,7 @@ def fetch_interaction_data(target_db: str, query: str):
         rows = cursor.fetchall()
         df = pd.DataFrame(rows)
         df.columns = [column[0] for column in cursor.description]
-        df = preprocess(df, action='predict')
-        # df.to_csv('to_predict.csv', index=False)
+        df, _ = preprocess(df, action='predict')
 
         logger.info(f"check df shape: {df.shape}")
         logger.info(f"df head: {df.head()}")
@@ -305,5 +346,11 @@ def fetch_interaction_data(target_db: str, query: str):
 
 # # run this to be able to check data in python console when test locally
 # df_a = pd.read_csv('/Users/linglingli/DIT/data-flow/prediction_data_0904.csv')
+# # or test one sentence
+# # test = [['id1', """Company has had to make one of their valued long-term designers redundant in the last month during pandemic.
+# #                     They had no other choice but this is a very difficult environment for a creative company to be working in."""]]
+# # df_a = pd.DataFrame(test, columns=['id', 'policy feedback'])
 # df_a = preprocess(df_a, action='predict')
+# os.chdir('data-flow/the_models/models_20201029')
 # predictions_a = predict_tags(df_a)
+# print(predictions_a['tags_prediction'])

@@ -1,0 +1,4 @@
+MAX_NB_WORDS = 10000
+MAX_SEQUENCE_LENGTH = 500
+EMBEDDING_DIM = 100
+probability_threshold = 0.4
