@@ -644,7 +644,8 @@ class ExportWinsBreakdownsDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/breakdowns'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_breakdowns_dataset',
+        schema='dit',
+        table_name='export_wins__breakdowns_dataset',
         field_mapping=[
             ('breakdown_type', sa.Column('type', sa.String)),
             ('id', sa.Column('id', sa.Integer, primary_key=True)),
@@ -660,7 +661,8 @@ class ExportWinsHVCDatasetPipeline(_DatasetPipeline):
 
     source_url = '{0}/datasets/hvc'.format(config.EXPORT_WINS_BASE_URL)
     table_config = TableConfig(
-        table_name='export_wins_hvc_dataset',
+        schema='dit',
+        table_name='export_wins__hvc_dataset',
         field_mapping=[
             ('campaign_id', sa.Column('campaign_id', sa.String)),
             ('financial_year', sa.Column('financial_year', sa.Integer)),
@@ -676,7 +678,8 @@ class ExportWinsWinsDatasetPipeline(_DatasetPipeline):
     source_url = '{0}/datasets/wins'.format(config.EXPORT_WINS_BASE_URL)
     allow_null_columns = True
     table_config = TableConfig(
-        table_name='export_wins_wins_dataset',
+        schema='dit',
+        table_name='export_wins__wins_dataset',
         field_mapping=[
             (
                 'associated_programme_1_display',

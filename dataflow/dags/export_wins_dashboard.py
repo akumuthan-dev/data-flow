@@ -26,7 +26,8 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
     ]
 
     table_config = TableConfig(
-        table_name="export_wins_dashboard_data",
+        schema=dit,
+        table_name="export_wins__dashboard_data",
         field_mapping=[
             (None, sa.Column("id", sa.Integer, primary_key=True, autoincrement=True)),
             ("EW ID", sa.Column("ew_id", UUID)),
