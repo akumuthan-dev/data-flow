@@ -46,6 +46,7 @@ def test_pipelines_dags():
         'DataWorkspaceApplicationInstancePipeline',
         'DataWorkspaceEventLogPipeline',
         'DataWorkspaceUserPipeline',
+        'DNBCompanyMatchingPipeline',
         'EnquiryMgmtEnquiriesPipeline',
         'ERPPipeline',
         'EventsDatasetPipeline',
