@@ -81,6 +81,15 @@ def _fetch(s3, trade_type, expected_keys):
         if year_obj['id'].lower() != 'all'
     ]
 
+    if trade_type == 'S':
+        # Comtrade API returns 404 for years before 2000 for services (HS) files, so we will just skip those years
+        # in this case in order to get back to a functioning pipeline.
+        years = filter(lambda o: int(o) >= 2000, years)
+    elif trade_type == 'C':
+        # Comtrade API returns 404 for years before 1988 for goods (C) files, so we will just skip those years
+        # in this case in order to get back to a functioning pipeline.
+        years = filter(lambda o: int(o) >= 1988, years)
+
     def paginate(items, num_per_page):
         page = []
         for item in items:
@@ -126,7 +135,7 @@ def _fetch(s3, trade_type, expected_keys):
         s3.write_key(output_filename, page)
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=20)
+@backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=10)
 def _download(source_url, params=()):
     logger.info(
         'Downloading %s %s',
