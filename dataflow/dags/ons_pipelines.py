@@ -19,6 +19,7 @@ class _ONSPipeline(_PipelineDAG):
             python_callable=fetch_from_ons_sparql,
             provide_context=True,
             op_args=[self.table_config.table_name, self.query, self.index_query],
+            retries=self.fetch_retries,
         )
 
 

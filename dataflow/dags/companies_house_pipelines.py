@@ -143,6 +143,7 @@ class CompaniesHouseCompaniesPipeline(_PipelineDAG):
                 self.source_url,
                 self.number_of_files,
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -204,4 +205,5 @@ class CompaniesHousePeopleWithSignificantControlPipeline(_PipelineDAG):
                 self.table_config.table_name,  # pylint: disable=no-member
                 self.source_url,
             ],
+            retries=self.fetch_retries,
         )

@@ -19,6 +19,7 @@ class _GatewayToResearchPipeline(_PipelineDAG):
             python_callable=fetch_from_gtr_api,
             provide_context=True,
             op_args=[self.table_config.table_name, self.resource_type],
+            retries=self.fetch_retries,
         )
 
 

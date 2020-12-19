@@ -81,6 +81,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
     # If True, the source_data_modified_utc metadata field will be set to the swap table task run utc.
     use_utc_now_as_source_modified: bool = False
 
+    # How many times the fetch operator should be retried if it fails
+    # Needs to be added to each fetch operator implementation.
+    fetch_retries = 3
+
     def get_fetch_operator(self) -> PythonOperator:
         raise NotImplementedError(
             f"{self.__class__} needs to override get_fetch_operator"

@@ -43,4 +43,5 @@ class GlobalUKTariffPipeline(_PipelineDAG):
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
+            retries=self.fetch_retries,
         )

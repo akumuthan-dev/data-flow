@@ -148,4 +148,5 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                 self.table_config.table.name,  # pylint: disable=no-member
                 self.source_url,
             ],
+            retries=self.fetch_retries,
         )

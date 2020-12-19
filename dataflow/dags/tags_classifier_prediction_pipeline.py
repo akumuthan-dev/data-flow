@@ -61,4 +61,5 @@ class TagsClassifierPredictionPipeline(_PipelineDAG):
             queue='tensorflow',
             provide_context=True,
             op_args=[self.target_db, self.query, self.table_config.table_name],
+            retries=self.fetch_retries,
         )

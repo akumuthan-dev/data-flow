@@ -101,4 +101,5 @@ class EnquiryMgmtEnquiriesPipeline(_PipelineDAG):
                 source_url=f"{config.ENQUIRY_MGMT_BASE_URL}/enquiries?page_size=1000&page=1",
                 hawk_credentials=config.ENQUIRY_MGMT_HAWK_CREDENTIALS,
             ),
+            retries=self.fetch_retries,
         )

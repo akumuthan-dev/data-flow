@@ -23,6 +23,7 @@ class _ActivityStreamPipeline(_PipelineDAG):
                 self.index,
                 self.query,
             ],
+            retries=self.fetch_retries,
         )
 
 

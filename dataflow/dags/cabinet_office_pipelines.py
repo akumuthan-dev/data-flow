@@ -85,4 +85,5 @@ class CabinetOfficeGenderPayGapPipeline(_PipelineDAG):
                 self.records_start_year,
                 self.transform_dataframe,
             ],
+            retries=self.fetch_retries,
         )

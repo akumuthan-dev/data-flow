@@ -144,6 +144,7 @@ class OxfordCovid19GovernmentResponseTracker(_PipelineDAG):
                 self.table_config.table_name,  # pylint: disable=no-member
                 self.source_url,
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -192,6 +193,7 @@ class CSSECovid19TimeSeriesGlobal(_PipelineDAG):
                 self.source_urls,
                 self.transform_dataframe,
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -281,6 +283,7 @@ class CSSECovid19TimeSeriesGlobalGroupedByCountry(_PipelineDAG):
                 self.target_db,
                 self.table_config.table_name,  # pylint: disable=no-member
             ],
+            retries=self.fetch_retries,
         )
         return op
 
@@ -387,6 +390,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
                 self.source_urls,
                 self.transform_dataframe,
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -503,4 +507,5 @@ class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
                 self.config_path,
                 self.transform_dataframe,
             ],
+            retries=self.fetch_retries,
         )

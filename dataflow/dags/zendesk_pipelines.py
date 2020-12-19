@@ -129,6 +129,7 @@ class ZendeskDITTicketsPipeline(_PipelineDAG):
             python_callable=fetch_daily_tickets,
             provide_context=True,
             op_args=[self.table_config.schema, self.table_config.table_name, "dit"],
+            retries=self.fetch_retries,
         )
 
 
@@ -192,6 +193,7 @@ class ZendeskUKTradeTicketsPipeline(_PipelineDAG):
                 self.table_config.table_name,
                 "uktrade",
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -230,6 +232,7 @@ class ZendeskUKTRadeGroupsPipeline(_PipelineDAG):
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
+            retries=self.fetch_retries,
         )
 
 
@@ -268,4 +271,5 @@ class ZendeskDITGroupsPipeline(_PipelineDAG):
             ),
             provide_context=True,
             op_args=[self.table_config.table_name, self.source_url],
+            retries=self.fetch_retries,
         )

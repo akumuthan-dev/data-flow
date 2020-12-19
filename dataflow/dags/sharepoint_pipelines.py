@@ -26,6 +26,7 @@ class _SharepointPipeline(_PipelineDAG):
                 self.sub_site_id,
                 self.list_id,
             ],
+            retries=self.fetch_retries,
         )
 
 
