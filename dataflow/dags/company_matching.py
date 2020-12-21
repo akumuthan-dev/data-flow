@@ -15,6 +15,10 @@ from dataflow.dags.dataset_pipelines import (
     CompaniesDatasetPipeline,
     ExportWinsWinsDatasetPipeline,
 )
+
+from dataflow.dags.dun_and_bradstreet_pipelines import DNBCompanyPipeline
+
+
 from dataflow.dags.dss_generic_pipelines import DSSGenericPipeline
 from dataflow.operators.company_matching import fetch_from_company_matching
 from dataflow.utils import TableConfig
@@ -194,4 +198,23 @@ class DSSHMRCExportersMatchingPipeline(_DSSGenericMatchingPipeline):
             datetime::timestamp as datetime
         FROM "{schema_name}"."{controller_table_name}"
         ORDER BY id asc, datetime::timestamp desc
+    """
+
+
+class DNBCompanyMatchingPipeline(_CompanyMatchingPipeline):
+    update = False
+    controller_pipeline = DNBCompanyPipeline
+    dependencies = [DNBCompanyPipeline]
+    company_match_query = f"""
+        SELECT distinct on (id)
+            id as id,
+            primary_name as company_name,
+            null as contact_email,
+            null as cdms_ref,
+            upper(replace(trim("address_country"), ' ', '')) as postcode,
+            duns_number as duns_number,
+            'dun_and_bradstreet.uk_companies' as source,
+            publish_date::timestamp as datetime
+        FROM {DNBCompanyPipeline.fq_table_name()}
+        ORDER BY id asc, publish_date::timestamp desc
     """
