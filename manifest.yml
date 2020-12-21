@@ -19,7 +19,7 @@ applications:
       disk_quota: 1G
       health_check_type: process
     - type: worker
-      memory: 1G
+      memory: 2G
       disk_quota: 1G
       health_check_type: process
     - type: tensorflow-worker
@@ -27,6 +27,6 @@ applications:
       disk_quota: 6G
       health_check_type: process
     - type: high-memory-worker
-      memory: 5G
+      memory: 10G
       disk_quota: 1G
       health_check_type: process
