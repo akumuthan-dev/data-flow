@@ -150,3 +150,5 @@ ENQUIRY_MGMT_HAWK_CREDENTIALS = {
     "key": os.environ.get("ENQUIRY_MGMT_HAWK_KEY") or "<invalid>",
     "algorithm": "sha256",
 }
+
+COMTRADE_TOKEN = os.environ.get("COMTRADE_TOKEN")

@@ -10,6 +10,8 @@ def test_pipelines_dags():
         'CabinetOfficeGenderPayGapPipeline',
         'CSSECovid19TimeSeriesGlobal',
         'CSSECovid19TimeSeriesGlobalGroupedByCountry',
+        'ComtradeGoodsPipeline',
+        'ComtradeServicesPipeline',
         'CompaniesDatasetPipeline',
         'CompaniesHouseCompaniesPipeline',
         'CompaniesHouseMatchingPipeline',
