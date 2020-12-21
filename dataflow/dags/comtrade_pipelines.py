@@ -12,6 +12,8 @@ from dataflow.utils import TableConfig
 
 
 class ComtradeGoodsPipeline(_PipelineDAG):
+    schedule_interval = "0 1 * * 6"  # Every Saturday morning
+
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id="fetch-comtrade-goods-data",
@@ -79,6 +81,8 @@ class ComtradeGoodsPipeline(_PipelineDAG):
 
 
 class ComtradeServicesPipeline(_PipelineDAG):
+    schedule_interval = "0 1 * * 6"  # Every Saturday morning
+
     allow_null_columns = True
 
     def get_fetch_operator(self) -> PythonOperator:
