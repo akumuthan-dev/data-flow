@@ -110,9 +110,9 @@ class PeopleFinderPeoplePipeline(_PipelineDAG):
                 fetch_from_jwt_api,
                 secret=b64decode(str(config.PEOPLE_FINDER_PRIVATE_KEY), validate=True),
                 algorithm="RS512",
-                payload={
+                payload_builder=lambda: {
                     "fullpath": self.path,
-                    "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=60),
+                    "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=10),
                 },
             ),
             provide_context=True,

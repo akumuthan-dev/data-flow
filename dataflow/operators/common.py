@@ -1,7 +1,7 @@
 import codecs
 import csv
 from contextlib import closing
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional, Union, Callable
 
 import backoff
 import jwt
@@ -110,16 +110,38 @@ def fetch_from_hawk_api(
 def fetch_from_jwt_api(
     table_name: str,
     source_url: str,
-    payload: dict,
     secret: Union[bytes, str],
     algorithm: str,
+    payload: Optional[dict] = None,
+    payload_builder: Optional[Callable] = None,
     results_key: Optional[str] = "results",
     next_key: Optional[str] = "next",
     **kwargs,
 ):
-    auth_token = jwt.encode(payload, secret, algorithm=algorithm).decode("utf-8")
+    if (payload is None and payload_builder is None) or (
+        payload is not None and payload_builder is not None
+    ):
+        raise ValueError(
+            "You must provide exactly one of `payload` and `payload_builder`"
+        )
+
+    if payload:
+        kwargs['auth_token'] = jwt.encode(payload, secret, algorithm=algorithm).decode(
+            "utf-8"
+        )
+
+    elif payload_builder:
+        kwargs['auth_token_builder'] = lambda: jwt.encode(
+            payload_builder(), secret, algorithm=algorithm
+        ).decode("utf-8")
+
     fetch_from_api_endpoint(
-        table_name, source_url, auth_token, results_key, next_key, 'Bearer', **kwargs
+        table_name,
+        source_url,
+        results_key=results_key,
+        next_key=next_key,
+        auth_type='Bearer',
+        **kwargs,
     )
 
 
@@ -127,26 +149,36 @@ def fetch_from_api_endpoint(
     table_name: str,
     source_url: str,
     auth_token: Optional[str] = None,
+    auth_token_builder: Optional[Callable] = None,
     results_key: Optional[str] = "results",
     next_key: Optional[str] = "next",
     auth_type: Optional[str] = "Token",
     extra_headers: Optional[Mapping] = None,
     **kwargs,
 ):
+    if (auth_token is None and auth_token_builder is None) or (
+        auth_token is not None and auth_token_builder is not None
+    ):
+        raise ValueError(
+            "You must provide exactly one of `auth_token` and `auth_token_builder`"
+        )
+
     s3 = S3Data(table_name, kwargs["ts_nodash"])
     total_records = 0
     page = 1
 
     while True:
-        response = requests.get(
-            source_url,
-            headers={
-                'Authorization': f'{auth_type} {auth_token}',
-                **(extra_headers or {}),
-            }
-            if auth_token
-            else None,
-        )
+        if auth_token:
+            request_headers = {"Authorization": f'{auth_type} {auth_token}'}
+        elif auth_token_builder:
+            request_headers = {"Authorization": f'{auth_type} {auth_token_builder()}'}
+        else:
+            request_headers = {}
+
+        if extra_headers:
+            request_headers = {**request_headers, **extra_headers}
+
+        response = requests.get(source_url, headers=request_headers)
 
         try:
             response.raise_for_status()
