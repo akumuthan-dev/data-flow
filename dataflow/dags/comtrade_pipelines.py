@@ -21,6 +21,7 @@ class ComtradeGoodsPipeline(_PipelineDAG):
             queue='high-memory-usage',
             provide_context=True,
             op_args=[self.table_config.table_name],  # pylint: disable=no-member
+            retries=self.fetch_retries,
         )
 
     table_config = TableConfig(
@@ -91,6 +92,7 @@ class ComtradeServicesPipeline(_PipelineDAG):
             python_callable=fetch_comtrade_services_data,
             provide_context=True,
             op_args=[self.table_config.table_name],  # pylint: disable=no-member
+            retries=self.fetch_retries,
         )
 
     table_config = TableConfig(

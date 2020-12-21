@@ -8,7 +8,6 @@ from dataflow.operators.tags_classifier.train.train import (
 
 
 class TagsClassifierTrainPipeline(_PipelineDAG):
-
     schedule_interval = (
         None  # For now we trigger the pipeline manually when training data is uploaded
     )
@@ -33,4 +32,5 @@ class TagsClassifierTrainPipeline(_PipelineDAG):
             queue='tensorflow',
             provide_context=True,
             op_args=[self.table_config.table_name],
+            retries=self.fetch_retries,
         )

@@ -1,5 +1,7 @@
 from airflow.models.dagbag import DagBag
 
+from tests.unit.utils import get_fetch_retries_for_all_concrete_dags
+
 
 def test_pipelines_dags():
     dagbag = DagBag('dataflow', include_examples=False)
@@ -115,3 +117,12 @@ def test_pipelines_dags():
         'ZendeskUKTradeTicketsPipeline',
         'ZendeskUKTRadeGroupsPipeline',
     }
+
+
+def test_standard_dags_have_some_fetch_retries():
+    fetch_retries_by_dag_name = get_fetch_retries_for_all_concrete_dags()
+
+    for dag_class_name, fetch_retries in fetch_retries_by_dag_name.items():
+        assert (
+            fetch_retries > 0
+        ), f"{dag_class_name} does not have any retries configured for its fetch operator"

@@ -26,6 +26,7 @@ class _HMRCPipeline(_PipelineDAG):
                 self.base_filename,
                 self.records_start_year,
             ],
+            retries=self.fetch_retries,
         )
 
 

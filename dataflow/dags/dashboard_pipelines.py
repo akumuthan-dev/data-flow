@@ -35,6 +35,7 @@ class _SQLPipelineDAG(_PipelineDAG):
                 self.target_db,
                 self.table_config.table_name,  # pylint: disable=no-member
             ],
+            retries=self.fetch_retries,
         )
 
 

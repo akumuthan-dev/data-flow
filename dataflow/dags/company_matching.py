@@ -65,6 +65,7 @@ class _CompanyMatchingPipeline(_PipelineDAG):
                 config.MATCHING_SERVICE_BATCH_SIZE,
                 self.update,
             ],
+            retries=self.fetch_retries,
         )
 
 

@@ -22,8 +22,6 @@ class _DatasetPipeline(_PipelineDAG):
     use_utc_now_as_source_modified = True
     source_url: str
 
-    fetch_retries = 3
-
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
             task_id='run-fetch',
@@ -391,6 +389,7 @@ class ContactsDatasetPipeline(_DatasetPipeline):
                 self.target_db,
                 self.table_config.tables[0],  # pylint: disable=no-member
             ],
+            retries=self.fetch_retries,
         )
 
 
@@ -433,6 +432,7 @@ class ContactsLastInteractionPipeline(_DatasetPipeline):
                 self.target_db,
                 self.table_config.table_name,  # pylint: disable=no-member
             ],
+            retries=self.fetch_retries,
         )
         return op
 
@@ -571,6 +571,7 @@ class AdvisersLastInteractionPipeline(_DatasetPipeline):
                 self.target_db,
                 self.table_config.table_name,  # pylint: disable=no-member
             ],
+            retries=self.fetch_retries,
         )
         return op
 
