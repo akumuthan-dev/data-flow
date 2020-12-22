@@ -156,11 +156,9 @@ def fetch_from_api_endpoint(
     extra_headers: Optional[Mapping] = None,
     **kwargs,
 ):
-    if (auth_token is None and auth_token_builder is None) or (
-        auth_token is not None and auth_token_builder is not None
-    ):
+    if auth_token is not None and auth_token_builder is not None:
         raise ValueError(
-            "You must provide exactly one of `auth_token` and `auth_token_builder`"
+            "You can provide at most one of `auth_token` and `auth_token_builder`"
         )
 
     s3 = S3Data(table_name, kwargs["ts_nodash"])
