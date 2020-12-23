@@ -9,7 +9,7 @@ from dataflow.operators.comtrade import (
     fetch_comtrade_goods_data_frames,
     fetch_comtrade_services_data,
 )
-from dataflow.utils import TableConfig, SingleTableConfig
+from dataflow.utils import TableConfig, SingleTableConfig, LateIndex
 
 
 class ComtradeGoodsPipeline(_PandasPipelineWithPollingSupport):
@@ -56,6 +56,16 @@ class ComtradeGoodsPipeline(_PandasPipelineWithPollingSupport):
                 sa.Column('quantity_unit_code', sa.BigInteger, nullable=False),
             ),
             ('Trade Value (US$)', sa.Column('trade_value_usd', sa.Numeric)),
+        ],
+        indexes=[
+            LateIndex('classification'),
+            LateIndex('period'),
+            LateIndex('period_desc'),
+            LateIndex('year'),
+            LateIndex('aggregate_level'),
+            LateIndex('is_leaf_code'),
+            LateIndex('reporter_code'),
+            LateIndex('partner_code'),
         ],
     )
 

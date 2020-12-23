@@ -1,13 +1,14 @@
 import datetime
 import os
 import warnings
+from hashlib import md5
 from time import sleep
-from typing import Tuple, Dict, Optional, TYPE_CHECKING
+from typing import Tuple, Dict, Optional, TYPE_CHECKING, List
 from urllib.parse import urlparse
 
 import psycopg3
 import sqlalchemy as sa
-from sqlalchemy import text
+from sqlalchemy import text, Index
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.api.common.experimental.get_task_instance import get_task_instance
@@ -23,6 +24,7 @@ from dataflow.utils import (
     TableConfig,
     SingleTableFieldMapping,
     logger,
+    LateIndex,
 )
 
 if TYPE_CHECKING:
@@ -85,7 +87,6 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
 
     Table names are unique for each DAG run and use target table name as a prefix
     and current DAG execution timestamp as a suffix.
-
     """
 
     engine = sa.create_engine(
@@ -101,6 +102,70 @@ def create_temp_tables(target_db: str, *tables: sa.Table, **kwargs):
             conn.execute(f"CREATE SCHEMA IF NOT EXISTS {table.schema}")
             logger.info("Creating %s", table.name)
             table.create(conn, checkfirst=True)
+
+
+def create_temp_table_indexes(target_db: str, table_config: TableConfig, **kwargs):
+    """
+    Applies TableConfig.indexes to a pre-existing and pre-populated table. This is far more efficient for large datasets
+    than having the index in-place when data is being inserted.
+
+    This task processes the contents of `TableConfig.indexes`.
+
+    It only applies indexes from the root table in a TableConfig right now.
+    """
+
+    if table_config.indexes is None:
+        return
+
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+
+    def _get_sa_index_and_metadata(
+        table_config: TableConfig, index: LateIndex
+    ) -> Tuple[sa.Index, str, List[str]]:
+        """
+        Returns a sqlalchemy.Index object for the given LateIndex object. The name is created in a pseudo-random
+        way but is reproducible based on the inputs:
+
+        1) Pipeline timestamp
+        2) Table name
+        3) All of the columns in the index
+
+        The index name created is relatively user-unfriendly, but it avoids the case where the inputs exceed the max
+        length of Postgres identifiers and get truncated, which has caused problems historically.
+        """
+        cols = [index.columns] if isinstance(index.columns, str) else index.columns
+        index_name_parts = [table_config.schema, table_config.table_name] + cols
+        index_hash = md5('\n'.join(index_name_parts).encode('utf-8')).hexdigest()[:32]
+        index_suffix = 'key' if index.unique else 'idx'
+        index_type = 'unique index' if index.unique else 'index'
+        index_name = f'{kwargs["ts_nodash"]}_{index_hash}_{index_suffix}'
+        sa_index = Index(index_name, *cols, unique=index.unique)
+        return sa_index, index_type, cols
+
+    with engine.begin() as conn:
+        conn.execute(
+            "SET statement_timeout = 1800000"
+        )  # 30-minute timeout on index creation - should be plenty generous
+
+        table = get_temp_table(table_config.table, kwargs["ts_nodash"])
+        indexes = []
+        for index in table_config.indexes:
+            sa_index, index_type, cols = _get_sa_index_and_metadata(table_config, index)
+            table.append_constraint(sa_index)
+            indexes.append((sa_index, index_type, cols))
+
+        for sa_index, index_type, cols in indexes:
+            logger.info(
+                "Creating %s %s on %s (%s)",
+                index_type,
+                sa_index.name,
+                table.fullname,
+                ', '.join(cols),
+            )
+            sa_index.create(conn)
 
 
 def _get_data_to_insert(field_mapping: SingleTableFieldMapping, record: Dict):
@@ -584,6 +649,8 @@ def scrape_load_and_check_data(
                     del data_frame
 
             logger.info("Copy complete.")
+
+    create_temp_table_indexes(target_db, table_config, **kwargs)
 
     check_table_data(
         target_db,

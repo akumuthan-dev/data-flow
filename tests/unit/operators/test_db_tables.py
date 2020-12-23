@@ -10,7 +10,7 @@ import sqlalchemy
 from dataflow.dags import _PandasPipelineWithPollingSupport
 from dataflow.operators import db_tables
 from dataflow.operators.db_tables import branch_on_modified_date
-from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig
+from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig, LateIndex
 
 
 @pytest.fixture
@@ -388,6 +388,47 @@ def test_branch_on_modified_date(
     )
 
     assert next_task == expected_result
+
+
+def test_create_post_insert_indexes(mocker):
+    table_config = TableConfig(
+        'test_table',
+        field_mapping=(
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer, primary_key=True)),
+            ('val', sqlalchemy.Column('val', sqlalchemy.Integer, primary_key=True)),
+        ),
+        indexes=[LateIndex('id'), LateIndex('val'), LateIndex(['id', 'val'])],
+    )
+    mock_create_engine = mocker.patch.object(
+        db_tables.sa, "create_engine", autospec=True
+    )
+    mock_conn = (
+        mock_create_engine.return_value.begin.return_value.__enter__.return_value
+    )
+
+    table = mock.Mock()
+    mocker.patch.object(db_tables, "get_temp_table", autospec=True, return_value=table)
+
+    db_tables.create_temp_table_indexes("test-db", table_config, ts_nodash="123")
+
+    # Check created Index name
+    assert (
+        mock_conn._run_visitor.call_args_list[0][0][1].name
+        == '123_59f1e1147ff2da92e1ca2f3a52ec8157_idx'
+    )
+    assert (
+        mock_conn._run_visitor.call_args_list[1][0][1].name
+        == '123_9211871718759480d33d0e473cda168c_idx'
+    )
+    assert (
+        mock_conn._run_visitor.call_args_list[2][0][1].name
+        == '123_acf742aa585d24563579f75baa594e81_idx'
+    )
+
+    # Check created Index column(s)
+    assert mock_conn._run_visitor.call_args_list[0][0][1].expressions == ['id']
+    assert mock_conn._run_visitor.call_args_list[1][0][1].expressions == ['val']
+    assert mock_conn._run_visitor.call_args_list[2][0][1].expressions == ['id', 'val']
 
 
 class TestPollForNewData:

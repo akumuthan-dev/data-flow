@@ -1,6 +1,10 @@
+import pytest
 from airflow.models.dagbag import DagBag
 
-from tests.unit.utils import get_fetch_retries_for_all_concrete_dags
+from tests.unit.utils import (
+    get_fetch_retries_for_all_concrete_dags,
+    get_dags_with_non_pk_indexes_on_sqlalchemy_columns,
+)
 
 
 def test_pipelines_dags():
@@ -126,3 +130,18 @@ def test_standard_dags_have_some_fetch_retries():
         assert (
             fetch_retries > 0
         ), f"{dag_class_name} does not have any retries configured for its fetch operator"
+
+
+@pytest.mark.xfail
+def test_standard_dags_do_not_use_indexes_directly_on_sqlalchemy_column_definitions():
+    """
+    We should be moving away from using sa.Column(index=True) to using TableConfig.indexes=[LateIndex(), ...] as
+    the latter is more efficient.
+
+    This test can be removed when we have migrated all of the existing pipelines across to the new standard and is
+    expected (and accepted) to fail until then.
+    """
+    dags_with_indexes_on_sa_columns = (
+        get_dags_with_non_pk_indexes_on_sqlalchemy_columns()
+    )
+    assert dags_with_indexes_on_sa_columns == []
