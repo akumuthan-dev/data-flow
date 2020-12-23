@@ -481,6 +481,24 @@ class _PandasPipelineWithPollingSupport(SkipMixin, metaclass=PipelineMeta):
             queue=self.worker_queue,
         )
 
+        if self.table_config.indexes is not None:
+            _create_post_insert_indexes = PythonOperator(
+                task_id='create-post-insert-indexes',
+                python_callable=create_temp_table_indexes,
+                provide_context=True,
+                op_args=[self.target_db, self.table_config],
+            )
+        else:
+            _create_post_insert_indexes = None
+
+        _check_tables = PythonOperator(
+            task_id="check-temp-table-data",
+            python_callable=check_table_data,
+            provide_context=True,
+            op_args=[self.target_db, *self.table_config.tables],
+            op_kwargs={'allow_null_columns': self.allow_null_columns},
+        )
+
         _swap_dataset_tables = PythonOperator(
             task_id="swap-dataset-table",
             dag=dag,
@@ -521,14 +539,23 @@ class _PandasPipelineWithPollingSupport(SkipMixin, metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
-        if _poll_for_updates:
-            _poll_for_updates >> _scrape_load_and_check
+        task_chain = []
 
-        (
-            _scrape_load_and_check
-            >> _swap_dataset_tables
-            >> [_drop_swap_tables, _drop_temp_tables]
-        )
+        if _poll_for_updates:
+            task_chain.append(_poll_for_updates)
+
+        task_chain.append(_scrape_load_and_check)
+
+        if _create_post_insert_indexes:
+            task_chain.append(_create_post_insert_indexes)
+
+        task_chain.append(_check_tables)
+        task_chain.append(_swap_dataset_tables)
+        task_chain.append(_drop_swap_tables)
+
+        chain(*task_chain)
+
+        _scrape_load_and_check >> _drop_temp_tables
 
         if _send_dataset_updated_emails:
             _swap_dataset_tables >> _send_dataset_updated_emails

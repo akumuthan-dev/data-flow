@@ -649,12 +649,3 @@ def scrape_load_and_check_data(
                     del data_frame
 
             logger.info("Copy complete.")
-
-    create_temp_table_indexes(target_db, table_config, **kwargs)
-
-    check_table_data(
-        target_db,
-        *table_config.tables,
-        allow_null_columns=pipeline_instance.allow_null_columns,
-        **kwargs,
-    )
