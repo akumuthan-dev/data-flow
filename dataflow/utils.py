@@ -150,7 +150,7 @@ class TableConfig:
 
 class SingleTableConfig(TableConfig):
     # A TableConfig that doesn't support any nested tables, for cases where our current code doesn't support building
-    # related tables (e.g. _FastPollingPipeline).
+    # related tables (e.g. _PandasPipelineWithPollingSupport).
     field_mapping: SingleTableFieldMapping
 
 

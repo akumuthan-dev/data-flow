@@ -1,10 +1,11 @@
 import datetime
-import tempfile
+import os
 import warnings
 from time import sleep
 from typing import Tuple, Dict, Optional, TYPE_CHECKING
+from urllib.parse import urlparse
 
-from pandas import DataFrame
+import psycopg3
 import sqlalchemy as sa
 from sqlalchemy import text
 from airflow import AirflowException
@@ -25,7 +26,7 @@ from dataflow.utils import (
 )
 
 if TYPE_CHECKING:
-    from dataflow.dags import _FastPollingPipeline  # noqa
+    from dataflow.dags import _PandasPipelineWithPollingSupport  # noqa
 
 
 class MissingDataError(ValueError):
@@ -449,7 +450,7 @@ def drop_swap_tables(target_db: str, *tables, **kwargs):
 def poll_for_new_data(
     target_db: str,
     table_config: TableConfig,
-    pipeline_instance: "_FastPollingPipeline",
+    pipeline_instance: "_PandasPipelineWithPollingSupport",
     **kwargs,
 ):
     engine = sa.create_engine(
@@ -527,48 +528,62 @@ def poll_for_new_data(
 def scrape_load_and_check_data(
     target_db: str,
     table_config: TableConfig,
-    pipeline_instance: "_FastPollingPipeline",
+    pipeline_instance: "_PandasPipelineWithPollingSupport",
     **kwargs,
 ):
     create_temp_tables(target_db, *table_config.tables, **kwargs)
 
     temp_table = get_temp_table(table_config.table, suffix=kwargs['ts_nodash'])
 
-    data: DataFrame = pipeline_instance.__class__.data_getter()
+    data_frames = pipeline_instance.__class__.data_getter()
 
-    with tempfile.NamedTemporaryFile('r') as data_file:
-        logger.info("Writing data to disk as CSV")
+    parsed_uri = urlparse(os.environ['AIRFLOW_CONN_DATASETS_DB'])
+    host, port, dbname, user, password = (
+        parsed_uri.hostname,
+        parsed_uri.port or 5432,
+        parsed_uri.path.strip('/'),
+        parsed_uri.username,
+        parsed_uri.password,
+    )
+    # Psycopg3 is still under active development, but crucially has support for generating data and pushing it to
+    # postgres efficiently via `cursor.copy` and the COPY protocol.
+    with psycopg3.connect(
+        f'host={host} port={port} dbname={dbname} user={user} password={password}'
+    ) as connection:
+        with connection.cursor() as cursor:
+            logger.info("Starting streaming copy to DB")
 
-        # We write to disk here instead of keeping it in memory as the latter is a more contested resource, and disk
-        # is still fast enough for the time being.
-        data.to_csv(
-            data_file.name,
-            index=False,
-            header=False,
-            sep='\t',
-            na_rep=r'\N',
-            columns=[data_column for data_column, sa_column in table_config.columns],
-        )
-        logger.info("Write complete.")
+            records_num = 0
+            df_num = 0
+            with cursor.copy(
+                f'COPY "{temp_table.schema}"."{temp_table.name}" FROM STDIN'
+            ) as copy:
+                for data_frame in data_frames:
+                    df_num += 1
+                    df_len = len(data_frame)
+                    records_num += df_len
 
-        data_file.seek(0)
+                    logger.info(
+                        "Copying data frame #%s (records %s - %s)",
+                        df_num,
+                        records_num - df_len,
+                        records_num,
+                    )
+                    copy.write(
+                        data_frame.to_csv(
+                            index=False,
+                            header=False,
+                            sep='\t',
+                            na_rep=r'\N',
+                            columns=[
+                                data_column
+                                for data_column, sa_column in table_config.columns
+                            ],
+                        )
+                    )
+                    del data_frame
 
-        with PostgresHook(postgres_conn_id=target_db).get_conn() as connection:
-            with connection.cursor() as cursor:
-                logger.info("Starting data copy from disk to DB")
-
-                # We use a postgres-native copy in order to efficiently load larger datasets.
-                cursor.copy_from(
-                    data_file,
-                    f'"{temp_table.schema}"."{temp_table.name}"',
-                    sep='\t',
-                    null=r'\N',
-                    columns=[
-                        sa_column.name
-                        for data_column, sa_column in table_config.columns
-                    ],
-                )
-                logger.info("Copy complete.")
+            logger.info("Copy complete.")
 
     check_table_data(
         target_db,

@@ -3,10 +3,11 @@ from unittest import mock
 from unittest.mock import call
 
 import freezegun
+import pandas
 import pytest
 import sqlalchemy
 
-from dataflow.dags import _FastPollingPipeline
+from dataflow.dags import _PandasPipelineWithPollingSupport
 from dataflow.operators import db_tables
 from dataflow.operators.db_tables import branch_on_modified_date
 from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig
@@ -390,7 +391,7 @@ def test_branch_on_modified_date(
 
 
 class TestPollForNewData:
-    class TestPipeline(_FastPollingPipeline):
+    class TestPipeline(_PandasPipelineWithPollingSupport):
         @staticmethod
         def date_checker():
             return (datetime.now(), datetime.now())
@@ -551,21 +552,34 @@ class TestPollForNewData:
         ]
 
 
-def test_poll_scrape_and_load_data(mocker):
-    class TestPipeline(_FastPollingPipeline):
+def test_poll_scrape_and_load_data(mocker, monkeypatch):
+    class TestPipeline(_PandasPipelineWithPollingSupport):
         @staticmethod
         def date_checker():
             return datetime.now()
 
-        data_getter = mock.Mock()
+        @staticmethod
+        def data_getter():
+            return [
+                pandas.DataFrame(
+                    [{"data_id": 1, "val": 50}, {"data_id": 2, "val": 999}]
+                )
+            ]
+
         daily_end_time_utc = time(17, 0, 0)
         allow_null_columns = False
         table_config = TableConfig(
             schema='test',
             table_name="test_table",
-            field_mapping=[("data_id", sqlalchemy.Column("db_id", sqlalchemy.Integer))],
+            field_mapping=[
+                ("data_id", sqlalchemy.Column("db_id", sqlalchemy.Integer)),
+                ("val", sqlalchemy.Column("val", sqlalchemy.Integer)),
+            ],
         )
 
+    monkeypatch.setenv(
+        'AIRFLOW_CONN_DATASETS_DB', 'postgresql+psycopg2://foo:foo@db:5432/datasets'
+    )
     table = mock.Mock()
     mock_create_tables = mocker.patch.object(
         db_tables, "create_temp_tables", autospec=True
@@ -580,15 +594,10 @@ def test_poll_scrape_and_load_data(mocker):
     )
     mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
     mock_postgres = mocker.patch(
-        "dataflow.operators.db_tables.PostgresHook", autospec=True
+        "dataflow.operators.db_tables.psycopg3.connect", autospec=True
     )
-    mock_conn = mock_postgres.return_value.get_conn.return_value.__enter__.return_value
-    mock_cursor = mock_conn.cursor.return_value.__enter__.return_value
-    mock_tempfile = mocker.patch("dataflow.operators.db_tables.tempfile", autospec=True)
-    mock_namedtempfile = (
-        mock_tempfile.NamedTemporaryFile.return_value.__enter__.return_value
-    )
-    mock_namedtempfile.name = "tmp_file"
+    mock_cursor = mock_postgres().__enter__().cursor()
+    mock_copy_write = mock_cursor.__enter__().copy().__enter__().write
 
     kwargs = dict(
         ts_nodash='123',
@@ -617,28 +626,7 @@ def test_poll_scrape_and_load_data(mocker):
             task_instance=mock.ANY,
         )
     ]
-    assert (
-        TestPipeline.data_getter.return_value.to_csv.call_args_list  # pylint: disable=no-member
-        == [
-            mock.call(
-                mock_namedtempfile.name,
-                index=False,
-                header=False,
-                sep='\t',
-                na_rep=r'\N',
-                columns=["data_id"],
-            )
-        ]
-    )
-    assert mock_cursor.copy_from.call_args_list == [
-        mock.call(
-            mock_namedtempfile,
-            '"test"."tmp_test_table"',
-            sep='\t',
-            null=r'\N',
-            columns=["db_id"],
-        )
-    ]
+    assert mock_copy_write.call_args_list == [mock.call("1\t50\n2\t999\n")]
     assert mock_check_table_data.call_args_list == [
         mock.call(
             'test-db',

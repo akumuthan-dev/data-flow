@@ -350,12 +350,17 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
         return dag
 
 
-class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
+class _PandasPipelineWithPollingSupport(SkipMixin, metaclass=PipelineMeta):
     """
-    A pipeline that continuously polls (within a given period) for updates to a dataset and then aims to process
-    and upload that data as fast as practicable, to support more time-sensitive workflows. The pipeline minimises time
-    by skipping or condensing steps that are in the standard `_PipelineDAG`, e.g. uploading data to S3 and splitting
-    steps out into separate tasks.
+    A pipeline that combines the 'fetch' and 'insert' steps of a standard pipeline, and uses pandas DataFrames to
+    efficiently insert large amounts of data to the target table.
+
+    This pipeline should currently only be used when the provided optimisation is required.
+
+    There is also support for a 'polling' step at the start of the pipeline, which will continuously check
+    (within a given period) for updates to a dataset and then aims to process and upload that data as fast as
+    practicable, to support more time-sensitive workflows. This polling step could probably be moved to the
+    standard pipeline eventually - but at the moment it is not needed there.
     """
 
     target_db: str = config.DATASETS_DB_NAME
@@ -376,6 +381,10 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
     data_getter: Callable
 
     table_config: SingleTableConfig
+
+    # Whether to use a polling task to check for new data over a long period of time, as opposed to just
+    # assuming new data is available and ingesting immediately.
+    use_polling = True
 
     # How often to poll the data source to read it's "last modified" date.
     polling_interval_in_seconds = 60
@@ -427,17 +436,20 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             else None,
         )
 
-        _poll_for_updates = PythonOperator(
-            task_id='poll-for-new-data',
-            python_callable=poll_for_new_data,
-            op_kwargs=dict(
-                target_db=self.target_db,
-                table_config=self.table_config,
-                pipeline_instance=self,
-            ),
-            dag=dag,
-            provide_context=True,
-        )
+        if self.use_polling:
+            _poll_for_updates = PythonOperator(
+                task_id='poll-for-new-data',
+                python_callable=poll_for_new_data,
+                op_kwargs=dict(
+                    target_db=self.target_db,
+                    table_config=self.table_config,
+                    pipeline_instance=self,
+                ),
+                dag=dag,
+                provide_context=True,
+            )
+        else:
+            _poll_for_updates = None
 
         _scrape_load_and_check = PythonOperator(
             task_id='scrape-and-load-data',
@@ -492,9 +504,11 @@ class _FastPollingPipeline(SkipMixin, metaclass=PipelineMeta):
             op_args=[self.target_db, *self.table_config.tables],
         )
 
+        if _poll_for_updates:
+            _poll_for_updates >> _scrape_load_and_check
+
         (
-            _poll_for_updates
-            >> _scrape_load_and_check
+            _scrape_load_and_check
             >> _swap_dataset_tables
             >> [_drop_swap_tables, _drop_temp_tables]
         )

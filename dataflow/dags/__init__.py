@@ -1,1 +1,5 @@
-from .base import _PipelineDAG, _CSVPipelineDAG, _FastPollingPipeline  # noqa
+from .base import (  # noqa
+    _PipelineDAG,
+    _CSVPipelineDAG,
+    _PandasPipelineWithPollingSupport,
+)

@@ -4,7 +4,7 @@ https://github.com/GSS-Cogs/family-trade/blob/fca3be954d0b4ed216a4a0989182b19a5c
 """
 
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import gssutils
 import pandas
@@ -16,7 +16,7 @@ from gssutils import Excel
 DATASET_URL = 'https://www.ons.gov.uk/businessindustryandtrade/internationaltrade/datasets/uktradeinservicesservicetypebypartnercountrynonseasonallyadjusted'
 
 
-def process_data() -> pandas.DataFrame:
+def process_data() -> List[pandas.DataFrame]:
     print(datetime.now(), 'process_data start')
 
     YEAR_RE = re.compile(r'[0-9]{4}')
@@ -171,7 +171,7 @@ def process_data() -> pandas.DataFrame:
 
     print(datetime.now(), f'process_data finished', len(new_table))
 
-    return new_table
+    return [new_table]
 
 
 def get_current_and_next_release_date() -> Tuple[datetime, Optional[datetime]]:
