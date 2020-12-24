@@ -630,9 +630,6 @@ def test_poll_scrape_and_load_data(mocker, monkeypatch):
     )
     mock_temp_table.return_value.name = 'tmp_test_table'
     mock_temp_table.return_value.schema = 'test'
-    mock_check_table_data = mocker.patch.object(
-        db_tables, "check_table_data", autospec=True
-    )
     mocker.patch("dataflow.operators.db_tables.sleep", autospec=True)
     mock_postgres = mocker.patch(
         "dataflow.operators.db_tables.psycopg3.connect", autospec=True
@@ -668,15 +665,3 @@ def test_poll_scrape_and_load_data(mocker, monkeypatch):
         )
     ]
     assert mock_copy_write.call_args_list == [mock.call("1\t50\n2\t999\n")]
-    assert mock_check_table_data.call_args_list == [
-        mock.call(
-            'test-db',
-            mock.ANY,
-            allow_null_columns=False,
-            ts_nodash='123',
-            dag=mock.ANY,
-            dag_run=mock.ANY,
-            ti=mock.ANY,
-            task_instance=mock.ANY,
-        )
-    ]

@@ -29,6 +29,7 @@ def get_polling_dag_tasks(with_emails=False):
     tasks = {
         "poll-for-new-data",
         "scrape-and-load-data",
+        "check-temp-table-data",
         "swap-dataset-table",
         "drop-swap-tables",
         "drop-temp-tables",
