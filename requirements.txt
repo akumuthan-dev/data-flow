@@ -105,6 +105,7 @@ prometheus-client==0.8.0  # via data-flow-metrics, flower
 prompt-toolkit==3.0.7     # via ipython
 psutil==5.7.2             # via apache-airflow
 psycopg2-binary==2.8.6    # via apache-airflow
+git+https://github.com/psycopg/psycopg3.git@f045d822ca3c375b62657b55a6dd88daae4548a5#subdirectory=psycopg3  # via -r requirements.in
 ptyprocess==0.6.0         # via pexpect
 pycparser==2.20           # via cffi
 pyexcel-ezodf==0.3.4      # via pyexcel-ods3
@@ -151,7 +152,7 @@ texttable==1.6.3          # via pyexcel
 thrift==0.13.0            # via apache-airflow
 tornado==5.1.1            # via apache-airflow, flower
 traitlets==5.0.4          # via ipython
-typing-extensions==3.7.4.3  # via -r requirements.in
+typing-extensions==3.7.4.3  # via -r requirements.in, psycopg3
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 unidecode==1.1.1          # via gssutils

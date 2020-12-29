@@ -117,6 +117,7 @@ prompt-toolkit==3.0.7     # via -r requirements.txt, ipython
 protobuf==3.14.0          # via tensorboard, tensorflow
 psutil==5.7.2             # via -r requirements.txt, apache-airflow
 psycopg2-binary==2.8.6    # via -r requirements.txt, apache-airflow
+git+https://github.com/psycopg/psycopg3.git@f045d822ca3c375b62657b55a6dd88daae4548a5#subdirectory=psycopg3  # via -r requirements.txt
 ptyprocess==0.6.0         # via -r requirements.txt, pexpect
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via pyasn1-modules, rsa
@@ -171,7 +172,7 @@ texttable==1.6.3          # via -r requirements.txt, pyexcel
 thrift==0.13.0            # via -r requirements.txt, apache-airflow
 tornado==5.1.1            # via -r requirements.txt, apache-airflow, flower
 traitlets==5.0.4          # via -r requirements.txt, ipython
-typing-extensions==3.7.4.3  # via -r requirements.txt
+typing-extensions==3.7.4.3  # via -r requirements.txt, psycopg3
 tzlocal==1.5.1            # via -r requirements.txt, apache-airflow, pendulum
 unicodecsv==0.14.1        # via -r requirements.txt, apache-airflow
 unidecode==1.1.1          # via -r requirements.txt, gssutils

@@ -58,6 +58,20 @@ class Transform(Protocol):
 
 
 @dataclass
+class LateIndex:
+    """Data-Flow-specific class for adding indexes to pipeline tables. These indexes are "late" because they are setup
+     *after* the data has been inserted into the table. This provides significant efficiency gains on larger datasets.
+
+    The data in this class is used to build a sqlalchemy Index instance. We don't use that class natively because it
+    expects an index name to be specified, and we want the names to be automatically generated so we can be sure
+    they will reliably fit within the 64-character Postgres identifier limit.
+    """
+
+    columns: Union[str, List[str]]
+    unique: bool = False
+
+
+@dataclass
 class TableConfig:
     """Wrapper for all the information needed to define how data (e.g. from an API) should be processed and
     ingested into a database, including which fields to pull out and any transformations to apply.
@@ -76,6 +90,14 @@ class TableConfig:
     # do not have a reference to the main record, you'll need to apply a custom transform to pull that data in.
     # See DataHubSPIPipeline for an example.
     field_mapping: FieldMapping
+
+    # Indexes to apply to the columns in the top-level table this TableConfig defines. These indexes are added *after*
+    # the data is ingested as opposed to when the table is first defined, which is more efficient. This is particularly
+    # important when ingesting large datasets.
+    #
+    # While it is possible to use `sa.Column(index=True)` in the `field_mapping` entries, this is be discouraged.
+    # There are few good reasons not to prefer using this option that applies the indexes after ingestion.
+    indexes: Optional[List[LateIndex]] = None
 
     transforms: Iterable[Transform] = tuple()
     temp_table_suffix: Optional[str] = None
@@ -150,7 +172,7 @@ class TableConfig:
 
 class SingleTableConfig(TableConfig):
     # A TableConfig that doesn't support any nested tables, for cases where our current code doesn't support building
-    # related tables (e.g. _FastPollingPipeline).
+    # related tables (e.g. _PandasPipelineWithPollingSupport).
     field_mapping: SingleTableFieldMapping
 
 

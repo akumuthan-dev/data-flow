@@ -1,5 +1,6 @@
 import importlib
 import os
+from collections import defaultdict
 from glob import glob
 
 from dataflow.dags import _PipelineDAG
@@ -28,6 +29,7 @@ def get_polling_dag_tasks(with_emails=False):
     tasks = {
         "poll-for-new-data",
         "scrape-and-load-data",
+        "check-temp-table-data",
         "swap-dataset-table",
         "drop-swap-tables",
         "drop-temp-tables",
@@ -73,5 +75,18 @@ def get_fetch_retries_for_all_concrete_dags():
     results_dict = {}
     for dag_class in concrete_dag_classes:
         results_dict[dag_class.__name__] = dag_class().get_fetch_operator().retries
+
+    return results_dict
+
+
+def get_dags_with_non_pk_indexes_on_sqlalchemy_columns():
+    concrete_dag_classes = get_all_dag_concrete_subclasses(_PipelineDAG)
+
+    results_dict = defaultdict(list)
+    for dag_class in concrete_dag_classes:
+        for table in dag_class().table_config.tables:
+            for col in table.columns:
+                if col.index is True or col.unique is True:
+                    results_dict[dag_class.__name__].append(col.name)
 
     return results_dict

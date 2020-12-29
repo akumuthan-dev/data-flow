@@ -184,9 +184,13 @@ def get_data() -> DataFrame:
     print('start getting', datetime.now())
 
     exports = process_data(flow_type='exports', dataset_url=EXPORTS_DATASET_URL)
+    yield exports
+    num_rows = len(exports)
+    del exports
+
     imports = process_data(flow_type='imports', dataset_url=IMPORTS_DATASET_URL)
-    df = pd.concat([exports, imports]).drop_duplicates()
+    yield imports
+    num_rows += len(imports)
+    del imports
 
-    print('end getting', datetime.now(), len(df))
-
-    return df
+    print('end getting', datetime.now(), num_rows)

@@ -4,7 +4,7 @@ from airflow.operators.python_operator import PythonOperator
 import sqlalchemy as sa
 
 from dataflow.dags import _PipelineDAG
-from dataflow.dags.base import _FastPollingPipeline
+from dataflow.dags.base import _PandasPipelineWithPollingSupport
 from dataflow.operators.ons import fetch_from_ons_sparql
 from dataflow.utils import SingleTableConfig
 
@@ -23,7 +23,7 @@ class _ONSPipeline(_PipelineDAG):
         )
 
 
-class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
+class ONSUKSATradeInGoodsPollingPipeline(_PandasPipelineWithPollingSupport):
     from dataflow.ons_scripts.uk_trade_in_goods_all_countries_seasonally_adjusted.main import (
         get_current_and_next_release_date,
         get_data,
@@ -52,7 +52,9 @@ class ONSUKSATradeInGoodsPollingPipeline(_FastPollingPipeline):
     )
 
 
-class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline):
+class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(
+    _PandasPipelineWithPollingSupport
+):
     from dataflow.ons_scripts.uk_trade_country_by_commodity.main import (
         get_current_and_next_release_date,
         get_data,
@@ -85,7 +87,9 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(_FastPollingPipeline
     )
 
 
-class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipeline):
+class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(
+    _PandasPipelineWithPollingSupport
+):
     from dataflow.ons_scripts.uk_trade_in_services_service_type_by_partner_country_non_seasonally_adjusted.main import (
         get_current_and_next_release_date,
         get_data,
@@ -119,7 +123,7 @@ class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(_FastPollingPipelin
     )
 
 
-class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_FastPollingPipeline):
+class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_PandasPipelineWithPollingSupport):
     from dataflow.ons_scripts.uk_total_trade_all_countries_non_seasonally_adjusted.main import (
         get_current_and_next_release_date,
         get_data,

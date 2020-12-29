@@ -180,7 +180,7 @@ def process_data():
 
     print(datetime.now(), f'transformed and normalised data')
 
-    return table.drop_duplicates()
+    return [table.drop_duplicates()]
 
 
 def get_current_and_next_release_date() -> Tuple[datetime, datetime]:

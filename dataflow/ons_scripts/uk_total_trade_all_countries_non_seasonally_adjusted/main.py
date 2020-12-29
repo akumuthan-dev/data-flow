@@ -185,7 +185,7 @@ def process_data():
 
     print(datetime.now(), f'process_data finished', len(table))
 
-    return table
+    return [table]
 
 
 def get_current_and_next_release_date() -> Tuple[datetime, Optional[datetime]]:

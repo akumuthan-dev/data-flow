@@ -18,7 +18,7 @@ services:
   data-flow-worker-tensorflow:
     build:
       context: .
-      dockerfile: Dockerfile-tensorflow
+      dockerfile: Dockerfile
     volumes:
       - .:/home/vcap/app
     env_file: .env
