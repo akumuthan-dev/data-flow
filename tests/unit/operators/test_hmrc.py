@@ -122,6 +122,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
         [
             "010121000",
@@ -146,6 +147,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
         [
             "010121000",
@@ -170,6 +172,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
     ]
     file_2_rows = [
@@ -196,6 +199,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ]
     ]
     s3_mock.write_key.assert_has_calls(

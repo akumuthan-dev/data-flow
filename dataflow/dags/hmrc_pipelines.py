@@ -61,6 +61,7 @@ class HMRCNonEUExports(_HMRCPipeline):
             (19, sa.Column("quantity_1", sa.BigInteger)),
             (20, sa.Column("quantity_2", sa.BigInteger)),
             (21, sa.Column("industrial_plant_comcode", sa.String(15))),
+            (22, sa.Column("_source_name", sa.String())),
         ],
     )
 
@@ -100,6 +101,7 @@ class HMRCNonEUImports(_HMRCPipeline):
             (23, sa.Column("value", sa.BigInteger)),
             (24, sa.Column("quantity_1", sa.BigInteger)),
             (25, sa.Column("quantity_2", sa.BigInteger)),
+            (26, sa.Column("_source_name", sa.String())),
         ],
     )
 
@@ -130,6 +132,7 @@ class HMRCEUExports(_HMRCPipeline):
             (14, sa.Column("value", sa.BigInteger)),
             (15, sa.Column("nett_mass", sa.BigInteger)),
             (16, sa.Column("supp_unit", sa.BigInteger)),
+            (17, sa.Column("_source_name", sa.String())),
         ],
     )
 
@@ -160,5 +163,6 @@ class HMRCEUImports(_HMRCPipeline):
             (14, sa.Column("value", sa.BigInteger)),
             (15, sa.Column("nett_mass", sa.BigInteger)),
             (16, sa.Column("supp_unit", sa.BigInteger)),
+            (17, sa.Column("_source_name", sa.String())),
         ],
     )
