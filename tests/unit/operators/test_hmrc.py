@@ -25,7 +25,6 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     html_archive = (
         '<a href="http://test/a/unrelated.zip"></a>'
         '<a href="http://test/b/smke19_2019archive.zip"></a>'
-        '<a href="http://test/c/smke19_2019archive_juldec.zip"></a>'
         '<a href="http://test/d/unrelated.zip"></a>'
     )
 
@@ -75,9 +74,6 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     requests_mock.get("http://test/latest", content=html_latest.encode())
 
     requests_mock.get("http://test/b/smke19_2019archive.zip", content=file3.getvalue())
-    requests_mock.get(
-        "http://test/c/smke19_2019archive_juldec.zip", content=file3.getvalue()
-    )
     requests_mock.get("http://test/f/smke192002.zip", content=file1.getvalue())
     requests_mock.get("http://test/g/smke19_2020archive.zip", content=file3.getvalue())
 
@@ -206,7 +202,6 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
         [
             mock.call("0000000000.json", file_1_rows + file_2_rows),
             mock.call("0000000001.json", file_1_rows + file_2_rows),
-            mock.call("0000000002.json", file_1_rows + file_2_rows),
-            mock.call("0000000003.json", file_1_rows),
+            mock.call("0000000002.json", file_1_rows),
         ]
     )

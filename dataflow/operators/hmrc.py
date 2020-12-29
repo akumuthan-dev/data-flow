@@ -74,12 +74,6 @@ def fetch_hmrc_trade_data(
                     f"/{base_filename}_{year}archive.zip",
                 )
             )
-            yield from nested_files_from_zip(
-                get_file_linked_from(
-                    config.HMRC_UKTRADEINFO_ARCHIVE_URL,
-                    f"/{base_filename}_{year}archive_juldec.zip",
-                )
-            )
 
         if latest_file_date.month > 1:
             yield from nested_files_from_zip(
