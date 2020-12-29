@@ -32,6 +32,7 @@ class _HMRCPipeline(_PipelineDAG):
 
 class HMRCNonEUExports(_HMRCPipeline):
     base_filename = "smke19"
+    records_start_year = 2009
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_exports",
@@ -66,6 +67,7 @@ class HMRCNonEUExports(_HMRCPipeline):
 
 class HMRCNonEUImports(_HMRCPipeline):
     base_filename = "smki19"
+    records_start_year = 2009
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_imports",
@@ -104,6 +106,7 @@ class HMRCNonEUImports(_HMRCPipeline):
 
 class HMRCEUExports(_HMRCPipeline):
     base_filename = "smkx46"
+    records_start_year = 2009
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_exports",
@@ -133,6 +136,7 @@ class HMRCEUExports(_HMRCPipeline):
 
 class HMRCEUImports(_HMRCPipeline):
     base_filename = "smkm46"
+    records_start_year = 2009
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_imports",
