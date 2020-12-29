@@ -16,6 +16,7 @@ def fetch_hmrc_trade_data(
     table_name: str,
     base_filename: str,
     records_start_year: int,
+    num_expected_fields: int,
     num_per_page: int = 10000,
     **kwargs,
 ):
@@ -94,7 +95,16 @@ def fetch_hmrc_trade_data(
         for file, source_name in files:
             logger.info('Parsing file %s', file)
             for line in _without_first_and_last(file):
-                yield line.strip().decode('utf-8').split("|") + [source_name]
+                data = line.strip().decode('utf-8').split("|")
+                if len(data) == num_expected_fields:
+                    yield line.strip().decode('utf-8').split("|") + [source_name]
+                else:
+                    logger.warn(
+                        "Ignoring row with %s fields instead of expected %s: %s",
+                        len(data),
+                        num_expected_fields,
+                        line,
+                    )
 
     def paginate(lines):
         page = []

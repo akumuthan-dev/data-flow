@@ -15,6 +15,7 @@ class _HMRCPipeline(_PipelineDAG):
     schedule_interval = '0 5 12 * *'
     start_date = datetime(2020, 3, 11)
     use_utc_now_as_source_modified = True
+    num_csv_fields: int
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(
@@ -25,6 +26,7 @@ class _HMRCPipeline(_PipelineDAG):
                 self.table_config.table_name,  # pylint: disable=no-member
                 self.base_filename,
                 self.records_start_year,
+                self.num_csv_fields,
             ],
             retries=self.fetch_retries,
         )
@@ -33,6 +35,7 @@ class _HMRCPipeline(_PipelineDAG):
 class HMRCNonEUExports(_HMRCPipeline):
     base_filename = "smke19"
     records_start_year = 2009
+    num_csv_fields = 22
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_exports",
@@ -69,6 +72,7 @@ class HMRCNonEUExports(_HMRCPipeline):
 class HMRCNonEUImports(_HMRCPipeline):
     base_filename = "smki19"
     records_start_year = 2009
+    num_csv_fields = 26
     table_config = TableConfig(
         schema="hmrc",
         table_name="non_eu_imports",
@@ -109,6 +113,7 @@ class HMRCNonEUImports(_HMRCPipeline):
 class HMRCEUExports(_HMRCPipeline):
     base_filename = "smkx46"
     records_start_year = 2009
+    num_csv_fields = 17
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_exports",
@@ -140,6 +145,7 @@ class HMRCEUExports(_HMRCPipeline):
 class HMRCEUImports(_HMRCPipeline):
     base_filename = "smkm46"
     records_start_year = 2009
+    num_csv_fields = 17
     table_config = TableConfig(
         schema="hmrc",
         table_name="eu_imports",
