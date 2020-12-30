@@ -250,26 +250,26 @@ class ExportWinsDerivedReportTablePipeline(_DerivedReportTablePipeline):
                     THEN (to_char(date, 'YYYY')::int)
                     ELSE (to_char(date + interval '-1' year, 'YYYY')::int)
                 END as win_financial_year
-            FROM export_wins_wins_dataset
-            WHERE export_wins_wins_dataset.customer_email_date IS NOT NULL
+            FROM dit.export_wins__wins_dataset
+            WHERE export_wins__wins_dataset.customer_email_date IS NOT NULL
         ), export_breakdowns AS (
             SELECT win_id, year, value
-            FROM export_wins_breakdowns_dataset
+            FROM dit.export_wins__breakdowns_dataset
             WHERE win_id IN (select id from export_wins)
-            AND export_wins_breakdowns_dataset.type = 'Export'
+            AND export_wins__breakdowns_dataset.type = 'Export'
         ), non_export_breakdowns AS (
             SELECT win_id, year, value
-            FROM export_wins_breakdowns_dataset
+            FROM dit.export_wins__breakdowns_dataset
             WHERE win_id IN (select id from export_wins)
-            AND export_wins_breakdowns_dataset.type = 'Non-export'
+            AND export_wins__breakdowns_dataset.type = 'Non-export'
         ), odi_breakdowns AS (
             SELECT win_id, year, value
-            FROM export_wins_breakdowns_dataset
+            FROM dit.export_wins__breakdowns_dataset
             WHERE win_id IN (select id from export_wins)
-            AND export_wins_breakdowns_dataset.type = 'Outward Direct Investment'
+            AND export_wins__breakdowns_dataset.type = 'Outward Direct Investment'
         ), contributing_advisers AS (
             SELECT win_id, STRING_AGG(CONCAT('Name: ', name, ', Team: ', team_type, ' - ', hq_team, ' - ', location), ', ') as advisers
-            FROM export_wins_advisers_dataset
+            FROM dit.export_wins__advisers_dataset
             GROUP BY 1
         )
         SELECT
@@ -294,7 +294,7 @@ class ExportWinsDerivedReportTablePipeline(_DerivedReportTablePipeline):
             export_wins.goods_vs_services,
             export_wins.sector,
             COALESCE(export_wins.is_prosperity_fund_related, 'False') AS prosperity_fund_related,
-            export_wins_hvc_dataset.name AS hvc_code,
+            export_wins__hvc_dataset.name AS hvc_code,
             export_wins.hvo_programme,
             COALESCE(export_wins.has_hvo_specialist_involvement, 'False') AS has_hvo_specialist_involvement,
             COALESCE(export_wins.is_e_exported, 'False') AS is_e_exported,
@@ -495,6 +495,6 @@ class ExportWinsDerivedReportTablePipeline(_DerivedReportTablePipeline):
             AND odibd5.year = win_financial_year + 4
         )
         LEFT JOIN contributing_advisers ON contributing_advisers.win_id = export_wins.id
-        LEFT JOIN export_wins_hvc_dataset ON export_wins.hvc = CONCAT(export_wins_hvc_dataset.campaign_id, export_wins_hvc_dataset.financial_year)
+        LEFT JOIN dit.export_wins__hvc_dataset ON export_wins.hvc = CONCAT(export_wins__hvc_dataset.campaign_id, export_wins__hvc_dataset.financial_year)
         ORDER BY export_wins.confirmation_created NULLS FIRST
     '''
