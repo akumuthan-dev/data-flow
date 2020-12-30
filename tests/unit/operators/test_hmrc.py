@@ -25,7 +25,6 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     html_archive = (
         '<a href="http://test/a/unrelated.zip"></a>'
         '<a href="http://test/b/smke19_2019archive.zip"></a>'
-        '<a href="http://test/c/smke19_2019archive_juldec.zip"></a>'
         '<a href="http://test/d/unrelated.zip"></a>'
     )
 
@@ -75,9 +74,6 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     requests_mock.get("http://test/latest", content=html_latest.encode())
 
     requests_mock.get("http://test/b/smke19_2019archive.zip", content=file3.getvalue())
-    requests_mock.get(
-        "http://test/c/smke19_2019archive_juldec.zip", content=file3.getvalue()
-    )
     requests_mock.get("http://test/f/smke192002.zip", content=file1.getvalue())
     requests_mock.get("http://test/g/smke19_2020archive.zip", content=file3.getvalue())
 
@@ -97,6 +93,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
         "non-eu-exports",
         "smke19",
         records_start_year,
+        22,
         num_per_page=4,
         ts_nodash="task-1",
         run_date=run_date,
@@ -126,6 +123,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
         [
             "010121000",
@@ -150,6 +148,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
         [
             "010121000",
@@ -174,6 +173,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ],
     ]
     file_2_rows = [
@@ -200,13 +200,13 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
+            "dummy_export_data",
         ]
     ]
     s3_mock.write_key.assert_has_calls(
         [
             mock.call("0000000000.json", file_1_rows + file_2_rows),
             mock.call("0000000001.json", file_1_rows + file_2_rows),
-            mock.call("0000000002.json", file_1_rows + file_2_rows),
-            mock.call("0000000003.json", file_1_rows),
+            mock.call("0000000002.json", file_1_rows),
         ]
     )

@@ -16,6 +16,7 @@ def fetch_hmrc_trade_data(
     table_name: str,
     base_filename: str,
     records_start_year: int,
+    num_expected_fields: int,
     num_per_page: int = 10000,
     **kwargs,
 ):
@@ -52,7 +53,7 @@ def fetch_hmrc_trade_data(
             name = archive.namelist()[0]
             logger.info('Opening file in zip %s', name)
             with archive.open(name, "r") as file:
-                yield file
+                yield file, name
 
     def nested_files_from_zip(zip_bytes):
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
@@ -64,7 +65,7 @@ def fetch_hmrc_trade_data(
                         logger.info('Opening inner file in zip %s', inner_name)
                         with inner_archive.open(inner_name, "r") as inner_file:
                             logger.info('Opened inner file in zip %s', inner_name)
-                            yield inner_file
+                            yield inner_file, inner_name
 
     def get_files():
         for year in previous_years:
@@ -72,13 +73,7 @@ def fetch_hmrc_trade_data(
                 get_file_linked_from(
                     config.HMRC_UKTRADEINFO_ARCHIVE_URL,
                     f"/{base_filename}_{year}archive.zip",
-                )
-            )
-            yield from nested_files_from_zip(
-                get_file_linked_from(
-                    config.HMRC_UKTRADEINFO_ARCHIVE_URL,
-                    f"/{base_filename}_{year}archive_juldec.zip",
-                )
+                ),
             )
 
         if latest_file_date.month > 1:
@@ -86,21 +81,30 @@ def fetch_hmrc_trade_data(
                 get_file_linked_from(
                     config.HMRC_UKTRADEINFO_LATEST_URL,
                     f"/{base_filename}_{latest_file_date:%Y}archive.zip",
-                )
+                ),
             )
 
         yield from first_file_from_zip(
             get_file_linked_from(
                 config.HMRC_UKTRADEINFO_LATEST_URL,
                 f"/{base_filename}{latest_file_date:%y%m}.zip",
-            )
+            ),
         )
 
     def get_lines(files):
-        for file in files:
+        for file, source_name in files:
             logger.info('Parsing file %s', file)
             for line in _without_first_and_last(file):
-                yield line.strip().decode('utf-8').split("|")
+                data = line.strip().decode('utf-8').split("|")
+                if len(data) == num_expected_fields:
+                    yield line.strip().decode('utf-8').split("|") + [source_name]
+                else:
+                    logger.warn(
+                        "Ignoring row with %s fields instead of expected %s: %s",
+                        len(data),
+                        num_expected_fields,
+                        line,
+                    )
 
     def paginate(lines):
         page = []
