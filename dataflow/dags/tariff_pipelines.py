@@ -1,11 +1,15 @@
 from functools import partial
+from datetime import datetime, timedelta
 
 import sqlalchemy as sa
+
+from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 
-from dataflow.dags import _PipelineDAG
+from dataflow.dags import PipelineMeta, _PipelineDAG
 from dataflow.operators.common import fetch_from_api_endpoint
-from dataflow.utils import TableConfig
+from dataflow.operators.tariff import ingest_uk_tariff_to_temporary_db
+from dataflow.utils import TableConfig, slack_alert
 
 
 class GlobalUKTariffPipeline(_PipelineDAG):
@@ -45,3 +49,45 @@ class GlobalUKTariffPipeline(_PipelineDAG):
             op_args=[self.table_config.table_name, self.source_url],
             retries=self.fetch_retries,
         )
+
+
+class UkTarrifPipeline(metaclass=PipelineMeta):
+    """Ingests the UK Tariff into a temporary database
+
+    The data is supplied as a pgdump, and so the temporary database provides some isolation between
+    this an other datasets.
+
+    This is expected to be extended later to a) ingest into the datasets db and b) publish
+    to to the public.
+
+    The GlobalUKTariff above (also called the UK Global Tariff) just contains non-preferential,
+    rates,  so nothing country-specific. The "UK Tariff" contains the preferential rates from trade
+    deals, as well as _export_ measures (as well as other things).
+    """
+
+    def get_dag(self) -> DAG:
+        dag = DAG(
+            self.__class__.__name__,
+            default_args={
+                "owner": "airflow",
+                "depends_on_past": False,
+                "email_on_failure": False,
+                "email_on_retry": False,
+                "retries": 3,
+                "retry_delay": timedelta(minutes=5),
+                "start_date": datetime(2020, 12, 30),
+                'catchup': False,
+            },
+            schedule_interval="@once",
+            max_active_runs=1,
+            on_failure_callback=partial(slack_alert, success=False),
+        )
+
+        PythonOperator(
+            provide_context=True,
+            dag=dag,
+            python_callable=ingest_uk_tariff_to_temporary_db,
+            task_id="ingest-uk-tariff-to-temporary-db",
+        )
+
+        return dag

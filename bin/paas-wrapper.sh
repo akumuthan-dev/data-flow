@@ -53,4 +53,11 @@ require_variable AIRFLOW__CELERY__FLOWER_BASIC_AUTH
 require_variable AIRFLOW__CORE__FERNET_KEY
 require_variable AIRFLOW__WEBSERVER__SECRET_KEY
 
+# The symbolic links to pg_restore and psql are not correctly setup for some reason
+rm /home/vcap/deps/0/bin/pg_restore
+ln -s /home/vcap/deps/0/apt/usr/lib/postgresql/13/bin/pg_restore /home/vcap/deps/0/bin/pg_restore
+
+rm /home/vcap/deps/0/bin/psql
+ln -s /home/vcap/deps/0/apt/usr/lib/postgresql/13/bin/psql /home/vcap/deps/0/bin/psql
+
 exec $@

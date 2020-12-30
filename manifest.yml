@@ -2,6 +2,7 @@
 applications:
 - name: data-flow
   buildpacks:
+   - https://github.com/cloudfoundry/apt-buildpack.git#v0.2.2
    - https://github.com/cloudfoundry/python-buildpack.git#v1.7.15
   memory: 6G
   disk_quota: 6G

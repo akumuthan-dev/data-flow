@@ -120,6 +120,7 @@ def test_pipelines_dags():
         'UKCovid19LocalAuthorityPrevalencePipeline',
         'UKCovid19RegionalPrevalencePipeline',
         'UKCovid19NationalPrevalencePipeline',
+        'UkTarrifPipeline',
         'ZendeskDITTicketsPipeline',
         'ZendeskDITGroupsPipeline',
         'ZendeskUKTradeTicketsPipeline',
