@@ -5,6 +5,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
+from dataflow.dags.company_matching import (
+    ExportWinsMatchingPipeline,
+    DataHubMatchingPipeline,
+)
 from dataflow.operators.db_tables import query_database
 
 from dataflow.dags.dataset_pipelines import (
@@ -23,6 +27,8 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
         ExportWinsAdvisersDatasetPipeline,
         ExportWinsHVCDatasetPipeline,
         ExportWinsWinsDatasetPipeline,
+        ExportWinsMatchingPipeline,
+        DataHubMatchingPipeline,
     ]
 
     table_config = TableConfig(
@@ -88,8 +94,8 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
 
         FROM dit.export_wins__wins_dataset
           LEFT JOIN dit.export_wins__wins_dataset__match_ids ON export_wins__wins_dataset__match_ids.id::uuid = export_wins__wins_dataset.id
-          LEFT JOIN companies_dataset_match_ids ON companies_dataset_match_ids.match_id = export_wins__wins_dataset__match_ids.match_id
-          LEFT JOIN dit.data_hub__companies ON data_hub__companies.id = companies_dataset_match_ids.id::uuid
+          LEFT JOIN dit.data_hub__companies__match_ids ON data_hub__companies__match_ids.match_id = export_wins__wins_dataset__match_ids.match_id
+          LEFT JOIN dit.data_hub__companies ON data_hub__companies.id = data_hub__companies__match_ids.id::uuid
 
     ), win_participants AS (
       select
