@@ -4,6 +4,7 @@ from airflow.models.dagbag import DagBag
 from tests.unit.utils import (
     get_fetch_retries_for_all_concrete_dags,
     get_dags_with_non_pk_indexes_on_sqlalchemy_columns,
+    get_table_definitions_for_all_concrete_dags,
 )
 
 
@@ -148,3 +149,24 @@ def test_standard_dags_do_not_use_indexes_directly_on_sqlalchemy_column_definiti
         get_dags_with_non_pk_indexes_on_sqlalchemy_columns()
     )
     assert dags_with_indexes_on_sa_columns == []
+
+
+def test_table_definitions_are_within_postgres_bounds():
+    """
+    Postgres limits schema and table names to 63 chars. Hoeverm as part of a dag run we need to append
+    a timestamp and a suffix to the table name. This effectively leaves us with 42 characters
+    available for a table and the full 63 for a schema.
+    """
+    max_schema_length = 63
+    max_table_length = 42
+
+    dag_table_definitions = get_table_definitions_for_all_concrete_dags()
+    for dag_class_name, table_configs in dag_table_definitions.items():
+        for schema in [x.schema for x in table_configs]:
+            assert (
+                len(schema) <= max_schema_length
+            ), f"{dag_class_name}: Schema {schema} is > {max_schema_length} chars long and will be truncated by postgres"
+        for table in [x.table_name for x in table_configs]:
+            assert (
+                len(table) <= max_table_length
+            ), f"{dag_class_name}: Table {table} is > {max_table_length} chars long and will be truncated by postgres"

@@ -90,3 +90,18 @@ def get_dags_with_non_pk_indexes_on_sqlalchemy_columns():
                     results_dict[dag_class.__name__].append(col.name)
 
     return results_dict
+
+
+def get_table_definitions_for_all_concrete_dags():
+    """Gets all DAGs which are subclasses of `_PipelineDAG` and returns one or more associated TableConfigs.
+    """
+    concrete_dag_classes = get_all_dag_concrete_subclasses(_PipelineDAG)
+
+    results_dict = {}
+    for dag_class in concrete_dag_classes:
+        table_config = dag_class().table_config
+        results_dict[dag_class.__name__] = [table_config] + [
+            sub_table for _, sub_table in table_config.related_table_configs
+        ]
+
+    return results_dict
