@@ -87,7 +87,7 @@ class ExportWinsDashboardPipeline(_PipelineDAG):
         END AS dh_company_name
 
         FROM dit.export_wins__wins_dataset
-          LEFT JOIN export_wins__wins_dataset__match_ids ON export_wins__wins_dataset__match_ids.id::uuid = export_wins__wins_dataset.id
+          LEFT JOIN dit.export_wins__wins_dataset__match_ids ON export_wins__wins_dataset__match_ids.id::uuid = export_wins__wins_dataset.id
           LEFT JOIN companies_dataset_match_ids ON companies_dataset_match_ids.match_id = export_wins__wins_dataset__match_ids.match_id
           LEFT JOIN dit.data_hub__companies ON data_hub__companies.id = companies_dataset_match_ids.id::uuid
 
