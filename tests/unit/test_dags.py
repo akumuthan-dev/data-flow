@@ -153,7 +153,7 @@ def test_standard_dags_do_not_use_indexes_directly_on_sqlalchemy_column_definiti
 
 def test_table_definitions_are_within_postgres_bounds():
     """
-    Postgres limits schema and table names to 63 chars. Hoeverm as part of a dag run we need to append
+    Postgres limits schema and table names to 63 chars. However, as part of a dag run we need to append
     a timestamp and a suffix to the table name. This effectively leaves us with 42 characters
     available for a table and the full 63 for a schema.
     """
