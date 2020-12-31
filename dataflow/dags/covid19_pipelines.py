@@ -544,7 +544,7 @@ class _UKCovid19PrevalencePipeline(_PipelineDAG):
         return PythonOperator(
             task_id='run-fetch-covid-prevalence-data',
             python_callable=partial(
-                fetch_from_api_endpoint, results_key=None, next_key=None
+                fetch_from_api_endpoint, results_key='body', next_key=None
             ),
             provide_context=True,
             op_args=[
