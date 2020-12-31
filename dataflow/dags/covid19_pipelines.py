@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import _PipelineDAG
-from dataflow.operators.common import fetch_from_hosted_csv
+from dataflow.operators.common import fetch_from_api_endpoint, fetch_from_hosted_csv
 from dataflow.operators.covid19 import fetch_apple_mobility_data
 from dataflow.operators.csv_inputs import fetch_mapped_hosted_csvs
 from dataflow.operators.db_tables import query_database
@@ -509,3 +509,62 @@ class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
             ],
             retries=self.fetch_retries,
         )
+
+
+class _UKCovid19PrevalencePipeline(_PipelineDAG):
+    area_type: str
+    table_name: str
+    source_url = 'https://api.coronavirus.data.gov.uk/v2/data'
+    metrics = (
+        'cumCasesByPublishDate',
+        'newCasesByPublishDate',
+        'newDeathsByPublishDate',
+        'cumDeathsByPublishDate',
+    )
+    use_utc_now_as_source_modified = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.table_config = TableConfig(
+            schema='public_health_england',
+            table_name=self.table_name,
+            field_mapping=[
+                ('date', sa.Column('date', sa.Date)),
+                ('areaCode', sa.Column('area_code', sa.String)),
+                ('areaName', sa.Column('area_name', sa.String)),
+                ('newCasesByPublishDate', sa.Column('new_cases', sa.Integer)),
+                ('cumCasesByPublishDate', sa.Column('cumulative_cases', sa.Integer)),
+                ('newDeathsByPublishDate', sa.Column('new_deaths', sa.Integer)),
+                ('cumDeathsByPublishDate', sa.Column('cumulative_deaths', sa.Integer)),
+            ],
+        )
+
+    def get_fetch_operator(self) -> PythonOperator:
+        metrics = "&".join([f'metric={m}' for m in self.metrics])
+        return PythonOperator(
+            task_id='run-fetch-covid-prevalence-data',
+            python_callable=partial(
+                fetch_from_api_endpoint, results_key=None, next_key=None
+            ),
+            provide_context=True,
+            op_args=[
+                self.table_config.table_name,
+                f'{self.source_url}?format=json&areaType={self.area_type}&{metrics}',
+            ],
+            retries=self.fetch_retries,
+        )
+
+
+class UKCovid19NationalPrevalencePipeline(_UKCovid19PrevalencePipeline):
+    area_type = 'nation'
+    table_name = 'uk_covid_prevalence_data_by_nation'
+
+
+class UKCovid19RegionalPrevalencePipeline(_UKCovid19PrevalencePipeline):
+    area_type = 'region'
+    table_name = 'uk_covid_prevalence_data_by_region'
+
+
+class UKCovid19LocalAuthorityPrevalencePipeline(_UKCovid19PrevalencePipeline):
+    area_type = 'ltla'
+    table_name = 'uk_covid_prevalence_data_by_local_authority'
