@@ -567,4 +567,4 @@ class UKCovid19RegionalPrevalencePipeline(_UKCovid19PrevalencePipeline):
 
 class UKCovid19LocalAuthorityPrevalencePipeline(_UKCovid19PrevalencePipeline):
     area_type = 'ltla'
-    table_name = 'uk_covid_prevalence_data_by_local_authority'
+    table_name = 'uk_covid_prevalence_data_by_ltla'
