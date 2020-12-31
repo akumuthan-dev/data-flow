@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from glob import glob
 
-from dataflow.dags import _PipelineDAG
+from dataflow.dags import _PandasPipelineWithPollingSupport, _PipelineDAG
 
 
 def get_base_dag_tasks(with_modified_date_check=False, fetch_name="fetch-data"):
@@ -93,9 +93,14 @@ def get_dags_with_non_pk_indexes_on_sqlalchemy_columns():
 
 
 def get_table_definitions_for_all_concrete_dags():
-    """Gets all DAGs which are subclasses of `_PipelineDAG` and returns one or more associated TableConfigs.
+    """Gets all DAGs which are subclasses of `_PipelineDAG` or `_PandasPipelineWithPollingSupport`
+    and returns one or more associated TableConfigs.
     """
-    concrete_dag_classes = get_all_dag_concrete_subclasses(_PipelineDAG)
+    base_dag_classes = [_PipelineDAG, _PandasPipelineWithPollingSupport]
+
+    concrete_dag_classes = []
+    for base_class in base_dag_classes:
+        concrete_dag_classes += list(get_all_dag_concrete_subclasses(base_class))
 
     results_dict = {}
     for dag_class in concrete_dag_classes:
