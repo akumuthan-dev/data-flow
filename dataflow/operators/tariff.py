@@ -428,6 +428,7 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                 'name': name_curr,
                 'leaf': pseudo_indent_next is None
                 or pseudo_indent_next <= pseudo_indent_curr,
+                'pseudo_indent': pseudo_indent_curr,
             }
 
         _, _, _, _ = (None, None, None, None)
@@ -515,15 +516,7 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
             item_type,
         ) in nomenclature__with__footnotes_and_measures_with_excluded_geo_with_components_and_conditions_and_footnotes__and__type:
             # Artifically raise the indent level to get a "real" level per indent to simpify the cases
-            pseudo_indent = (
-                item['number_indents'] + 1
-                if item_type['name'] == 'chapter'
-                else item['number_indents'] + 2
-                if item_type['name'] == 'heading-l1'
-                else item['number_indents'] + 3
-                if item_type['name'] == 'heading-l2'
-                else item['number_indents'] + 3
-            )  # Commodities real indent starts at 1, so pseudo-indent start at 4
+            pseudo_indent = item_type['pseudo_indent']
 
             yield from yield_if_same_level_or_going_down(
                 previous_pseudo_indent, pseudo_indent
