@@ -400,39 +400,29 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
         # available. This is a remnant of when it was thought to be needed, but keeping for now
         # just in case.
 
-        def get_type_curr():
+        def get_name(item):
             # fmt: off
-            name_curr = \
-                'chapter' if item_curr['number_indents'] == 0 and item_curr['goods_nomenclature_item_id'][2:] == '00000000' else \
-                'heading-l1' if item_curr['number_indents'] == 0 and item_curr['productline_suffix'] == '10' else \
-                'heading-l2' if item_curr['number_indents'] == 0 else \
+            return \
+                'chapter' if item['number_indents'] == 0 and item['goods_nomenclature_item_id'][2:] == '00000000' else \
+                'heading-l1' if item['number_indents'] == 0 and item['productline_suffix'] == '10' else \
+                'heading-l2' if item['number_indents'] == 0 else \
                 'commodity'
             # fmt: on
 
+        def get_pseudo_indent(name, item):
             # fmt: off
-            name_next = \
-                None if item_next is None else \
-                'chapter' if item_next['number_indents'] == 0 and item_next['goods_nomenclature_item_id'][2:] == '00000000' else \
-                'heading-l1' if item_next['number_indents'] == 0 and item_next['productline_suffix'] == '10' else \
-                'heading-l2' if item_next['number_indents'] == 0 else 'commodity'
+            return \
+                item['number_indents'] + 1 if name == 'chapter' else \
+                item['number_indents'] + 2 if name == 'heading-l1' else \
+                item['number_indents'] + 3 if name == 'heading-l2' else \
+                item['number_indents'] + 3  # Commodities real indent starts at 1, so pseudo-indent start at 4
             # fmt: on
 
-            # fmt: off
-            pseudo_indent_curr = \
-                item_curr['number_indents'] + 1 if name_curr == 'chapter' else \
-                item_curr['number_indents'] + 2 if name_curr == 'heading-l1' else \
-                item_curr['number_indents'] + 3 if name_curr == 'heading-l2' else \
-                item_curr['number_indents'] + 3  # Commodities real indent starts at 1, so pseudo-indent start at 4
-            # fmt: on
-
-            # fmt: off
-            pseudo_indent_next = \
-                None if item_next is None else \
-                item_next['number_indents'] + 1 if name_next == 'chapter' else \
-                item_next['number_indents'] + 2 if name_next == 'heading-l1' else \
-                item_next['number_indents'] + 3 if name_next == 'heading-l2' else \
-                item_next['number_indents'] + 3  # Commodities real indent starts at 1, so pseudo-indent start at 4
-            # fmt: on
+        def get_type_curr():
+            name_curr = get_name(item_curr)
+            name_next = get_name(item_next)
+            pseudo_indent_curr = get_pseudo_indent(name_curr, item_curr)
+            pseudo_indent_next = get_pseudo_indent(name_next, item_next)
 
             return {
                 'name': name_curr,
