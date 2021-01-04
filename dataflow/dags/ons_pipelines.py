@@ -5,6 +5,12 @@ import sqlalchemy as sa
 
 from dataflow.dags import _PipelineDAG
 from dataflow.dags.base import _PandasPipelineWithPollingSupport
+from dataflow.dags.csv_pipelines.ons_csv_pipelines import (
+    ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline,
+    ONSUKSATradeInGoodsCSV,
+    ONSUKTradeInServicesByPartnerCountryNSACSV,
+    ONSUKTotalTradeAllCountriesNSACSVPipeline,
+)
 from dataflow.operators.ons import fetch_from_ons_sparql
 from dataflow.utils import SingleTableConfig
 
@@ -28,6 +34,8 @@ class ONSUKSATradeInGoodsPollingPipeline(_PandasPipelineWithPollingSupport):
         get_current_and_next_release_date,
         get_data,
     )
+
+    trigger_dags_on_success = [ONSUKSATradeInGoodsCSV]
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
@@ -59,6 +67,8 @@ class ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline(
         get_current_and_next_release_date,
         get_data,
     )
+
+    trigger_dags_on_success = [ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline]
 
     date_checker = get_current_and_next_release_date
     data_getter = get_data
@@ -95,6 +105,8 @@ class ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline(
         get_data,
     )
 
+    trigger_dags_on_success = [ONSUKTradeInServicesByPartnerCountryNSACSV]
+
     schedule_interval = "0 6 20-31 1,4,7,10 *"
 
     date_checker = get_current_and_next_release_date
@@ -128,6 +140,8 @@ class ONSUKTotalTradeAllCountriesNSAPollingPipeline(_PandasPipelineWithPollingSu
         get_current_and_next_release_date,
         get_data,
     )
+
+    trigger_dags_on_success = [ONSUKTotalTradeAllCountriesNSACSVPipeline]
 
     schedule_interval = "0 6 20-31 1,4,7,10 *"
 

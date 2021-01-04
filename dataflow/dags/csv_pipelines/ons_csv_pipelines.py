@@ -4,22 +4,22 @@ from datetime import datetime
 
 
 from dataflow.dags import _CSVPipelineDAG
-from dataflow.dags.ons_pipelines import (
-    ONSUKSATradeInGoodsPollingPipeline,
-    ONSUKTotalTradeAllCountriesNSAPollingPipeline,
-    ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline,
-    ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline,
-)
 
 
 class ONSUKSATradeInGoodsCSV(_CSVPipelineDAG):
-    schedule_interval = ONSUKSATradeInGoodsPollingPipeline.schedule_interval
+    # We trigger this DAG manually from the related polling pipeline. We do this because the polling pipeline will often
+    # sit for 10+ hours and then skip the remaining tasks because it hasn't found new data. The way `dependencies`
+    # work is to look for a `success` state on the `swap-dataset-tables` task, which doesn't happen if the polling
+    # pipeline skips its workload. That results in this pipeline's external task sensor failing and eventually
+    # throwing an error (which gets reported by sentry) that we don't care about.
+    # Triggering this DAG manually will only work while there is a single parent pipeline. If that changes, we'll need
+    # to switch back to using `dependencies` and come up with an alternative solution to the polling timeout problem.
+    schedule_interval = None
+    # dependencies = [ONSUKSATradeInGoodsPollingPipeline]
 
     start_date = datetime(2020, 4, 1)
     catchup = False
     static = True
-
-    dependencies = [ONSUKSATradeInGoodsPollingPipeline]
 
     base_file_name = "ons_uk_sa_trade_in_goods"
     timestamp_output = False
@@ -134,15 +134,19 @@ FROM (
 
 
 class ONSUKTradeInServicesByPartnerCountryNSACSV(_CSVPipelineDAG):
-    schedule_interval = (
-        ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline.schedule_interval
-    )
+    # We trigger this DAG manually from the related polling pipeline. We do this because the polling pipeline will often
+    # sit for 10+ hours and then skip the remaining tasks because it hasn't found new data. The way `dependencies`
+    # work is to look for a `success` state on the `swap-dataset-tables` task, which doesn't happen if the polling
+    # pipeline skips its workload. That results in this pipeline's external task sensor failing and eventually
+    # throwing an error (which gets reported by sentry) that we don't care about.
+    # Triggering this DAG manually will only work while there is a single parent pipeline. If that changes, we'll need
+    # to switch back to using `dependencies` and come up with an alternative solution to the polling timeout problem.
+    schedule_interval = None
+    # dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline]
 
     start_date = datetime(2020, 4, 1)
     catchup = False
     static = True
-
-    dependencies = [ONSUKTradeInServicesByPartnerCountryNSAPollingPipeline]
 
     base_file_name = "ons_uk_trade_in_services_by_country_nsa"
     timestamp_output = False
@@ -201,9 +205,17 @@ FROM (
 
 
 class ONSUKTotalTradeAllCountriesNSACSVPipeline(_CSVPipelineDAG):
-    dependencies = [ONSUKTotalTradeAllCountriesNSAPollingPipeline]
-    start_date = ONSUKTotalTradeAllCountriesNSAPollingPipeline.start_date
-    schedule_interval = ONSUKTotalTradeAllCountriesNSAPollingPipeline.schedule_interval
+    # We trigger this DAG manually from the related polling pipeline. We do this because the polling pipeline will often
+    # sit for 10+ hours and then skip the remaining tasks because it hasn't found new data. The way `dependencies`
+    # work is to look for a `success` state on the `swap-dataset-tables` task, which doesn't happen if the polling
+    # pipeline skips its workload. That results in this pipeline's external task sensor failing and eventually
+    # throwing an error (which gets reported by sentry) that we don't care about.
+    # Triggering this DAG manually will only work while there is a single parent pipeline. If that changes, we'll need
+    # to switch back to using `dependencies` and come up with an alternative solution to the polling timeout problem.
+    schedule_interval = None
+    # dependencies = [ONSUKTotalTradeAllCountriesNSAPollingPipeline]
+
+    start_date = datetime(2020, 4, 1)
 
     catchup = False
     static = True
@@ -326,11 +338,17 @@ FROM (
 
 
 class ONSUKTradeInGoodsByCountryAndCommodityCSVPipeline(_CSVPipelineDAG):
-    dependencies = [ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline]
-    start_date = ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline.start_date
-    schedule_interval = (
-        ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline.schedule_interval
-    )
+    # We trigger this DAG manually from the related polling pipeline. We do this because the polling pipeline will often
+    # sit for 10+ hours and then skip the remaining tasks because it hasn't found new data. The way `dependencies`
+    # work is to look for a `success` state on the `swap-dataset-tables` task, which doesn't happen if the polling
+    # pipeline skips its workload. That results in this pipeline's external task sensor failing and eventually
+    # throwing an error (which gets reported by sentry) that we don't care about.
+    # Triggering this DAG manually will only work while there is a single parent pipeline. If that changes, we'll need
+    # to switch back to using `dependencies` and come up with an alternative solution to the polling timeout problem.
+    schedule_interval = None
+    # dependencies = [ONSUKTradeInGoodsByCountryAndCommodityPollingPipeline]
+
+    start_date = datetime(2020, 4, 1)
 
     catchup = False
     static = True

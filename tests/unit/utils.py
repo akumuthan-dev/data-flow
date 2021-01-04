@@ -25,7 +25,7 @@ def get_base_dag_tasks(with_modified_date_check=False, fetch_name="fetch-data"):
     return tasks
 
 
-def get_polling_dag_tasks(with_emails=False):
+def get_polling_dag_tasks(with_emails=False, with_triggered_dags=None):
     tasks = {
         "poll-for-new-data",
         "scrape-and-load-data",
@@ -37,6 +37,10 @@ def get_polling_dag_tasks(with_emails=False):
 
     if with_emails:
         tasks.add("send-dataset-updated-emails")
+
+    if with_triggered_dags:
+        for triggered_dag in with_triggered_dags:
+            tasks.add(f"trigger-{triggered_dag}")
 
     return tasks
 

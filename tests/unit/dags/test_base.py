@@ -177,6 +177,22 @@ def test_pandas_dag_task_relationships():
             ),
         )
 
+    class OtherDAG(_PipelineDAG):
+        table_config = TableConfig(
+            table_name="test-other-table",
+            field_mapping=(
+                ("id", sa.Column("id", sa.Integer, primary_key=True)),
+                ("data", sa.Column("data", sa.Integer)),
+            ),
+        )
+
+        def get_fetch_operator(self):
+            return PythonOperator(
+                task_id="fetch-data",
+                python_callable=lambda: None,
+                provide_context=True,
+            )
+
     dag = TestDAG().get_dag()
 
     scrape_and_load_data = dag.get_task('scrape-and-load-data')
@@ -321,3 +337,53 @@ def test_pandas_dag_task_relationships():
 
     assert send_dataset_updated_emails.upstream_task_ids == {'swap-dataset-table'}
     assert send_dataset_updated_emails.downstream_task_ids == set()
+
+    # Check that tasks are added to trigger downstream DAGs on successful completion of the parent.
+    TestDAG.trigger_dags_on_success = [OtherDAG]
+    dag = TestDAG().get_dag()
+
+    poll_for_new_data = dag.get_task('poll-for-new-data')
+    scrape_and_load_data = dag.get_task('scrape-and-load-data')
+    check_temp_table_data = dag.get_task('check-temp-table-data')
+    create_post_insert_indexes = dag.get_task('create-post-insert-indexes')
+    swap_dataset_table = dag.get_task('swap-dataset-table')
+    send_dataset_updated_emails = dag.get_task('send-dataset-updated-emails')
+    drop_temp_tables = dag.get_task('drop-temp-tables')
+    drop_swap_tables = dag.get_task('drop-swap-tables')
+    trigger_other_dag = dag.get_task('trigger-OtherDAG')
+
+    assert len(dag.tasks) == 9
+
+    assert poll_for_new_data.upstream_task_ids == set()
+    assert poll_for_new_data.downstream_task_ids == {'scrape-and-load-data'}
+
+    assert scrape_and_load_data.upstream_task_ids == {'poll-for-new-data'}
+    assert scrape_and_load_data.downstream_task_ids == {
+        'drop-temp-tables',
+        'create-post-insert-indexes',
+    }
+
+    assert check_temp_table_data.upstream_task_ids == {'create-post-insert-indexes'}
+    assert check_temp_table_data.downstream_task_ids == {'swap-dataset-table'}
+
+    assert create_post_insert_indexes.upstream_task_ids == {'scrape-and-load-data'}
+    assert create_post_insert_indexes.downstream_task_ids == {'check-temp-table-data'}
+
+    assert swap_dataset_table.upstream_task_ids == {'check-temp-table-data'}
+    assert swap_dataset_table.downstream_task_ids == {
+        'drop-swap-tables',
+        'send-dataset-updated-emails',
+        'trigger-OtherDAG',
+    }
+
+    assert drop_temp_tables.upstream_task_ids == {'scrape-and-load-data'}
+    assert drop_temp_tables.downstream_task_ids == set()
+
+    assert drop_swap_tables.upstream_task_ids == {'swap-dataset-table'}
+    assert drop_swap_tables.downstream_task_ids == set()
+
+    assert send_dataset_updated_emails.upstream_task_ids == {'swap-dataset-table'}
+    assert send_dataset_updated_emails.downstream_task_ids == set()
+
+    assert trigger_other_dag.upstream_task_ids == {'swap-dataset-table'}
+    assert trigger_other_dag.downstream_task_ids == set()
