@@ -140,7 +140,6 @@ Node = namedtuple(
         'item_measures',  # a list of the item's footnotes
         'item_type',  # i.e. {'name': 'commodity', 'leaft': True...
         'ancestors',  # the ancestors of the item
-        'descendants',  # the descendants of the item
     ],
 )
 
@@ -194,7 +193,6 @@ def join_measures(ancestors_with_measures, measures):
                 item_measures_with_excluded_geo_and_components_and_conditions_and_footnotes,
                 item_type,
                 parent,
-                children,
             ) = ancestor_node
             for (
                 i
@@ -420,7 +418,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
             pseudo_indent_next = get_pseudo_indent(name_next, item_next)
 
             return {
-                'name': name_curr,
                 'leaf': pseudo_indent_next is None
                 or pseudo_indent_next <= pseudo_indent_curr,
                 'pseudo_indent': pseudo_indent_curr,
@@ -452,66 +449,27 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
     def augment_ancestors_and_descendants(
         nomenclature__with__footnotes_and_measures_with_excluded_geo_with_components_and_conditions_and_footnotes__and__type,
     ):
-        # Augments the stream with more objects / some required parts of the tree structure
-        #
-        # The ancestor nodes are known when we first iterate to the node. The descendant nodes are
-        # populated as we iterate later nodes.
-        #
-        # Some of this is more complex than necessary _just_ for the CSV generation, since it is
-        # taken from code used to generate JSON that needed more structure
+        # Augments the stream so each node knows its own ancestors
 
         latest_node_at_level = {}
-        latest_node_at_level[-1] = Node(
-            None, [], [], {'name': 'sections'}, None, []
-        )  # Hardcoded
-        latest_node_at_level[0] = Node(
-            {'goods_nomenclature_sid': 'fake'}, [], [], {'name': 'chapters'}, None, []
-        )  # Will be appended to
-
-        def yield_if_same_level_or_going_down(from_level, to_level):
-            for level in range(from_level, to_level - 1, -1):
-                try:
-                    node = latest_node_at_level[level]
-                except KeyError:
-                    # `heading-l1` (level 2) is not present in all chapters, and in Chapter 99, we
-                    # have `heading-l1` without the previous heading being an `heading-l2` (level 3).
-                    # We could refine exactly when we raise to catch more error conditions, but KISS
-                    if level not in [2, 3]:
-                        raise
-                    else:
-                        continue
-
-                yield node
-
-                # Clear the node's children from memory. This node could be a child of another
-                # node, but we shouldn't need to access that node's grandchildren. The exception
-                # is heading-l1. We need its children (which are heading-l2) when populating
-                # chapters.
-                if node.item_type['name'] != 'heading-l1':
-                    node.descendants.clear()
-                    node.descendants.append(
-                        None
-                    )  # A chance that an exception will be raised if used
-
-                # We shouldn't need access to this node again, other than if it's a child of another node
-                del latest_node_at_level[level]
-
         previous_pseudo_indent = 0
+
         for (
             item,
             foot,
             meas,
             item_type,
         ) in nomenclature__with__footnotes_and_measures_with_excluded_geo_with_components_and_conditions_and_footnotes__and__type:
-            # Artifically raise the indent level to get a "real" level per indent to simpify the cases
             pseudo_indent = item_type['pseudo_indent']
 
-            yield from yield_if_same_level_or_going_down(
-                previous_pseudo_indent, pseudo_indent
-            )
-
-            def raise_exception():
-                raise Exception('Unable to find ancestor nodes for {}'.format(item))
+            # If we've gone down, make sure to clear the latest node from all intermediate levels, since pseudo-indents
+            # are not contiguous and so they might not be overwritten later. Specifically, heading-l1 is not present
+            # in all chapters
+            for level in range(previous_pseudo_indent, pseudo_indent - 1, -1):
+                try:
+                    del latest_node_at_level[level]
+                except KeyError:
+                    pass
 
             ancestors = []
             for ancestor_level in range(-1, pseudo_indent):
@@ -519,29 +477,12 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                     ancestors.append(latest_node_at_level[ancestor_level])
                 except KeyError:
                     pass
-            descendants = []
-            node = Node(item, foot, meas, item_type, ancestors, descendants)
+            node = Node(item, foot, meas, item_type, ancestors)
 
-            # Heading level 2 needs to be added to chapter _and_ heading level 1
-            ancestors_to_populate_descendants = (
-                [latest_node_at_level[3]]
-                if pseudo_indent >= 4
-                else [latest_node_at_level[1], latest_node_at_level[2]]
-                if pseudo_indent == 3 and 2 in latest_node_at_level
-                else [latest_node_at_level[1]]
-                if pseudo_indent in [2, 3]
-                else [latest_node_at_level[0]]
-                if pseudo_indent == 1
-                else [(lambda: raise_exception())]
-            )
-
-            for ancestor in ancestors_to_populate_descendants:
-                ancestor.descendants.append(node)
+            yield node
 
             latest_node_at_level[pseudo_indent] = node
             previous_pseudo_indent = pseudo_indent
-
-        yield from yield_if_same_level_or_going_down(previous_pseudo_indent, -1)
 
     csv_fieldnames_as_defined = [
         'id',
@@ -598,7 +539,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
         item_measures_with_excluded_geo_and_components_and_conditions_and_footnotes,
         item_type,
         ancestors,
-        children,
         measure,
         measure_excluded_geo,
         measure_components,
@@ -801,7 +741,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                 item_measures_with_excluded_geo_and_components_and_conditions_and_footnotes,
                 item_type,
                 ancestors,
-                children,
             ) in nomenclature__with__footnotes_and_measures_with_excluded_geo_with_components_and_conditions_and_footnotes__and__type__augmented:
                 if item_type.get('leaf', False):
                     for (
@@ -822,7 +761,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                             item_measures_with_excluded_geo_and_components_and_conditions_and_footnotes,
                             item_type,
                             ancestors,
-                            children,
                             measure,
                             measure_excluded_geo,
                             measure_components,
@@ -848,7 +786,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                         item_measures_with_excluded_geo_and_components_and_conditions_and_footnotes,
                         item_type,
                         ancestors,
-                        children,
                         measure,
                         measure_excluded_geo,
                         measure_components,
