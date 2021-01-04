@@ -393,12 +393,7 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
         # we only know if an item is a leaf if the next indent level is equal to or less than it
         #
         # We iterate using "next" variables, yield "curr" variable (populated form the previous
-        # iterations "next" variables), at the end of each iteration copy curr->prev, and next->curr,
-        # and make a decision on the type of "curr" using all 3 of these
-        #
-        # The below may be more complex than it needs to be: we don't need prev, curr and next
-        # available. This is a remnant of when it was thought to be needed, but keeping for now
-        # just in case.
+        # iteration's "next" variables).
 
         def get_name(item):
             # fmt: off
@@ -431,7 +426,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
                 'pseudo_indent': pseudo_indent_curr,
             }
 
-        _, _, _, _ = (None, None, None, None)
         item_curr, foot_curr, meas_curr, type_curr = next(
             nomenclature__with__footnotes_and_measures_with_components_and_conditions_and_footnotes
         ) + (None,)
@@ -445,12 +439,6 @@ def create_uk_tariff_csvs(task_instance, **kwargs):
             type_curr = get_type_curr()
             yield item_curr, foot_curr, meas_curr, type_curr
 
-            _, _, _, _ = (
-                item_curr,
-                foot_curr,
-                meas_curr,
-                type_curr,
-            )
             item_curr, foot_curr, meas_curr, type_curr = (
                 item_next,
                 foot_next,
