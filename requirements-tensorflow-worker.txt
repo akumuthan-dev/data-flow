@@ -155,11 +155,13 @@ sentry-sdk==0.17.4        # via -r requirements.txt, apache-airflow
 setproctitle==1.1.10      # via -r requirements.txt, apache-airflow
 six==1.15.0               # via -r requirements.txt, absl-py, astunparse, cryptography, flask-jwt-extended, google-auth, google-pasta, grpcio, h5py, html5lib, isodate, jsonschema, keras-preprocessing, mohawk, prison, protobuf, pyrsistent, python-dateutil, slackclient, sqlalchemy-utils, tenacity, tensorboard, tensorflow, thrift, websocket-client
 slackclient==1.3.2        # via -r requirements.txt, apache-airflow
+smart-open==4.1.0         # via -r requirements.txt
 soupsieve==2.0.1          # via -r requirements.txt, beautifulsoup4
 splitstream==1.2.4        # via -r requirements.txt
 sqlalchemy-jsonfield==0.9.0  # via -r requirements.txt, apache-airflow
 sqlalchemy-utils==0.36.8  # via -r requirements.txt, flask-appbuilder
 sqlalchemy==1.3.19        # via -r requirements.txt, alembic, apache-airflow, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-jsonfield, sqlalchemy-utils
+streaming-left-join==0.0.7  # via -r requirements.txt
 tabulate==0.8.7           # via -r requirements.txt, apache-airflow
 tenacity==4.12.0          # via -r requirements.txt, apache-airflow
 tensorboard-plugin-wit==1.7.0  # via tensorboard

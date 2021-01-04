@@ -1,0 +1,3 @@
+[submodule "dataflow/operators/tariff_publish_sql"]
+	path = dataflow/operators/tariff_publish_sql
+	url = git@github.com:uktrade/tariff-publish-sql.git

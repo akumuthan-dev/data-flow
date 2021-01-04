@@ -8,7 +8,10 @@ from airflow.operators.python_operator import PythonOperator
 
 from dataflow.dags import PipelineMeta, _PipelineDAG
 from dataflow.operators.common import fetch_from_api_endpoint
-from dataflow.operators.tariff import ingest_uk_tariff_to_temporary_db
+from dataflow.operators.tariff import (
+    ingest_uk_tariff_to_temporary_db,
+    create_uk_tariff_csvs,
+)
 from dataflow.utils import TableConfig, slack_alert
 
 
@@ -83,11 +86,20 @@ class UkTarrifPipeline(metaclass=PipelineMeta):
             on_failure_callback=partial(slack_alert, success=False),
         )
 
-        PythonOperator(
+        ingest_to_temporary_db_op = PythonOperator(
             provide_context=True,
             dag=dag,
             python_callable=ingest_uk_tariff_to_temporary_db,
             task_id="ingest-uk-tariff-to-temporary-db",
         )
+
+        create_uk_tariff_csvs_op = PythonOperator(
+            provide_context=True,
+            dag=dag,
+            python_callable=create_uk_tariff_csvs,
+            task_id="create-uk-tariff-csvs",
+        )
+
+        ingest_to_temporary_db_op >> create_uk_tariff_csvs_op
 
         return dag

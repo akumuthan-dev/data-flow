@@ -13,6 +13,14 @@ jobs:
             . venv/bin/activate
             pip install wheel
             pip install -r requirements-dev.txt
+      - add_ssh_keys:
+          fingerprints:
+            - "62:e4:df:e7:20:1e:07:29:4d:e1:0e:88:16:6f:d6:b3"
+      - run:
+          name: Pull Submodules
+          command: |
+            git submodule init
+            git submodule update
       - run:
           name: Run static checks
           command: |

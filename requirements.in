@@ -18,3 +18,5 @@ scikit-learn==0.22.2.post1
 git+https://github.com/uktrade/data-flow-metrics.git
 splitstream==1.2.4
 git+https://github.com/psycopg/psycopg3.git@f045d822ca3c375b62657b55a6dd88daae4548a5#subdirectory=psycopg3
+streaming-left-join==0.0.7
+smart-open==4.1.0
