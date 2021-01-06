@@ -2,10 +2,11 @@ import sys
 
 from datetime import datetime, timedelta, time
 from functools import partial
-from typing import List, Optional, Type, Callable, Tuple
+from typing import List, Optional, Type, Callable, Tuple, Sequence
 
 from airflow import DAG
 from airflow.models import SkipMixin
+from airflow.operators.dagrun_operator import TriggerDagRunOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.operators.sensors import ExternalTaskSensor
@@ -290,7 +291,7 @@ class _CSVPipelineDAG(metaclass=PipelineMeta):
     target_db: str = config.DATASETS_DB_NAME
     start_date: datetime = datetime(2019, 11, 5)
     end_date: Optional[datetime] = None
-    schedule_interval: str = "@daily"
+    schedule_interval: Optional[str] = "@daily"
     catchup: bool = True
 
     # Static pipeliens are not refreshed daily, so generated files won't be updated
@@ -419,6 +420,10 @@ class _PandasPipelineWithPollingSupport(SkipMixin, metaclass=PipelineMeta):
     #   "emails": ["subscriber@data.trade.gov.uk", ...]
     # }
     update_emails_data_environment_variable: Optional[str] = None
+
+    # Trigger runs of other DAGs on the successful completion of this DAG. This is sort of the opposite of
+    # `dependencies`, and should only be used where a specific reason exists preventing that.
+    trigger_dags_on_success: Sequence = tuple()
 
     @classmethod
     def fq_table_name(cls):
@@ -559,5 +564,13 @@ class _PandasPipelineWithPollingSupport(SkipMixin, metaclass=PipelineMeta):
 
         if _send_dataset_updated_emails:
             _swap_dataset_tables >> _send_dataset_updated_emails
+
+        for dag_to_trigger in self.trigger_dags_on_success:
+            _dag_run_task = TriggerDagRunOperator(
+                task_id=f'trigger-{dag_to_trigger.__name__}',
+                trigger_dag_id=dag_to_trigger.__name__,
+            )
+
+            _swap_dataset_tables >> _dag_run_task
 
         return dag
