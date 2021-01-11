@@ -1,3 +1,4 @@
+# pylint: disable=pointless-statement
 import sys
 
 from datetime import datetime, timedelta, time
@@ -15,6 +16,7 @@ from airflow.utils.helpers import chain
 from dataflow import config
 from dataflow.operators.csv_outputs import create_csv, create_compressed_csv
 from dataflow.operators.db_tables import (
+    bulk_insert_data_into_db,
     check_table_data,
     create_temp_tables,
     drop_swap_tables,
@@ -42,8 +44,8 @@ class PipelineMeta(type):
 
     """
 
-    def __new__(mcls, name, bases, attrs):
-        pipeline = super(PipelineMeta, mcls).__new__(mcls, name, bases, attrs)
+    def __new__(cls, name, bases, attrs):
+        pipeline = super(PipelineMeta, cls).__new__(cls, name, bases, attrs)
 
         if not pipeline.__name__.startswith('_'):
             sys.modules[pipeline.__module__].__dict__[
@@ -59,6 +61,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
     end_date: Optional[datetime] = None
     schedule_interval: Optional[str] = "@daily"
     catchup: bool = False
+    bulk_insert_records: bool = False
 
     # Enable or disable Slack notification when DAG run finishes
     alert_on_success: bool = False
@@ -94,6 +97,8 @@ class _PipelineDAG(metaclass=PipelineMeta):
         )
 
     def get_insert_data_callable(self):
+        if self.bulk_insert_records:
+            return bulk_insert_data_into_db
         return insert_data_into_db
 
     def get_source_data_modified_utc(self) -> Optional[datetime]:
@@ -160,7 +165,7 @@ class _PipelineDAG(metaclass=PipelineMeta):
         # If we've configured a way for the pipeline to determine when the source data was last modified,
         # then we should run checks to see if the data has been updated. If it hasn't, we will end the pipeline
         # early (but gracefully) without pulling the data again.
-        _get_source_data_modified_utc_callable = (
+        _get_source_data_modified_utc_callable = (  # pylint: disable=assignment-from-none
             self.get_source_data_modified_utc_callable()
         )
         if _get_source_data_modified_utc_callable:
@@ -200,7 +205,9 @@ class _PipelineDAG(metaclass=PipelineMeta):
             op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
         )
 
-        _transform_tables = self.get_transform_operator()
+        _transform_tables = (  # pylint: disable=assignment-from-none
+            self.get_transform_operator()
+        )
         if _transform_tables:
             _transform_tables.dag = dag
 
