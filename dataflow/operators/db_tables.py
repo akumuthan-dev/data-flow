@@ -1,6 +1,7 @@
 import datetime
 import os
 import warnings
+from collections import defaultdict
 from hashlib import md5
 from time import sleep
 from typing import Tuple, Dict, Optional, TYPE_CHECKING, List
@@ -260,12 +261,15 @@ def insert_data_into_db(
 
     count = 0
     for page, records in s3.iter_keys():
-        logger.info('Processing page %s', page)
+        logger.info('Single insert: Processing page %s', page)
         count += 1
+        start = datetime.datetime.now()
 
         with engine.begin() as conn:
+            record_count = 0
             if table_config:
                 for record in records:
+                    record_count += 1
                     for transform in table_config.transforms:
                         record = transform(record, table_config, contexts)
 
@@ -280,13 +284,18 @@ def insert_data_into_db(
                         )
 
             elif table is not None and field_mapping:
+                record_count += 1
                 for record in records:
                     conn.execute(
                         temp_table.insert(),  # pylint: disable=E1120
                         **_get_data_to_insert(field_mapping, record),
                     )
 
-        logger.info('Page %s ingested successfully', page)
+        logger.info(
+            'Single record insert: %s records inserted in %s seconds',
+            record_count,
+            (datetime.datetime.now() - start).total_seconds(),
+        )
 
     if count == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")
@@ -533,14 +542,16 @@ def poll_for_new_data(
             schema=engine.dialect.identifier_preparer.quote(table_config.schema),
             table=engine.dialect.identifier_preparer.quote(table_config.table_name),
         ).fetchall()[0][0]
-        logger.info(f"last_ingest_utc from previous run: {db_data_last_modified_utc}")
+        logger.info("last_ingest_utc from previous run: %s", db_data_last_modified_utc)
 
     (
         source_last_modified_utc,
         source_next_release_utc,
     ) = pipeline_instance.__class__.date_checker()
     logger.info(
-        f"source_last_modified_utc={source_last_modified_utc}, source_next_release_utc={source_next_release_utc}"
+        "source_last_modified_utc=%s, source_next_release_utc=%s",
+        source_last_modified_utc,
+        source_next_release_utc,
     )
 
     if (
@@ -581,7 +592,7 @@ def poll_for_new_data(
             source_next_release_utc,
         ) = pipeline_instance.__class__.date_checker()
         logger.info(
-            f"source_last_modified_utc from latest data: {source_last_modified_utc}"
+            "source_last_modified_utc from latest data: %s", source_last_modified_utc
         )
 
     logger.info("Newer data is available.")
@@ -649,3 +660,93 @@ def scrape_load_and_check_data(
                     del data_frame
 
             logger.info("Copy complete.")
+
+
+def _parse_nested_record(
+    table_config: TableConfig, record: dict, contexts: Tuple, table_data: dict = None
+):
+    """
+    For a single record, traverse all tables in a table config and prepare associated data for insert.
+    """
+    if table_data is None:
+        table_data = defaultdict(list)
+
+    for field_map in table_config.field_mapping:
+        orig_field, new_field = field_map
+        if isinstance(new_field, TableConfig):
+            sub_records = get_nested_key(record, orig_field) or []
+            for sub_record in sub_records:
+                table_data = _parse_nested_record(
+                    new_field, sub_record, (record,) + contexts, table_data
+                )
+
+    for transform in table_config.transforms:
+        record = transform(record, table_config, contexts)
+
+    table_data[table_config.temp_table].append(
+        _get_data_to_insert(table_config.columns, record)
+    )
+    return table_data
+
+
+def bulk_insert_data_into_db(
+    target_db: str, table_config: TableConfig, contexts: Tuple = tuple(), **kwargs,
+):
+    """
+    Insert fetched response data into temporary DB tables in bulk.
+
+    If the TableConfig contains nested tables we parse each record into a
+    <SA Table> -> [<data to insert>] dict.
+
+    Once the whole page has been parsed loop through the resulting dict and bulk
+    insert the records we have to each table.
+
+    If no related tables exist skip the table traversing stage to speed things up a bit.
+    """
+    table_config.configure(**kwargs)
+    s3 = S3Data(table_config.table_name, kwargs["ts_nodash"])
+    engine = sa.create_engine(
+        'postgresql+psycopg2://',
+        creator=PostgresHook(postgres_conn_id=target_db).get_conn,
+    )
+    has_sub_tables = bool(table_config.related_table_configs)
+    total_records_processed = 0
+
+    for page, records in s3.iter_keys():
+        logger.info('Bulk insert: Processing page %s', page)
+        start = datetime.datetime.now()
+        table_insert_map = defaultdict(list)
+        for record in records:
+            # If this pipeline contains sub tables build a dict -> data mapping for
+            # each table for this page of results
+            if has_sub_tables:
+                for table, data in _parse_nested_record(
+                    table_config, record, contexts + (record,)
+                ).items():
+                    table_insert_map[table].extend(data)
+            # If it's a single table no need to traverse the field mappings so just
+            # clean the data ready for insert
+            else:
+                for transform in table_config.transforms:
+                    record = transform(record, table_config, contexts)
+                table_insert_map[table_config.temp_table].append(
+                    _get_data_to_insert(table_config.columns, record)
+                )
+        insert_count = 0
+        for table, data in table_insert_map.items():
+            engine.execute(table.insert(), data)
+            insert_count += len(data)
+
+        total_records_processed += insert_count
+
+        logger.info(
+            'Bulk insert: %s records inserted into %s tables in %s seconds',
+            insert_count,
+            len(table_insert_map),
+            (datetime.datetime.now() - start).total_seconds(),
+        )
+
+    if total_records_processed == 0:
+        raise MissingDataError("There are no pages of records in S3 to insert.")
+
+    logger.info('Bulk insert: Finished inserting %s records', total_records_processed)

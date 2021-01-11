@@ -665,3 +665,172 @@ def test_poll_scrape_and_load_data(mocker, monkeypatch):
         )
     ]
     assert mock_copy_write.call_args_list == [mock.call("1\t50\n2\t999\n")]
+
+
+@mock.patch('dataflow.operators.db_tables.sa.create_engine', autospec=True)
+def test_insert_bulk_data_into_db_single_table(mock_create_engine, s3):
+    table_config = TableConfig(
+        schema='test',
+        table_name='test_table',
+        field_mapping=[
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('data', sqlalchemy.Column('data', sqlalchemy.String)),
+        ],
+    )
+    mock_engine = mock.Mock()
+    mock_create_engine.return_value = mock_engine
+
+    s3.iter_keys.return_value = [
+        ('1', [{"id": 1, "data": "sometext1"}, {"id": 2, "data": "sometext2"}]),
+        (
+            '2',
+            [
+                {
+                    "id": 3,
+                    "data": "sometext3",
+                    "sub_records": [{"name": "a record"}, {"name": "another record"}],
+                },
+                {"id": 4, "data": "sometext4"},
+            ],
+        ),
+    ]
+    table_config._temp_table = mock.Mock()
+    db_tables.bulk_insert_data_into_db(
+        "test-db", table_config, ts_nodash="123",
+    )
+    mock_engine.execute.assert_has_calls(
+        [
+            mock.call(
+                table_config.temp_table.insert(),
+                [{'id': 1, 'data': 'sometext1'}, {'id': 2, 'data': 'sometext2'}],
+            ),
+            mock.call(
+                table_config.temp_table.insert(),
+                [{'id': 3, 'data': 'sometext3'}, {'id': 4, 'data': 'sometext4'}],
+            ),
+        ]
+    )
+
+    s3.iter_keys.assert_called_once_with()
+
+
+@mock.patch('dataflow.operators.db_tables.sa.create_engine', autospec=True)
+def test_insert_bulk_data_into_db_nested_tables(mock_create_engine, s3):
+    sub_table_2_config = TableConfig(
+        schema='test',
+        table_name='subtable2',
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                'parent_id': contexts[0]['id'],
+            }
+        ],
+        field_mapping=[
+            ('parent_id', sqlalchemy.Column('parent_id', sqlalchemy.Integer)),
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('name', sqlalchemy.Column('name', sqlalchemy.String)),
+        ],
+    )
+    sub_table_1_config = TableConfig(
+        schema='test',
+        table_name='subtable1',
+        transforms=[
+            lambda record, table_config, contexts: {
+                **record,
+                'parent_id': contexts[0]['id'],
+            }
+        ],
+        field_mapping=[
+            ('parent_id', sqlalchemy.Column('parent_id', sqlalchemy.Integer)),
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('name', sqlalchemy.Column('name', sqlalchemy.String)),
+            ('sub_records', sub_table_2_config),
+        ],
+    )
+    main_table_config = TableConfig(
+        schema='test',
+        table_name='test_table',
+        field_mapping=[
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('name', sqlalchemy.Column('name', sqlalchemy.String)),
+            ('sub_records', sub_table_1_config),
+        ],
+    )
+    mock_engine = mock.Mock()
+    mock_create_engine.return_value = mock_engine
+
+    s3.iter_keys.return_value = [
+        (
+            '1',
+            [
+                {'id': 1, 'name': 'parent record 1'},
+                {'id': 2, 'name': 'parent record 2'},
+            ],
+        ),
+        (
+            '2',
+            [
+                {
+                    'id': 3,
+                    'name': 'parent record 3',
+                    'sub_records': [
+                        {
+                            'id': 4,
+                            'name': 'sub record 1',
+                            'sub_records': [
+                                {'id': 5, 'name': 'sub-sub record 1'},
+                                {'id': 6, 'name': 'sub-sub record 2'},
+                            ],
+                        },
+                        {
+                            'id': 7,
+                            'name': 'sub record 2',
+                            'sub_records': [{'id': 8, 'name': 'sub-sub record 3'}],
+                        },
+                    ],
+                },
+                {'id': 9, 'name': 'parent record 4'},
+            ],
+        ),
+    ]
+    main_table_config._temp_table = mock.Mock()
+    sub_table_1_config._temp_table = mock.Mock()
+    sub_table_2_config._temp_table = mock.Mock()
+    db_tables.bulk_insert_data_into_db(
+        "test-db", main_table_config, ts_nodash="123",
+    )
+    mock_engine.execute.assert_has_calls(
+        [
+            mock.call(
+                main_table_config.temp_table.insert(),
+                [
+                    {'id': 1, 'name': 'parent record 1'},
+                    {'id': 2, 'name': 'parent record 2'},
+                ],
+            ),
+            mock.call(
+                sub_table_2_config.temp_table.insert(),
+                [
+                    {'parent_id': 4, 'id': 5, 'name': 'sub-sub record 1'},
+                    {'parent_id': 4, 'id': 6, 'name': 'sub-sub record 2'},
+                    {'parent_id': 7, 'id': 8, 'name': 'sub-sub record 3'},
+                ],
+            ),
+            mock.call(
+                sub_table_1_config.temp_table.insert(),
+                [
+                    {'parent_id': 3, 'id': 4, 'name': 'sub record 1'},
+                    {'parent_id': 3, 'id': 7, 'name': 'sub record 2'},
+                ],
+            ),
+            mock.call(
+                main_table_config.temp_table.insert(),
+                [
+                    {'id': 3, 'name': 'parent record 3'},
+                    {'id': 9, 'name': 'parent record 4'},
+                ],
+            ),
+        ]
+    )
+
+    s3.iter_keys.assert_called_once_with()
