@@ -2,8 +2,8 @@
 from functools import partial
 
 import sqlalchemy as sa
-from airflow.operators.python_operator import PythonOperator
 from sqlalchemy.dialects.postgresql import UUID
+from airflow.operators.python_operator import PythonOperator
 
 from dataflow import config
 from dataflow.dags import _PipelineDAG
@@ -26,7 +26,10 @@ class _DataWorkspacePipeline(_PipelineDAG):
                 force_http=True,  # This is a workaround until hawk auth is sorted on data workspace
             ),
             provide_context=True,
-            op_args=[self.table_config.table_name, self.source_url],
+            op_args=[
+                self.table_config.table_name,  # pylint: disable=no-member
+                self.source_url,
+            ],
             retries=self.fetch_retries,
         )
 
@@ -135,6 +138,26 @@ class DataWorkspaceCatalogueItemsPipeline(_DataWorkspacePipeline):
             (
                 'eligibility_criteria',
                 sa.Column('eligibility_criteria', sa.ARRAY(sa.Text)),
+            ),
+            ('slug', sa.Column('slug', sa.Text)),
+            (
+                'source_tables',
+                TableConfig(
+                    table_name='dataworkspace__source_tables',
+                    transforms=[
+                        lambda record, table_config, contexts: {
+                            **record,
+                            'dataset_id': contexts[0]['id'],
+                        }
+                    ],
+                    field_mapping=[
+                        ('id', sa.Column('id', UUID, primary_key=True)),
+                        ('dataset_id', sa.Column('dataset_id', UUID, nullable=False)),
+                        ('name', sa.Column('name', sa.Text, nullable=False)),
+                        ('schema', sa.Column('schema', sa.Text, nullable=False)),
+                        ('table', sa.Column('table', sa.Text, nullable=False)),
+                    ],
+                ),
             ),
         ],
     )
