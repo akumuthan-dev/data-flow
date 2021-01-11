@@ -152,6 +152,7 @@ class DataWorkspaceCatalogueItemsPipeline(_DataWorkspacePipeline):
                     ],
                     field_mapping=[
                         ('id', sa.Column('id', UUID, primary_key=True)),
+                        ('dataset_id', sa.Column('dataset_id', UUID, nullable=False)),
                         ('name', sa.Column('name', sa.Text, nullable=False)),
                         ('schema', sa.Column('schema', sa.Text, nullable=False)),
                         ('table', sa.Column('table', sa.Text, nullable=False)),
