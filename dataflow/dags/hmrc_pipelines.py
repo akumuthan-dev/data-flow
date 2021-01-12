@@ -17,6 +17,7 @@ class _HMRCPipeline(_PipelineDAG):
     use_utc_now_as_source_modified = True
     num_csv_fields: int
     bulk_insert_records = True
+    parallel_insert = True
 
     def get_fetch_operator(self) -> PythonOperator:
         return PythonOperator(

@@ -9,7 +9,7 @@ import sqlalchemy
 
 from dataflow.dags import _PandasPipelineWithPollingSupport
 from dataflow.operators import db_tables
-from dataflow.operators.db_tables import branch_on_modified_date
+from dataflow.operators.db_tables import RelatedTaskFailedError, branch_on_modified_date
 from dataflow.utils import get_temp_table, TableConfig, SingleTableConfig, LateIndex
 
 
@@ -711,8 +711,6 @@ def test_insert_bulk_data_into_db_single_table(mock_create_engine, s3):
         ]
     )
 
-    s3.iter_keys.assert_called_once_with()
-
 
 @mock.patch('dataflow.operators.db_tables.sa.create_engine', autospec=True)
 def test_insert_bulk_data_into_db_nested_tables(mock_create_engine, s3):
@@ -833,4 +831,91 @@ def test_insert_bulk_data_into_db_nested_tables(mock_create_engine, s3):
         ]
     )
 
-    s3.iter_keys.assert_called_once_with()
+
+@mock.patch('dataflow.operators.db_tables.sa.create_engine', autospec=True)
+def test_insert_parallel_tables_failed_fetch(mock_create_engine, s3):
+    table_config = TableConfig(
+        schema='test',
+        table_name='test_table',
+        field_mapping=[
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('name', sqlalchemy.Column('name', sqlalchemy.String)),
+        ],
+    )
+    mock_engine = mock.Mock()
+    mock_create_engine.return_value = mock_engine
+
+    mock_dag_run = mock.Mock()
+
+    mock_task_instance = mock.Mock()
+    mock_task_instance.task_id = 'fetch-task'
+    mock_task_instance.current_state.side_effect = [
+        'running',
+        'running',
+        'failed',
+        'failed',
+    ]
+    mock_dag_run.get_task_instances.return_value = [mock_task_instance]
+
+    s3.list_keys.return_value = ['1', '2']
+    s3.read_key.side_effect = [
+        [{'id': 1, 'name': 'record 1'}, {'id': 2, 'name': 'record 2'}],
+        [{'id': 3, 'name': 'record 3'}, {'id': 4, 'name': 'record 4'}],
+    ]
+    table_config._temp_table = mock.Mock()
+    with pytest.raises(RelatedTaskFailedError):
+        db_tables.bulk_insert_data_into_db(
+            "test-db",
+            table_config,
+            ts_nodash="123",
+            parallel_insert=True,
+            dag_run=mock_dag_run,
+            fetch_task_id='fetch-task',
+        )
+
+
+@mock.patch('dataflow.operators.db_tables.sa.create_engine', autospec=True)
+def test_insert_parallel_tables(mock_create_engine, s3):
+    table_config = TableConfig(
+        schema='test',
+        table_name='test_table',
+        field_mapping=[
+            ('id', sqlalchemy.Column('id', sqlalchemy.Integer)),
+            ('name', sqlalchemy.Column('name', sqlalchemy.String)),
+        ],
+    )
+    mock_engine = mock.Mock()
+    mock_create_engine.return_value = mock_engine
+
+    mock_dag_run = mock.Mock()
+
+    mock_task_instance = mock.Mock()
+    mock_task_instance.task_id = 'fetch-task'
+    mock_dag_run.get_task_instances.return_value = [mock_task_instance]
+
+    s3.list_keys.return_value = ['1', '2']
+    s3.read_key.side_effect = [
+        [{'id': 1, 'name': 'record 1'}, {'id': 2, 'name': 'record 2'}],
+        [{'id': 3, 'name': 'record 3'}, {'id': 4, 'name': 'record 4'}],
+    ]
+    table_config._temp_table = mock.Mock()
+    db_tables.bulk_insert_data_into_db(
+        "test-db",
+        table_config,
+        ts_nodash="123",
+        parallel_insert=True,
+        dag_run=mock_dag_run,
+        fetch_task_id='fetch-task',
+    )
+    mock_engine.execute.assert_has_calls(
+        [
+            mock.call(
+                table_config.temp_table.insert(),
+                [{'id': 1, 'name': 'record 1'}, {'id': 2, 'name': 'record 2'}],
+            ),
+            mock.call(
+                table_config.temp_table.insert(),
+                [{'id': 3, 'name': 'record 3'}, {'id': 4, 'name': 'record 4'}],
+            ),
+        ]
+    )
