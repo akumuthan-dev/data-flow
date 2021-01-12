@@ -722,7 +722,7 @@ def test_insert_bulk_data_into_db_nested_tables(mock_create_engine, s3):
         transforms=[
             lambda record, table_config, contexts: {
                 **record,
-                'parent_id': contexts[0]['id'],
+                'parent_id': contexts[-1]['id'],
             }
         ],
         field_mapping=[

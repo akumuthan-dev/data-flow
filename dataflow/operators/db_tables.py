@@ -4,7 +4,7 @@ import warnings
 from collections import defaultdict
 from hashlib import md5
 from time import sleep
-from typing import Tuple, Dict, Optional, TYPE_CHECKING, List
+from typing import Tuple, Dict, Optional, TYPE_CHECKING, List, cast
 from urllib.parse import urlparse
 
 import psycopg3
@@ -663,7 +663,10 @@ def scrape_load_and_check_data(
 
 
 def _parse_nested_record(
-    table_config: TableConfig, record: dict, contexts: Tuple, table_data: dict = None
+    table_config: TableConfig,
+    record: dict,
+    contexts: Tuple[Dict, ...],
+    table_data: dict = None,
 ):
     """
     For a single record, traverse all tables in a table config and prepare associated data for insert.
@@ -674,16 +677,16 @@ def _parse_nested_record(
     for field_map in table_config.field_mapping:
         orig_field, new_field = field_map
         if isinstance(new_field, TableConfig):
-            sub_records = get_nested_key(record, orig_field) or []
+            sub_records = get_nested_key(record, cast(str, orig_field)) or []
             for sub_record in sub_records:
                 table_data = _parse_nested_record(
-                    new_field, sub_record, (record,) + contexts, table_data
+                    new_field, sub_record, contexts + (record,), table_data
                 )
 
     for transform in table_config.transforms:
         record = transform(record, table_config, contexts)
 
-    table_data[table_config.temp_table].append(
+    cast(Dict, table_data)[table_config.temp_table].append(
         _get_data_to_insert(table_config.columns, record)
     )
     return table_data
