@@ -4,17 +4,18 @@ import warnings
 from collections import defaultdict
 from hashlib import md5
 from time import sleep
-from typing import Tuple, Dict, Optional, TYPE_CHECKING, List, cast
+from typing import Set, Tuple, Dict, Optional, TYPE_CHECKING, List, cast
 from urllib.parse import urlparse
 
 import psycopg3
 import sqlalchemy as sa
 from sqlalchemy import text, Index
+from sqlalchemy.engine import Engine
+from airflow.utils.state import State
 from airflow import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.api.common.experimental.get_task_instance import get_task_instance
 from airflow.exceptions import TaskNotFound
-
 
 from dataflow import config
 
@@ -32,11 +33,19 @@ if TYPE_CHECKING:
     from dataflow.dags import _PandasPipelineWithPollingSupport  # noqa
 
 
+TASK_RUNNING_STATES = [State.QUEUED, State.RUNNING, State.UP_FOR_RETRY]
+TASK_FAILED_STATES = [State.FAILED]
+
+
 class MissingDataError(ValueError):
     pass
 
 
 class UnusedColumnError(ValueError):
+    pass
+
+
+class RelatedTaskFailedError(ValueError):
     pass
 
 
@@ -692,11 +701,15 @@ def _parse_nested_record(
     return table_data
 
 
-def bulk_insert_data_into_db(
-    target_db: str, table_config: TableConfig, contexts: Tuple = tuple(), **kwargs,
-):
+def _insert_page_to_db(
+    engine: Engine,
+    table_config: TableConfig,
+    contexts: tuple,
+    page: str,
+    records: List[dict],
+) -> int:
     """
-    Insert fetched response data into temporary DB tables in bulk.
+    Insert a single s3 "page" into a temporary table returning the number of records inserted.
 
     If the TableConfig contains nested tables we parse each record into a
     <SA Table> -> [<data to insert>] dict.
@@ -706,48 +719,100 @@ def bulk_insert_data_into_db(
 
     If no related tables exist skip the table traversing stage to speed things up a bit.
     """
+    start = datetime.datetime.now()
+    logger.info('Bulk insert: Processing page %s', page)
+    has_sub_tables = bool(table_config.related_table_configs)
+    table_insert_map = defaultdict(list)
+    for record in records:
+        # If this pipeline contains sub tables build a dict -> data mapping for
+        # each table for this page of results
+        if has_sub_tables:
+            for table, data in _parse_nested_record(
+                table_config, record, contexts + (record,)
+            ).items():
+                table_insert_map[table].extend(data)
+        # If it's a single table no need to traverse the field mappings so just
+        # clean the data ready for insert
+        else:
+            for transform in table_config.transforms:
+                record = transform(record, table_config, contexts)
+            table_insert_map[table_config.temp_table].append(
+                _get_data_to_insert(table_config.columns, record)
+            )
+    insert_count = 0
+    for table, data in table_insert_map.items():
+        engine.execute(table.insert(), data)
+        insert_count += len(data)
+
+    logger.info(
+        'Bulk insert: %s records inserted into %s tables in %s seconds',
+        insert_count,
+        len(table_insert_map),
+        (datetime.datetime.now() - start).total_seconds(),
+    )
+
+    return insert_count
+
+
+def bulk_insert_data_into_db(
+    target_db: str, table_config: TableConfig, contexts: Tuple = tuple(), **kwargs,
+):
+    """
+    Insert fetched response data into temporary DB tables in bulk.
+
+    If `parallel_insert` is True read pages in from s3 as they are written by the fetch task.
+    If `parallel_insert` is False process all pages as the fetch task has alredy completed.
+    """
     table_config.configure(**kwargs)
     s3 = S3Data(table_config.table_name, kwargs["ts_nodash"])
     engine = sa.create_engine(
         'postgresql+psycopg2://',
         creator=PostgresHook(postgres_conn_id=target_db).get_conn,
     )
-    has_sub_tables = bool(table_config.related_table_configs)
     total_records_processed = 0
+    seen_files: Set[str] = set()
+    if kwargs.get('parallel_insert', False):
+        # Keep reading in s3 files while:
+        # 1. the fetch task has not failed
+        # 2. the fetch task is still in "running" state
+        # 3. there are still unprocessed files in s3
+        try:
+            fetch_task_instance = {
+                x.task_id: x for x in kwargs['dag_run'].get_task_instances()
+            }[kwargs['fetch_task_id']]
+        except ValueError as e:
+            raise RuntimeError(
+                f'Unable to find the sibling fetch task {kwargs["fetch_task_id"]}'
+            ) from e
 
-    for page, records in s3.iter_keys():
-        logger.info('Bulk insert: Processing page %s', page)
-        start = datetime.datetime.now()
-        table_insert_map = defaultdict(list)
-        for record in records:
-            # If this pipeline contains sub tables build a dict -> data mapping for
-            # each table for this page of results
-            if has_sub_tables:
-                for table, data in _parse_nested_record(
-                    table_config, record, contexts + (record,)
-                ).items():
-                    table_insert_map[table].extend(data)
-            # If it's a single table no need to traverse the field mappings so just
-            # clean the data ready for insert
-            else:
-                for transform in table_config.transforms:
-                    record = transform(record, table_config, contexts)
-                table_insert_map[table_config.temp_table].append(
-                    _get_data_to_insert(table_config.columns, record)
+        while (fetch_task_instance.current_state() not in TASK_FAILED_STATES) and (
+            fetch_task_instance.current_state() in TASK_RUNNING_STATES
+            or set(s3.list_keys()) - seen_files
+        ):
+            s3_files = set(s3.list_keys()) - seen_files
+            if not s3_files:
+                logger.info('No unprocessed files in s3. Waiting for more...')
+                sleep(1)
+                continue
+
+            for page in s3_files:
+                records = s3.read_key(page)
+                total_records_processed += _insert_page_to_db(
+                    engine, table_config, contexts, page, records
                 )
-        insert_count = 0
-        for table, data in table_insert_map.items():
-            engine.execute(table.insert(), data)
-            insert_count += len(data)
+                seen_files.add(page)
 
-        total_records_processed += insert_count
-
-        logger.info(
-            'Bulk insert: %s records inserted into %s tables in %s seconds',
-            insert_count,
-            len(table_insert_map),
-            (datetime.datetime.now() - start).total_seconds(),
-        )
+        if fetch_task_instance.current_state() in TASK_FAILED_STATES:
+            raise RelatedTaskFailedError(
+                f'Failed due to failure of related task {fetch_task_instance.task_id}'
+            )
+    else:
+        # When not running a parallel insert we know that
+        # the fetch task has completed so process all the keys at once
+        for page, records in s3.iter_keys():
+            total_records_processed += _insert_page_to_db(
+                engine, table_config, contexts, page, records
+            )
 
     if total_records_processed == 0:
         raise MissingDataError("There are no pages of records in S3 to insert.")

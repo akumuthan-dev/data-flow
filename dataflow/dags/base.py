@@ -61,7 +61,13 @@ class _PipelineDAG(metaclass=PipelineMeta):
     end_date: Optional[datetime] = None
     schedule_interval: Optional[str] = "@daily"
     catchup: bool = False
+
+    # Bulk insert records into the temporary table per s3 "page"
     bulk_insert_records: bool = False
+
+    # EXPERIMENTAL: Run the fetch and insert tasks in parallel.
+    # Only available when `bulk_insert_records` is `True`
+    parallel_insert: bool = False
 
     # Enable or disable Slack notification when DAG run finishes
     alert_on_success: bool = False
@@ -202,7 +208,14 @@ class _PipelineDAG(metaclass=PipelineMeta):
             task_id="insert-into-temp-table",
             python_callable=self.get_insert_data_callable(),
             provide_context=True,
-            op_kwargs=(dict(target_db=self.target_db, table_config=self.table_config)),
+            op_kwargs=(
+                dict(
+                    target_db=self.target_db,
+                    table_config=self.table_config,
+                    fetch_task_id=_fetch.task_id,
+                    parallel_insert=self.parallel_insert,
+                )
+            ),
         )
 
         _transform_tables = (  # pylint: disable=assignment-from-none
@@ -262,9 +275,16 @@ class _PipelineDAG(metaclass=PipelineMeta):
                 _stop,
                 _continue,
             ]
-            _continue >> [_fetch, _create_tables]
+            if self.parallel_insert:
+                _continue >> _create_tables
+            else:
+                _continue >> [_fetch, _create_tables]
 
-        [_fetch, _create_tables] >> _insert_into_temp_table >> _drop_temp_tables
+        if self.parallel_insert:
+            _create_tables >> [_fetch, _insert_into_temp_table]
+            _insert_into_temp_table >> _drop_temp_tables
+        else:
+            [_fetch, _create_tables] >> _insert_into_temp_table >> _drop_temp_tables
 
         _next_chain = [_insert_into_temp_table]
         if _transform_tables:
@@ -289,7 +309,10 @@ class _PipelineDAG(metaclass=PipelineMeta):
                 dag=dag,
             )
 
-            sensor >> [_fetch, _create_tables]
+            if self.parallel_insert:
+                sensor >> _create_tables
+            else:
+                sensor >> [_fetch, _create_tables]
 
         return dag
 
