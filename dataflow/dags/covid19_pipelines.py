@@ -293,7 +293,7 @@ class GoogleCovid19MobilityReports(_PipelineDAG):
     source_urls = {
         'global': 'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv',
     }
-
+    bulk_insert_records = True
     table_config = TableConfig(
         table_name="covid19_global_mobility_report",
         schema='google',
@@ -398,6 +398,7 @@ class AppleCovid19MobilityTrendsPipeline(_PipelineDAG):
     base_url = 'https://covid19-static.cdn-apple.com'
     config_path = '/covid19-mobility-data/current/v3/index.json'
     use_utc_now_as_source_modified = True
+    bulk_insert_records = True
     table_config = TableConfig(
         schema='apple',
         table_name='covid19_mobility_data',
