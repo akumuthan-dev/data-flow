@@ -482,7 +482,10 @@ def save_model(train_data_date):
 
 
 def upload_training_file(file_path):
-    print('UK_TAGS_CLASSIFIER_BUCKET_NAME env variable:', os.environ.get("UK_TAGS_CLASSIFIER_BUCKET_NAME"))
+    print(
+        'UK_TAGS_CLASSIFIER_BUCKET_NAME env variable:',
+        os.environ.get("UK_TAGS_CLASSIFIER_BUCKET_NAME"),
+    )
     bucket = config.UK_TAGS_CLASSIFIER_BUCKET_NAME
     logger.info(f"the bucket is: {bucket}")
     logger.info(f"this training file is: {file_path}")
