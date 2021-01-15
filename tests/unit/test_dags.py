@@ -76,6 +76,7 @@ def test_pipelines_dags():
         'GatewayToResearchOrganisationsPipeline',
         'GatewayToResearchPersonsPipeline',
         'GatewayToResearchProjectsPipeline',
+        'GreatBetaGoogleAnalyticsPipeline',
         'GlobalUKTariffPipeline',
         'GoogleCovid19MobilityReports',
         'GreatGovUKCompanyPipeline',
