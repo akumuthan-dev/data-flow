@@ -32,7 +32,7 @@ numpy.random.seed(7)
 
 
 def fetch_interaction_labelled_data():
-    bucket = config.S3_IMPORT_DATA_BUCKET
+    bucket = config.UK_TAGS_CLASSIFIER_BUCKET_NAME
     logger.info(f"Bucket: {bucket}")
 
     client = S3Hook("DEFAULT_S3")
@@ -389,7 +389,7 @@ def check_result(tag, tag_i, X_test, Y_test, sent_test, m):
 
 
 def build_models_pipeline(df, today, tags_to_train):
-    # if useing multiple operators:
+    # if using multiple operators:
     # df = context['task_instance'].xcom_pull(task_ids='fetch-interaction-data')
 
     tags_covid = [
@@ -463,7 +463,7 @@ def build_models_pipeline(df, today, tags_to_train):
 
 
 def save_model(train_data_date):
-    bucket = config.S3_IMPORT_DATA_BUCKET
+    bucket = config.UK_TAGS_CLASSIFIER_BUCKET_NAME
     logger.info(f"the bucket is: {bucket}")
 
     shutil.make_archive('models_' + train_data_date, 'zip', 'models_' + train_data_date)
@@ -482,8 +482,8 @@ def save_model(train_data_date):
 
 
 def upload_training_file(file_path):
-    print('aaa', os.environ.get("S3_IMPORT_DATA_BUCKET"))
-    bucket = config.S3_IMPORT_DATA_BUCKET
+    print('UK_TAGS_CLASSIFIER_BUCKET_NAME env variable:', os.environ.get("UK_TAGS_CLASSIFIER_BUCKET_NAME"))
+    bucket = config.UK_TAGS_CLASSIFIER_BUCKET_NAME
     logger.info(f"the bucket is: {bucket}")
     logger.info(f"this training file is: {file_path}")
 

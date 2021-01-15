@@ -28,7 +28,7 @@ def transform_X(X_text, tokenizer):
 
 
 def fetch_model():
-    bucket = config.S3_IMPORT_DATA_BUCKET
+    bucket = config.UK_TAGS_CLASSIFIER_BUCKET_NAME
     logger.info(f"Bucket: {bucket}")
 
     client = S3Hook("DEFAULT_S3")
@@ -180,6 +180,8 @@ def write_prediction(table_name, df, context):
     s3 = S3Data(table_name, context["ts_nodash"])
     s3.write_key('tags_prediction.json', df_json)
 
+    return None
+
 
 def make_prediction(target_db: str, query: str, table_name, **context):
 
@@ -200,6 +202,8 @@ def make_prediction(target_db: str, query: str, table_name, **context):
 
         logger.info("step 4: write prediction to S3")
         write_prediction(table_name, predictions, context)
+
+    return None
 
 
 def predict_tags(df, tags_to_predict):
