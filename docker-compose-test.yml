@@ -9,6 +9,16 @@ services:
     env_file: .env.test
     links:
       - "data-flow-db-test"
+    command:
+      - /bin/bash
+      - -c
+      - |
+          dockerize -wait tcp://data-flow-db-test:5432
+          airflow initdb
+          alembic upgrade head
+          airflow webserver --pid /tmp/airflow-webserver.pid -p 8080 &
+          dockerize -wait tcp://localhost:8080
+          pytest tests/integration
 
   data-flow-db-test:
     build:
@@ -20,4 +30,3 @@ services:
       POSTGRES_HOST_AUTH_METHOD: "trust"
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
-
