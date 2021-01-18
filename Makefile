@@ -18,7 +18,7 @@ docker-build:
 
 .PHONY: test-integration
 test-integration: docker-build
-	docker-compose -f docker-compose-test.yml -p data-flow-test run --rm data-flow-test dockerize -wait tcp://data-flow-db-test:5432 && airflow initdb && pytest tests/integration
+	docker-compose -f docker-compose-test.yml -p data-flow-test run --rm data-flow-test
 
 .PHONY: save-requirements
 save-requirements:
