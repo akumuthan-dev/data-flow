@@ -59,7 +59,7 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
             (
                 'economic_assessments',
                 TableConfig(
-                    table_name='market_access_economic_assessments',
+                    table_name='market_access__economic_assessments',
                     field_mapping=[
                         ('id', sa.Column('id', sa.Integer, index=True)),
                         (
@@ -72,22 +72,28 @@ class MarketAccessTradeBarriersPipeline(_PipelineDAG):
                         ),
                         ('export_value', sa.Column('export_value', sa.BigInteger),),
                         ('barrier_id', sa.Column('barrier_id', sa.Text)),
-                        # (
-                        #     'economic_impact_assessments',
-                        #     TableConfig(
-                        #         table_name='market_access_ea_impact_assessments',
-                        #         field_mapping=[
-                        #             ('id', sa.Column('id', UUID, index=True)),
-                        #             (('impact', 'name'), sa.Column('impact', sa.Text)),
-                        #             ('archived', sa.Column('archived', sa.Boolean)),
-                        #             ('explanation', sa.Column('explanation', sa.Text),),
-                        #             (
-                        #                 'economic_assessment_id',
-                        #                 sa.Column('economic_assessment_id', sa.Text),
-                        #             ),
-                        #         ],
-                        #     ),
-                        # ),
+                        ('explanation', sa.Column('explanation', sa.Text)),
+                        (
+                            'value_to_economy',
+                            sa.Column('value_to_economy', sa.BigInteger),
+                        ),
+                        (('rating', 'code'), sa.Column('rating', sa.Text)),
+                        (
+                            'economic_impact_assessments',
+                            TableConfig(
+                                table_name='market_access__ea_impact_assessments',
+                                field_mapping=[
+                                    ('id', sa.Column('id', UUID, index=True)),
+                                    (
+                                        'economic_assessment_id',
+                                        sa.Column('id', sa.Integer, index=True),
+                                    ),
+                                    (('impact', 'name'), sa.Column('impact', sa.Text)),
+                                    ('archived', sa.Column('archived', sa.Boolean)),
+                                    ('explanation', sa.Column('explanation', sa.Text)),
+                                ],
+                            ),
+                        ),
                     ],
                 ),
             ),
