@@ -58,6 +58,10 @@ def fetch_hmrc_trade_data(
     def nested_files_from_zip(zip_bytes):
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
             for name in archive.namelist():
+                if not name.lower().startswith(base_filename):
+                    # Some sesx16 files seem to contain unrelated data
+                    logger.info('Skipping file %s', name)
+                    continue
                 logger.info('Opening file in zip %s', name)
                 with archive.open(name, "r") as file:
                     with zipfile.ZipFile(file) as inner_archive:

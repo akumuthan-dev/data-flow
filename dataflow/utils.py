@@ -99,6 +99,9 @@ class TableConfig:
     # There are few good reasons not to prefer using this option that applies the indexes after ingestion.
     indexes: Optional[List[LateIndex]] = None
 
+    # Constraints to apply on the table
+    check_constraints: Iterable[sqlalchemy.CheckConstraint] = tuple()
+
     transforms: Iterable[Transform] = tuple()
     temp_table_suffix: Optional[str] = None
     schema: str = 'public'
@@ -140,6 +143,7 @@ class TableConfig:
                 self.table_name,
                 sqlalchemy.MetaData(),
                 *[column.copy() for _, column in self.columns],
+                *self.check_constraints,
                 schema=self.schema,
             )
         return self._table
@@ -157,6 +161,11 @@ class TableConfig:
                 f"{self.table.name}_{self.temp_table_suffix}".lower(),
                 self.table.metadata,
                 *[column.copy() for column in self.table.columns],
+                *[
+                    c.copy()
+                    for c in self.table.constraints
+                    if isinstance(c, sqlalchemy.CheckConstraint)
+                ],
                 schema=self.schema,
             )
 
@@ -347,6 +356,11 @@ def get_temp_table(table, suffix):
         f"{table.name}_{suffix}".lower(),
         table.metadata,
         *[column.copy() for column in table.columns],
+        *[
+            c.copy()
+            for c in table.constraints
+            if isinstance(c, sqlalchemy.CheckConstraint)
+        ],
         schema=table.schema,
         keep_existing=True,
     )
