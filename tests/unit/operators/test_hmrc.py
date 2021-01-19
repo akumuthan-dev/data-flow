@@ -38,7 +38,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     file1 = io.BytesIO()
     with zipfile.ZipFile(file1, "w") as zf:
         zf.writestr(
-            "dummy_export_data",
+            "smke19_dummy_export_data",
             (
                 "000000000|00000|000|HMCUSTOMS MONTHLY DATA| NOVEMBER|2019|NON-EU EXPORTS    \n"
                 "010121000|00150|000|028|NO|11/2019|204|IMM|008|DK|0|000|010|30|000|   |000|001|"
@@ -55,7 +55,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
     file2 = io.BytesIO()
     with zipfile.ZipFile(file2, "w") as zf:
         zf.writestr(
-            "dummy_export_data",
+            "smke19_dummy_export_data",
             (
                 "000000000|00000|000|HMCUSTOMS MONTHLY DATA| NOVEMBER|2019|NON-EU EXPORTS    \n"
                 "010121010|230150|001|029|NO|12/2019|204|UMM|008|DK|0|000|010|30|000|   |000|001|"
@@ -67,8 +67,8 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
 
     file3 = io.BytesIO()
     with zipfile.ZipFile(file3, "w") as zf:
-        zf.writestr("dummy_export_data_1", file1.getvalue())
-        zf.writestr("dummy_export_data_2", file2.getvalue())
+        zf.writestr("smke19_dummy_export_data_1", file1.getvalue())
+        zf.writestr("smke19_dummy_export_data_2", file2.getvalue())
 
     requests_mock.get("http://test/archive", content=html_archive.encode())
     requests_mock.get("http://test/latest", content=html_latest.encode())
@@ -123,7 +123,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
-            "dummy_export_data",
+            "smke19_dummy_export_data",
         ],
         [
             "010121000",
@@ -148,7 +148,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
-            "dummy_export_data",
+            "smke19_dummy_export_data",
         ],
         [
             "010121000",
@@ -173,7 +173,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
-            "dummy_export_data",
+            "smke19_dummy_export_data",
         ],
     ]
     file_2_rows = [
@@ -200,7 +200,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
             "+0000000000500",
             "+0000000000001",
             "000000000000000",
-            "dummy_export_data",
+            "smke19_dummy_export_data",
         ]
     ]
     s3_mock.write_key.assert_has_calls(

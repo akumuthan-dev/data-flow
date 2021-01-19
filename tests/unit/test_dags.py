@@ -85,6 +85,7 @@ def test_pipelines_dags():
         'GreatGOVUKExportOpportunityEnquiriesPipeline',
         'GreatGovUKFormsPipeline',
         'HMRCEUExports',
+        'HMRCEUExportsEstimates',
         'HMRCEUImports',
         'HMRCNonEUExports',
         'HMRCNonEUImports',
