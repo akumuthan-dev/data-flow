@@ -5,6 +5,7 @@ from tests.unit.utils import (
     get_fetch_retries_for_all_concrete_dags,
     get_dags_with_non_pk_indexes_on_sqlalchemy_columns,
     get_table_definitions_for_all_concrete_dags,
+    get_dags_with_tables_in_public_schema,
 )
 
 
@@ -170,3 +171,58 @@ def test_table_definitions_are_within_postgres_bounds():
             assert (
                 len(table) <= max_table_length
             ), f"{dag_class_name}: Table {table} is > {max_table_length} chars long and will be truncated by postgres"
+
+
+def test_pipelines_should_declare_tables_outside_of_public_schema():
+    """
+    The majority of tables created via data-flow should go into a schema other than public, so let's help enforce/remind
+    that condition.
+    """
+    dag_table_definitions = get_dags_with_tables_in_public_schema()
+    assert dag_table_definitions == {
+        'CoronavirusInteractionsDashboardPipeline': {
+            ('public', 'coronavirus_interactions_dashboard_data')
+        },
+        'CountriesOfInterestServicePipeline': {
+            ('public', 'countries_of_interest_dataset')
+        },
+        'CSSECovid19TimeSeriesGlobal': {('public', 'csse_covid19_time_series_global')},
+        'CSSECovid19TimeSeriesGlobalGroupedByCountry': {
+            ('public', 'csse_covid19_time_series_global_by_country')
+        },
+        'DataHubSPIPipeline': {
+            ('public', 'datahub_spi'),
+            ('public', 'datahub_spi_propositions'),
+        },
+        'DataWorkspaceApplicationInstancePipeline': {
+            ('public', 'dataworkspace__application_instances')
+        },
+        'DataWorkspaceCatalogueItemsPipeline': {
+            ('public', 'dataworkspace__catalogue_items'),
+            ('public', 'dataworkspace__source_tables'),
+        },
+        'DataWorkspaceEventLogPipeline': {('public', 'dataworkspace__event_log')},
+        'DataWorkspaceUserPipeline': {('public', 'dataworkspace__users')},
+        'ERPPipeline': {('public', 'erp')},
+        'FDIDashboardPipeline': {('public', 'fdi_dashboard_data')},
+        'MarketAccessTradeBarriersPipeline': {
+            ('public', 'market_access_trade_barriers'),
+            ('public', 'market_access_economic_assessments'),
+            ('public', 'market_access_trade_barrier_status_history'),
+        },
+        'MinisterialInteractionsDashboardPipeline': {
+            ('public', 'ministerial_interactions')
+        },
+        'OxfordCovid19GovernmentResponseTracker': {
+            ('public', 'oxford_covid19_government_response_tracker')
+        },
+        'PeopleFinderPeoplePipeline': {('public', 'people_finder__people')},
+        'TagsClassifierTrainPipeline': {
+            ('public', 'interactions_tags_classifier_metrics')
+        },
+        'TagsClassifierPredictionPipeline': {
+            ('public', 'interactions_dataset_with_tags')
+        },
+        'RawWorldBankTariffPipeline': {('public', 'raw_world_bank_tariffs')},
+        'RawWorldBankBoundRatePipeline': {('public', 'raw_world_bank_bound_rates')},
+    }, "We shouldn't be adding any more tables to the `public` schema."
