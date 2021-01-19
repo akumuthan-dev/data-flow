@@ -2,6 +2,7 @@ import importlib
 import os
 from collections import defaultdict
 from glob import glob
+from typing import Union, List
 
 from dataflow.dags import _PandasPipelineWithPollingSupport, _PipelineDAG
 
@@ -45,8 +46,8 @@ def get_polling_dag_tasks(with_emails=False, with_triggered_dags=None):
     return tasks
 
 
-def get_all_dag_concrete_subclasses(root_class):
-    """Import all of the DAGs, find subclasses of `root_class`, and return them all.
+def get_all_dag_concrete_subclasses(root_classes: Union[type, List[type]]):
+    """Import all of the DAGs, find subclasses of `root_classes`, and return them all.
 
     This will result in every module in `dataflow/dags` being imported into the local namespace. If this causes issues,
     this method could be run via multiprocessing to start up an isolated Python process.
@@ -62,7 +63,13 @@ def get_all_dag_concrete_subclasses(root_class):
             classes.extend(get_subclasses(subclass))
         return classes
 
-    all_dag_classes = get_subclasses(root_class)
+    if isinstance(root_classes, type):
+        root_classes = [root_classes]
+
+    all_dag_classes = []
+    for root_class in root_classes:
+        all_dag_classes += get_subclasses(root_class)
+
     concrete_dag_classes = filter(
         lambda c: not c.__name__.startswith('_'), all_dag_classes
     )
@@ -100,11 +107,9 @@ def get_table_definitions_for_all_concrete_dags():
     """Gets all DAGs which are subclasses of `_PipelineDAG` or `_PandasPipelineWithPollingSupport`
     and returns one or more associated TableConfigs.
     """
-    base_dag_classes = [_PipelineDAG, _PandasPipelineWithPollingSupport]
-
-    concrete_dag_classes = []
-    for base_class in base_dag_classes:
-        concrete_dag_classes += list(get_all_dag_concrete_subclasses(base_class))
+    concrete_dag_classes = get_all_dag_concrete_subclasses(
+        [_PipelineDAG, _PandasPipelineWithPollingSupport]
+    )
 
     results_dict = {}
     for dag_class in concrete_dag_classes:
@@ -112,5 +117,20 @@ def get_table_definitions_for_all_concrete_dags():
         results_dict[dag_class.__name__] = [table_config] + [
             sub_table for _, sub_table in table_config.related_table_configs
         ]
+
+    return results_dict
+
+
+def get_dags_with_tables_in_public_schema():
+    """Gets all table-making DAGs which have tables in the public schema (which is discouraged these days)"""
+    concrete_dag_classes = get_all_dag_concrete_subclasses(
+        [_PipelineDAG, _PandasPipelineWithPollingSupport]
+    )
+
+    results_dict = defaultdict(set)
+    for dag_class in concrete_dag_classes:
+        for table in dag_class().table_config.tables:
+            if table.schema == 'public':
+                results_dict[dag_class.__name__].add((table.schema, table.name))
 
     return results_dict
