@@ -207,7 +207,8 @@ def test_pipelines_should_declare_tables_outside_of_public_schema():
         'FDIDashboardPipeline': {('public', 'fdi_dashboard_data')},
         'MarketAccessTradeBarriersPipeline': {
             ('public', 'market_access_trade_barriers'),
-            ('public', 'market_access_economic_assessments'),
+            ('public', 'market_access__ea_impact_assessments'),
+            ('public', 'market_access__economic_assessments'),
             ('public', 'market_access_trade_barrier_status_history'),
         },
         'MinisterialInteractionsDashboardPipeline': {
