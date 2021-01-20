@@ -142,59 +142,6 @@ class HMRCEUExports(_HMRCPipeline):
     )
 
 
-class HMRCEUExportsEstimates(_HMRCPipeline):
-    base_filename = "sesx16"
-    records_start_year = 2009
-    # The data is in fixed-width format, so it looks like a single field. The source file name is
-    # added as a second field by the operator
-    num_csv_fields = 1
-    table_config = TableConfig(
-        schema="hmrc",
-        table_name="eu_exports_estimates",
-        transforms=[
-            # This is based on https://www.uktradeinfo.com/media/vrehes3e/tech_spec_sesa16.doc,
-            # which has an "a" in the file name rather than an "x", but it's the best we have
-            lambda record, table_config, contexts: {
-                "sitc_2": record[0][0:2],
-                "sitc_0": record[0][2:3],
-                "year": record[0][3:7],
-                "month": record[0][7:9],
-                "estimated_value": record[0][9:24],
-                "_source_name": record[1],
-            }
-        ],
-        field_mapping=[
-            (
-                None,
-                sa.Column("id", sa.BigInteger, primary_key=True, autoincrement=True),
-            ),
-            ("sitc_2", sa.Column("sitc_2", sa.String(2), nullable=False)),
-            ("sitc_0", sa.Column("sitc_0", sa.String(1), nullable=False)),
-            ("year", sa.Column("year", sa.SmallInteger, nullable=False)),
-            ("month", sa.Column("month", sa.SmallInteger, nullable=False)),
-            (
-                "estimated_value",
-                sa.Column("estimated_value", sa.BigInteger, nullable=False),
-            ),
-            ("_source_name", sa.Column("_source_name", sa.String, nullable=False)),
-        ],
-        indexes=[
-            LateIndex("sitc_2"),
-            LateIndex("sitc_0"),
-            LateIndex(["year", "month"]),
-            LateIndex("month"),
-            LateIndex("_source_name"),
-        ],
-        check_constraints=[
-            sa.CheckConstraint("1 <= month and month <= 12"),
-            sa.CheckConstraint("1500 <= year AND year <= 3000"),
-            sa.CheckConstraint("sitc_2 ~ '^[0-9][0-9]$'"),
-            sa.CheckConstraint("sitc_0 ~ '^[0-9]$'"),
-            sa.CheckConstraint("estimated_value >= 0"),
-        ],
-    )
-
-
 class HMRCEUImports(_HMRCPipeline):
     base_filename = "smkm46"
     records_start_year = 2009
@@ -225,3 +172,72 @@ class HMRCEUImports(_HMRCPipeline):
             (17, sa.Column("_source_name", sa.String())),
         ],
     )
+
+
+class _HMRCEUEstimates(_HMRCPipeline):
+    records_start_year = 2009
+    # The data is in fixed-width format, so it looks like a single field. The source file name is
+    # added as a second field by the operator
+    num_csv_fields = 1
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.table_config = TableConfig(
+            schema="hmrc",
+            table_name=self.table_name,
+            transforms=[
+                # This is based on https://www.uktradeinfo.com/media/vrehes3e/tech_spec_sesa16.doc,
+                # which has an "a" in the file name which doesn't match the files we use, but it's the
+                # best we have
+                lambda record, table_config, contexts: {
+                    "sitc_2": record[0][0:2],
+                    "sitc_0": record[0][2:3],
+                    "year": record[0][3:7],
+                    "month": record[0][7:9],
+                    "estimated_value": record[0][9:24],
+                    "_source_name": record[1],
+                }
+            ],
+            field_mapping=[
+                (
+                    None,
+                    sa.Column(
+                        "id", sa.BigInteger, primary_key=True, autoincrement=True
+                    ),
+                ),
+                ("sitc_2", sa.Column("sitc_2", sa.String(2), nullable=False)),
+                ("sitc_0", sa.Column("sitc_0", sa.String(1), nullable=False)),
+                ("year", sa.Column("year", sa.SmallInteger, nullable=False)),
+                ("month", sa.Column("month", sa.SmallInteger, nullable=False)),
+                (
+                    "estimated_value",
+                    sa.Column("estimated_value", sa.BigInteger, nullable=False),
+                ),
+                ("_source_name", sa.Column("_source_name", sa.String, nullable=False)),
+            ],
+            indexes=[
+                LateIndex("sitc_2"),
+                LateIndex("sitc_0"),
+                LateIndex(["year", "month"]),
+                LateIndex("month"),
+                LateIndex("_source_name"),
+            ],
+            check_constraints=[
+                sa.CheckConstraint("1 <= month and month <= 12"),
+                sa.CheckConstraint("1500 <= year AND year <= 3000"),
+                sa.CheckConstraint("sitc_2 ~ '^[0-9][0-9]$'"),
+                sa.CheckConstraint("sitc_0 ~ '^[0-9]$'"),
+                sa.CheckConstraint("estimated_value >= 0"),
+            ],
+        )
+
+
+class HMRCEUExportsEstimates(_HMRCEUEstimates):
+    base_filename = "sesx16"
+    table_name = "eu_exports_estimates"
+
+
+class HMRCEUImportsEstimates(_HMRCEUEstimates):
+    base_filename = "sesm16"
+    table_name = "eu_imports_estimates"

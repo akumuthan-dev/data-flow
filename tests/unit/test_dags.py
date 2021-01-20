@@ -87,6 +87,7 @@ def test_pipelines_dags():
         'HMRCEUExports',
         'HMRCEUExportsEstimates',
         'HMRCEUImports',
+        'HMRCEUImportsEstimates',
         'HMRCNonEUExports',
         'HMRCNonEUImports',
         'InformationAssetRegisterPipeline',
