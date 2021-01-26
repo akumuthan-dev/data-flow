@@ -1,5 +1,6 @@
 import io
 import logging
+from typing import Tuple
 import zipfile
 from urllib.parse import urljoin
 
@@ -16,11 +17,12 @@ def fetch_hmrc_trade_data(
     table_name: str,
     base_filename: str,
     records_start_year: int,
-    num_expected_fields: int,
+    num_expected_fields: Tuple[int, int],
     num_per_page: int = 10000,
     **kwargs,
 ):
     s3 = S3Data(table_name, kwargs["ts_nodash"])
+    min_fields, max_fields = num_expected_fields
 
     # New files are uploaded to uktradeinfo 2 months later, usually on 10th of the month.
     # The files have a predictable name, but not a predictable directory. The best way we have
@@ -99,9 +101,9 @@ def fetch_hmrc_trade_data(
         for file, source_name in files:
             logger.info('Parsing file %s', file)
             for line in _without_first_and_last(file):
-                data = line.strip().decode('utf-8').split("|")
-                if len(data) == num_expected_fields:
-                    yield line.strip().decode('utf-8').split("|") + [source_name]
+                data = line.strip().decode('utf-8', errors='replace').split("|")
+                if min_fields <= len(data) < max_fields:
+                    yield data + [source_name]
                 else:
                     logger.warn(
                         "Ignoring row with %s fields instead of expected %s: %s",

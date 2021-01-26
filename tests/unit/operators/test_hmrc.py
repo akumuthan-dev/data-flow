@@ -93,7 +93,7 @@ def test_fetch_from_uktradeinfo(mocker, requests_mock):
         "non-eu-exports",
         "smke19",
         records_start_year,
-        22,
+        (22, 23),
         num_per_page=4,
         ts_nodash="task-1",
         run_date=run_date,
