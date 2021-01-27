@@ -158,7 +158,7 @@ class HMRCControl(_HMRCPipeline):
             ('qty2_alpha', sa.Column('qty2_alpha', sa.String(3), nullable=False)),
             (
                 'commodity_alpha',
-                sa.Column('commodity_alpha', sa.String(110), nullable=False),
+                sa.Column('commodity_alpha', sa.String(500), nullable=False),
             ),
             ('_source_name', sa.Column('_source_name', sa.String, nullable=False)),
         ],
