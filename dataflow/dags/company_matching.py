@@ -208,11 +208,11 @@ class DNBCompanyMatchingPipeline(_CompanyMatchingPipeline):
     dependencies = [DNBCompanyPipeline]
     company_match_query = f"""
         SELECT distinct on (id)
-            id as id,
+            duns_number as id,
             primary_name as company_name,
             null as contact_email,
             null as cdms_ref,
-            upper(replace(trim("address_country"), ' ', '')) as postcode,
+            upper(replace(trim("address_postcode"), ' ', '')) as postcode,
             duns_number as duns_number,
             'dun_and_bradstreet.uk_companies' as source,
             publish_date::timestamp as datetime
