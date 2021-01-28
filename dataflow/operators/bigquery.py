@@ -6,7 +6,6 @@ from dataflow.utils import S3Data, logger
 def fetch_from_bigquery(
     table_name: str, ts_nodash, **kwargs,
 ):
-    #service_account_file = "/home/akumuthan/workspace/data-flow/keys/bigquery-great-ga360-7d9ec550dce0.json"
     service_account_file = "/home/vcap/app/keys/bigquery-great-ga360-7d9ec550dce0.json"
 
     #bq_date = '20201106'
