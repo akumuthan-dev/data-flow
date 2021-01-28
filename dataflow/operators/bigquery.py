@@ -6,14 +6,15 @@ from dataflow.utils import S3Data, logger
 def fetch_from_bigquery(
     table_name: str, ts_nodash, **kwargs,
 ):
+    #service_account_file = "/home/akumuthan/workspace/data-flow/keys/bigquery-great-ga360-7d9ec550dce0.json"
     service_account_file = "/home/vcap/app/keys/bigquery-great-ga360-7d9ec550dce0.json"
 
+    d = datetime.today().date() - timedelta(days=1)
     #bq_date = '20201106'
     #bq_table = "bigquery-great-ga360.189502937.ga_sessions_" + bq_date
-    d = datetime.today().date() - timedelta(days=1)
     bq_table = "bigquery-great-ga360.189502937.ga_sessions_" + str(d).replace("-","")
-    #print("Big Query Table is:")
-    #print(bq_table)
+    print("Big Query Table is:")
+    print(bq_table)
 
     bq_query = '''
     SELECT clientId
@@ -58,30 +59,17 @@ def fetch_from_bigquery(
     LEFT JOIN UNNEST(hits) as h
     LIMIT 5
     '''
-    #print("\nQuery to be run on Big Query is:")
-    #print(bq_query)
-
-    #bq_client = bq.Client() #when using exported environment variable
+    print("\nQuery to be run on Big Query is:")
+    print(bq_query)
+    
     bq_client = bq.Client.from_service_account_json(service_account_file)
-
     dataset = bq_client.query(bq_query)
-
-    #debug
     print("\nBig Query Results are:")
-    fields = []
-    for d in dataset:
-        fields = list(d.keys())
-        break
-    print(fields)
-    for record in dataset:
-        fullrecord = []
-        for i in range(len(record)):
-            if i==(len(record)-1):
-                fullrecord.append(record[i])
-            else:
-                fullrecord.append(record[i])
-        print(fullrecord)
-        fullrecord.clear()
+
+    records = [dict(record) for record in dataset]
+    json_obj = json.dumps(str(records))
+    print(records)
+
 
     s3 = S3Data(table_name, ts_nodash)
     s3.write_key(
